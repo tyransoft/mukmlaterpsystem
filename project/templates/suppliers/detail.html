@@ -1,0 +1,148 @@
+<!-- templates/suppliers/detail.html -->
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}تفاصيل المورد{% endblock %}
+{% block page_title %}تفاصيل المورد{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:20px;">
+  <a href="{% url 'supplier_list' %}" class="btn btn-outline btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+    رجوع
+  </a>
+  <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+      <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
+      <path d="M4 20h16"></path>
+    </svg>
+    تعديل
+  </a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  
+  <!-- معلومات المورد -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 معلومات المورد</span>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;">
+        <div>
+          <div class="text-muted" style="font-size:11px;">اسم المورد</div>
+          <div class="fw-600" style="font-size:16px;">{{ supplier.name }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">رقم الهاتف</div>
+          <div dir="ltr">{{ supplier.phone }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">البريد الإلكتروني</div>
+          <div>{{ supplier.email|default:"-" }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">الرقم الضريبي</div>
+          <div>{{ supplier.tax_number|default:"-" }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">شخص التواصل</div>
+          <div>{{ supplier.contact_person|default:"-" }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">جوال التواصل</div>
+          <div dir="ltr">{{ supplier.contact_phone|default:"-" }}</div>
+        </div>
+        <div style="grid-column:span 2;">
+          <div class="text-muted" style="font-size:11px;">العنوان</div>
+          <div>{{ supplier.address|default:"-" }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">الحالة</div>
+          <div>
+            {% if supplier.is_active %}
+              <span class="badge badge-success">نشط</span>
+            {% else %}
+              <span class="badge badge-danger">غير نشط</span>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">تاريخ الإضافة</div>
+          <div>{{ supplier.created_at|date:"Y-m-d H:i" }}</div>
+        </div>
+      </div>
+      
+      {% if supplier.notes %}
+      <div style="margin-top:15px;padding:10px;background:#f8fafc;border-radius:8px;">
+        <div class="text-muted" style="font-size:11px;">ملاحظات</div>
+        <div>{{ supplier.notes }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- إحصائيات المشتريات -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">💰 إحصائيات المشتريات</span>
+    </div>
+    <div class="card-body">
+      <div style="text-align:center;padding:20px;">
+        <div class="text-muted">إجمالي المشتريات</div>
+        <div class="fw-bold text-primary" style="font-size:28px;">{{ total_purchases|floatformat:0|intcomma }} د.ل</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- آخر الفواتير -->
+  <div class="card" style="grid-column:span 2;">
+    <div class="card-header">
+      <span class="card-title">📄 آخر فواتير المشتريات</span>
+      <a href="{% url 'purchase_invoices_list' %}?supplier={{ supplier.pk }}" class="btn btn-outline btn-sm">عرض الكل</a>
+    </div>
+    <div class="card-body">
+      {% if purchases %}
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>رقم الفاتورة</th>
+              <th>التاريخ</th>
+              <th>الفرع</th>
+              <th>الإجمالي</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for purchase in purchases %}
+            <tr>
+              <td class="fw-600">{{ purchase.invoice_number }}</td>
+              <td>{{ purchase.created_at|date:"Y-m-d" }}</td>
+              <td>{{ purchase.branch.name }}</td>
+              <td class="fw-bold">{{ purchase.total|floatformat:2|intcomma }}</td>
+              <td>
+                <a href="{% url 'purchase_invoice_detail' purchase.pk %}" class="btn btn-outline btn-icon btn-sm">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted" style="padding:40px;">
+        لا توجد فواتير مشتريات لهذا المورد
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

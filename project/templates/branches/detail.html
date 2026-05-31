@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ branch.name }}{% endblock %}
+{% block page_title %}{{ branch.name }}{% endblock %}
+{% block nav_branches %}active{% endblock %}
+
+{% block content %}
+<style>
+  .stat-card-sm {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+  }
+  .filter-bar {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .summary-box {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .summary-box h4 {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px 0 5px;
+  }
+  .summary-box .label {
+    font-size: 12px;
+    color: #6b7280;
+  }
+</style>
+
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;">
+  
+  <!-- معلومات الفرع -->
+  <div>
+    <div class="card">
+      <div class="card-body">
+        <div style="text-align:center;padding:10px 0 20px;">
+          <div style="width:64px;height:64px;background:var(--primary);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;">🏪</div>
+          <h3 style="font-size:18px;font-weight:800;">{{ branch.name }}</h3>
+          {% if branch.is_main %}<span class="badge badge-success">الفرع الرئيسي</span>{% endif %}
+        </div>
+        
+        <div style="border-top:1px solid var(--border-color);padding-top:16px;">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+            <span class="text-muted">الهاتف</span>
+            <span class="fw-600">{{ branch.phone|default:"-" }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+            <span class="text-muted">نسبة العمولة</span>
+            <span class="fw-600 text-primary">{{ branch.commission_percentage }}%</span>
+          </div>
+          {% if branch.address %}
+          <div style="padding:8px 0;">
+            <span class="text-muted">العنوان</span>
+            <p style="margin:4px 0 0;font-size:13px;">{{ branch.address }}</p>
+          </div>
+          {% endif %}
+        </div>
+        
+        {% if user.is_main_admin %}
+        <div style="margin-top:16px;display:flex;gap:10px;flex-direction:column;">
+          <a href="{% url 'branches_edit' branch.pk %}" class="btn btn-primary">✏️ تعديل الفرع</a>
+          <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success" style="background:#16a34a;">
+            💰 تسليم مبيعات للفرع الرئيسي
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- الموظفين -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">👥 الموظفون</span></div>
+      <div class="card-body" style="padding:0;">
+        {% for emp in employees %}
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="fw-600">{{ emp.get_full_name|default:emp.username }}</div>
+            <div class="text-muted" style="font-size:12px;">{{ emp.get_role_display }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty-state" style="padding:20px;"><p>لا يوجد موظفون</p></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- إحصائيات المبيعات والتسليم -->
+  <div>
+    <!-- فلترة الفترة الزمنية -->
+    <div class="filter-bar">
+      <form method="get" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+        <div>
+          <label class="text-muted" style="font-size:12px;">من تاريخ</label>
+          <input type="date" name="date_from" class="form-control" value="{{ date_from|default:'' }}">
+        </div>
+        <div>
+          <label class="text-muted" style="font-size:12px;">إلى تاريخ</label>
+          <input type="date" name="date_to" class="form-control" value="{{ date_to|default:'' }}">
+        </div>
+        <div style="display:flex;gap:5px;align-items:flex-end;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">عرض</button>
+          {% if date_from or date_to %}
+          <a href="{% url 'branch_detail' branch.pk %}" class="btn btn-outline">إعادة</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    <!-- الملخص المالي -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
+      <div class="summary-box" style="background:#eff6ff;">
+        <div class="label">💰 إجمالي المبيعات</div>
+        <h4 style="color:#2563eb;">{{ total_sales|floatformat:0|intcomma }} د.ل</h4>
+        <div class="label">للفترة المحددة</div>
+      </div>
+      <div class="summary-box" style="background:#f0fdf4;">
+        <div class="label">⭐ عمولة الفرع</div>
+        <h4 style="color:#16a34a;">{{ total_commission|floatformat:0|intcomma }} د.ل</h4>
+        <div class="label">{{ branch.commission_percentage }}% من المبيعات</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
+      <div class="summary-box" style="background:#fef3c7;">
+        <div class="label">📦 المستحق للفرع الرئيسي</div>
+        <h4 style="color:#d97706;">{{ amount_due_to_main|floatformat:0|intcomma }} د.ل</h4>
+        <div class="label">(المبيعات - العمولة)</div>
+      </div>
+      <div class="summary-box" style="background:#dbeafe;">
+        <div class="label">✅ تم تسليمه للرئيسي</div>
+        <h4 style="color:#2563eb;">{{ total_delivered|floatformat:0|intcomma }} د.ل</h4>
+        <div class="label">إجمالي التسليمات</div>
+      </div>
+    </div>
+
+   
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">⚠️ المدفوعات غير المسددة (المتبقي لتسليمه)</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;">
+      <div style="text-align:center;padding:20px;background:#fee2e2;border-radius:12px;">
+        <div class="text-muted">المتبقي للفرع الرئيسي</div>
+        <div class="fw-bold" style="font-size:28px;color:#dc2626;">{{ remaining_to_deliver|floatformat:0|intcomma }} د.ل</div>
+        <div class="text-muted" style="font-size:11px;">من إجمالي مبيعات {{ total_sales|floatformat:0|intcomma }} د.ل</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:#f0fdf4;border-radius:12px;">
+        <div class="text-muted">آخر تسجيل</div>
+        <div class="fw-bold" style="font-size:20px;color:#16a34a;">
+          {% if last_delivery %}
+            {{ last_delivery.amount|floatformat:0|intcomma }} د.ل
+          {% else %}
+            لا يوجد
+          {% endif %}
+        </div>
+        <div class="text-muted" style="font-size:11px;">
+          {% if last_delivery %}
+            {{ last_delivery.delivery_date|date:"Y-m-d" }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    {% if remaining_to_deliver > 0 %}
+    <div style="margin-top:15px;">
+      <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success" style="width:100%;">
+        💰 تسليم مبيعات للفرع الرئيسي
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+    <!-- آخر فواتير الفترة -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🧾 فواتير المبيعات</span>
+        <div style="display:flex;gap:5px;">
+          <button onclick="window.print()" class="btn btn-outline btn-sm">🖨️ طباعة</button>
+          <a href="{% url 'branch_sales_report' branch.pk %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline btn-sm">📊 تقرير</a>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-responsive">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th>رقم الفاتورة</th>
+                <th>التاريخ</th>
+                <th>العميل</th>
+                <th>الإجمالي</th>
+                <th>عمولة الفرع</th>
+                <th>مستحق للرئيسي</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in period_invoices %}
+              <tr>
+                <td class="fw-600">{{ invoice.invoice_number }}</td>
+                <td>{{ invoice.created_at|date:"Y-m-d" }}</td>
+                <td>{{ invoice.customer.full_name|default:"-" }}</td>
+                <td class="fw-bold">{{ invoice.total|floatformat:2|intcomma }}</td>
+                <td class="text-primary">{{ invoice.branch_commission|floatformat:2|intcomma }}</td>
+                <td class="text-warning">{{ invoice.amount_due_to_main|floatformat:2|intcomma }}</td>
+                <td>
+                  <a href="{% url 'sale_invoice_detail' invoice.pk %}" class="btn btn-outline btn-icon btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </a>
+                </td>
+               </tr>
+              {% empty %}
+               <tr>
+                <td colspan="7" class="text-center text-muted" style="padding:40px;">
+                  لا توجد فواتير في هذه الفترة
+                </td>
+               </tr>
+              {% endfor %}
+            </tbody>
+           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- سجل التسليمات -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">
+        <span class="card-title">📋 سجل تسليم المبيعات للفرع الرئيسي</span>
+        <a href="{% url 'branch_deliveries_history' branch.pk %}" class="btn btn-outline btn-sm">عرض الكل</a>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-responsive">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th>رقم الإيصال</th>
+                <th>التاريخ</th>
+                <th>المبلغ المسلم</th>
+                <th>ملاحظات</th>
+                <th></th>
+               </tr>
+            </thead>
+            <tbody>
+              {% for delivery in recent_deliveries %}
+               <tr>
+                <td class="fw-600">{{ delivery.receipt_number }}</td>
+                <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
+                <td class="text-success fw-bold">{{ delivery.amount|floatformat:2|intcomma }} د.ل</td>
+                <td>{{ delivery.notes|default:"-" }}</td>
+                <td>
+                  <a href="{% url 'branch_delivery_receipt' delivery.pk %}" class="btn btn-outline btn-icon btn-sm" target="_blank">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M6 9V2h12v7"></path>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                  </a>
+                </td>
+               </tr>
+              {% empty %}
+               <tr>
+                <td colspan="5" class="text-center text-muted" style="padding:20px;">
+                  لا توجد تسليمات مبيعات مسجلة
+                </td>
+               </tr>
+              {% endfor %}
+            </tbody>
+           </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @media print {
+    .filter-bar, .btn, .card-header .btn, .no-print {
+      display: none !important;
+    }
+  }
+</style>
+{% endblock %}

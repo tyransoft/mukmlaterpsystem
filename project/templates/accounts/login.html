@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول  </title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    body { background: linear-gradient(135deg, #1A2035 0%, #2D3748 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-container { width: 100%; max-width: 420px; padding: 20px; }
+    .login-card { background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .logo-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #E8793A, #C85E20); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 12px; }
+    .login-logo h2 { font-size: 20px; font-weight: 800; color: #1A202C; margin: 0; }
+    .login-logo p { color: #718096; font-size: 13px; margin-top: 4px; }
+    .login-title { font-size: 22px; font-weight: 800; color: #1A202C; margin-bottom: 6px; }
+    .login-subtitle { color: #718096; font-size: 13px; margin-bottom: 28px; }
+    .login-btn { width: 100%; padding: 12px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #E8793A, #C85E20); border: none; border-radius: 10px; color: white; cursor: pointer; font-family: Tajawal, sans-serif; transition: all 0.2s; margin-top: 4px; }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(232,121,58,0.4); }
+    .login-footer { text-align: center; margin-top: 20px; color: rgba(255,255,255,0.5); font-size: 12px; }
+    .decor-circles { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; }
+    .decor-circle { position: absolute; border-radius: 50%; background: rgba(232,121,58,0.08); }
+    .c1 { width: 300px; height: 300px; top: -100px; right: -80px; }
+    .c2 { width: 200px; height: 200px; bottom: -60px; left: -60px; }
+    .c3 { width: 150px; height: 150px; bottom: 100px; right: 10%; background: rgba(255,255,255,0.03); }
+  </style>
+</head>
+<body>
+<div class="decor-circles">
+  <div class="decor-circle c1"></div>
+  <div class="decor-circle c2"></div>
+  <div class="decor-circle c3"></div>
+</div>
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🏢</div>
+      <h2>{{ COMPANY_NAME }}</h2>
+      <p>نظام إدارة الموارد المؤسسية</p>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-danger" style="margin-bottom:16px;"> {{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">اسم المستخدم</label>
+        <input type="text" name="username" class="form-control" placeholder="أدخل اسم المستخدم" autofocus required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">كلمة المرور</label>
+        <input type="password" name="password" class="form-control" placeholder="أدخل كلمة المرور" required>
+      </div>
+      <button type="submit" class="login-btn"> تسجيل الدخول</button>
+    </form>
+  </div>
+  
+</div>
+<script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

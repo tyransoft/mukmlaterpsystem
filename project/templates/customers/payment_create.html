@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}تسديد دين {{ customer.full_name }}{% endblock %}
+{% block page_title %}تسديد دين العميل{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;margin:0 auto;">
+  <div class="card-header">
+    <span class="card-title">💰 تسديد دين العميل</span>
+  </div>
+  <div class="card-body">
+    
+    <div style="background:#eff6ff;padding:15px;border-radius:12px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div class="text-muted" style="font-size:12px;">اسم العميل</div>
+          <div class="fw-bold" style="font-size:16px;">{{ customer.full_name }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">رقم الهاتف</div>
+          <div dir="ltr">{{ customer.phone }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">إجمالي الدين</div>
+          <div class="fw-bold text-danger" style="font-size:22px;">{{ debt_amount|floatformat:2|intcomma }} د.ل</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">نقاط الولاء</div>
+          <div>⭐ {{ customer.loyalty_points }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label class="form-label">المبلغ المراد تسديده *</label>
+        <input type="number" name="amount" class="form-control" step="0.01" 
+               min="0.01" max="{{ debt_amount }}" required
+               placeholder="أدخل المبلغ">
+        <small class="text-muted">أقصى مبلغ يمكن تسديده: {{ debt_amount|floatformat:2|intcomma }} د.ل</small>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <textarea name="notes" class="form-control" rows="3" 
+                  placeholder="مثال: تسديد قسط شهر يناير"></textarea>
+      </div>
+      
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn btn-success" style="flex:1;" id="submit-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          تأكيد التسديد
+        </button>
+        <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<style>
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

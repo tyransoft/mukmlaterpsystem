@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}المنتجات{% endblock %}
+{% block page_title %}إدارة المنتجات{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">قائمة المنتجات</span>
+    <div style="display:flex;gap:8px;">
+      {% if user.can_modify_prices %}
+      <a href="{% url 'products_create' %}" class="btn btn-primary btn-sm">+ إضافة منتج</a>
+      <a href="{% url 'products_bulk_price_update' %}" class="btn btn-primary btn-sm">تعديل الاسعار</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body" style="padding:12px 16px;">
+    <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="search-bar">
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="بحث باسم المنتج أو الكود...">
+      </div>
+      <select name="category" class="form-select" style="width:180px;">
+        <option value="">كل الفئات</option>
+        {% for cat in categories %}
+        <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">بحث</button>
+      <a href="{% url 'products_list' %}" class="btn btn-outline">إعادة تعيين</a>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>المنتج</th><th>الكود</th><th>الفئة</th><th>سعر التكلفة</th><th>سعر البيع</th><th>نقاط</th><th>الحالة</th><th>الإجراءات</th></tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>
+            <div class="fw-600">{{ product.name }}</div>
+          </td>
+          <td><code style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-size:12px;">{{ product.barcode }}</code></td>
+          <td>{{ product.category.name|default:"-" }}</td>
+          <td>{{ product.cost_price|floatformat:2|intcomma }}</td>
+          <td class="fw-bold text-primary">{{ product.selling_price|floatformat:2|intcomma }}</td>
+        
+          <td>{% if product.loyalty_points > 0 %}<span class="badge badge-primary"> {{ product.loyalty_points }}</span>{% else %}-{% endif %}</td>
+          <td>{% if product.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
+          <td>
+            <div style="display:flex;gap:5px;">
+              <a href="{% url 'products_detail' product.pk %}" class="btn btn-outline btn-icon btn-sm">
+
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                 <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </a>
+              {% if user.can_modify_prices %}
+              <a href="{% url 'products_edit' product.pk %}" class="btn btn-outline btn-icon btn-sm">
+
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
+                 <path d="M4 20h16"></path>
+                </svg>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9"><h5>لا توجد منتجات</h5></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

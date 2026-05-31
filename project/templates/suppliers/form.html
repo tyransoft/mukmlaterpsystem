@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <polyline points="16 3 12 7 8 3"></polyline>
+      </svg>
+      {{ title }}
+    </span>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;">
+        
+        <div class="form-group">
+          <label class="form-label">اسم المورد *</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <div class="text-danger">{{ form.name.errors }}</div>
+          {% endif %}
+        </div>
+        
+       
+        
+        <div class="form-group">
+          <label class="form-check-label">
+            {{ form.is_active }} نشط
+          </label>
+        </div>
+        
+      </div>
+      
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn btn-primary">
+   
+          حفظ
+        </button>
+        <a href="{% url 'supplier_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

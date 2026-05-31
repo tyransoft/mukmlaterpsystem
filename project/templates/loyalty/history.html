@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}سجل التحويلات{% endblock %}
+{% block page_title %}سجل تحويلات نقاط الولاء{% endblock %}
+{% block nav_loyalty_history %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"> سجل التحويلات المكتملة</span>
+    <div style="display:flex;gap:8px;">
+      <form method="get" style="display:flex;gap:8px;">
+        <select name="branch" class="form-select" style="width:160px;">
+          <option value="">كل الفروع</option>
+          {% for b in branches %}<option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline btn-sm">تصفية</button>
+      </form>
+      <a href="{% url 'loyalty_pending' %}" class="btn btn-primary btn-sm"> المعلقة</a>
+    </div>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>العميل</th><th>الفرع</th><th>النقاط</th><th>الفاتورة</th><th>نُقل بواسطة</th><th>تاريخ التحويل</th></tr>
+      </thead>
+      <tbody>
+        {% for t in transfers %}
+        <tr>
+          <td>
+            <a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a>
+          </td>
+          <td>{{ t.branch.name }}</td>
+          <td><span class="badge badge-success" style="font-size:13px;"> {{ t.points|intcomma }}</span></td>
+          <td>{% if t.invoice %}<a href="{% url 'sale_invoice_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>{% else %}-{% endif %}</td>
+          <td>{{ t.transferred_by.get_full_name|default:t.transferred_by.username|default:"-" }}</td>
+          <td style="font-size:12px;">{{ t.transfer_date|date:"Y/m/d H:i"|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">--</div><h5>لا يوجد سجل تحويلات</h5></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

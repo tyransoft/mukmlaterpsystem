@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}سجل تسديدات {{ customer.full_name }}{% endblock %}
+{% block page_title %}سجل تسديدات العميل{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:20px;">
+  <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+    رجوع للعميل
+  </a>
+  {% if customer.debt_balance > 0 %}
+  <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    تسديد جديد
+  </a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">
+      
+      سجل تسديدات {{ customer.full_name }}
+    </span>
+  </div>
+  <div class="card-body">
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px;">
+      <div style="background:#eff6ff;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted" style="font-size:12px;">إجمالي الدين السابق</div>
+        <div class="fw-bold" style="font-size:22px;color:#2563eb;">{{ total_previous_debt|floatformat:0|intcomma }} د.ل</div>
+      </div>
+      <div style="background:#f0fdf4;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted" style="font-size:12px;">إجمالي المدفوع</div>
+        <div class="fw-bold" style="font-size:22px;color:#16a34a;">{{ total_paid|floatformat:0|intcomma }} د.ل</div>
+      </div>
+      <div style="background:#fee2e2;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted" style="font-size:12px;">المتبقي الحالي</div>
+        <div class="fw-bold" style="font-size:22px;color:#dc2626;">{{ customer.debt_balance|floatformat:0|intcomma }} د.ل</div>
+      </div>
+    </div>
+    
+    <div class="table-responsive">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>رقم الإيصال</th>
+            <th>التاريخ</th>
+            <th>المبلغ المسدد</th>
+            <th>ملاحظات</th>
+            <th>تم بواسطة</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td class="fw-600">{{ payment.receipt_number }}</td>
+            <td>{{ payment.payment_date|date:"Y-m-d H:i" }}</td>
+            <td class="text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }} د.ل</td>
+            <td>{{ payment.notes|default:"-" }}</td>
+            <td>{{ payment.created_by.get_full_name|default:payment.created_by.username }}</td>
+            <td>
+              <a href="{% url 'customer_payment_receipt' payment.pk %}" class="btn btn-outline btn-icon btn-sm" target="_blank" title="طباعة الإيصال">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 9V2h12v7"></path>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted" style="padding:60px;">
+              <div style="font-size:48px;margin-bottom:10px;">--</div>
+              <h5>لا توجد تسديدات مسجلة</h5>
+              <p class="text-muted">لم يقم هذا العميل بأي تسديدات حتى الآن</p>
+              {% if customer.debt_balance > 0 %}
+              <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-primary btn-sm">تسديد جديد</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    {% if payments.has_other_pages %}
+    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;">
+      {% if payments.has_previous %}
+        <a href="?page={{ payments.previous_page_number }}" class="btn btn-outline btn-sm">السابق</a>
+      {% endif %}
+      <span class="btn btn-primary btn-sm" style="background:#2563eb;">{{ payments.number }}</span>
+      {% if payments.has_next %}
+        <a href="?page={{ payments.next_page_number }}" class="btn btn-outline btn-sm">التالي</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

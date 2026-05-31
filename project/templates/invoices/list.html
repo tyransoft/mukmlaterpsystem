@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}الفواتير{% endblock %}
+{% block page_title %}إدارة الفواتير{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🧾 الفواتير</span>
+    <a href="{% url 'invoices_create' %}" class="btn btn-primary btn-sm">+ فاتورة جديدة</a>
+  </div>
+  <div class="card-body" style="padding:10px 16px;border-bottom:1px solid var(--border-color);">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select name="type" class="form-select" style="width:170px;">
+        <option value="">كل الأنواع</option>
+        {% for code, label in invoice_types %}<option value="{{ code }}" {% if selected_type == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <select name="status" class="form-select" style="width:150px;">
+        <option value="">كل الحالات</option>
+        {% for code, label in status_choices %}<option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {% if user.can_see_all_data %}
+      <select name="branch" class="form-select" style="width:160px;">
+        <option value="">كل الفروع</option>
+        {% for b in branches %}<option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">تصفية</button>
+      <a href="{% url 'invoices_list' %}" class="btn btn-outline btn-sm">إعادة</a>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>رقم الفاتورة</th><th>النوع</th><th>الفرع</th><th>العميل/المورد</th><th>الإجمالي</th><th>المدفوع</th><th>الحالة</th><th>التاريخ</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><a href="{% url 'invoices_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
+          <td><span class="badge badge-secondary" style="font-size:11px;">{{ inv.get_invoice_type_display }}</span></td>
+          <td>{{ inv.branch.name }}</td>
+          <td>{{ inv.customer.full_name|default:inv.supplier_name|default:"-" }}</td>
+          <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+          <td>{{ inv.paid_amount|floatformat:2|intcomma }}</td>
+          <td>
+            <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'partial' %}badge-warning{% elif inv.status == 'cancelled' %}badge-danger{% else %}badge-secondary{% endif %}">
+              {{ inv.get_status_display }}
+            </span>
+          </td>
+          <td style="font-size:12px;white-space:nowrap;">{{ inv.created_at|date:"Y/m/d H:i" }}</td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              <a href="{% url 'invoices_detail' inv.pk %}" class="btn btn-outline btn-icon btn-sm">👁️</a>
+              <a href="{% url 'invoices_print' inv.pk %}" class="btn btn-outline btn-icon btn-sm" target="_blank">🖨️</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🧾</div><h5>لا توجد فواتير</h5></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

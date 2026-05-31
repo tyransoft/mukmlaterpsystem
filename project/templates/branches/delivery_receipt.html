@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}إيصال تسليم مبيعات{% endblock %}
+{% block page_title %}إيصال تسليم مبيعات{% endblock %}
+
+{% block content %}
+<style>
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    .receipt-box {
+      box-shadow: none !important;
+      border: 1px solid #ddd !important;
+    }
+  }
+  .receipt-box {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .receipt-header {
+    background: transparent;
+    color: rgb(3, 3, 3);
+    padding: 30px;
+    text-align: center;
+  }
+  .receipt-body {
+    padding: 30px;
+  }
+  .receipt-footer {
+    background: #f8fafc;
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #e5e7eb;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+  .info-label {
+    font-weight: 600;
+    color: #4b5563;
+  }
+  .info-value {
+    font-weight: 500;
+  }
+  .amount-box {
+    background: #f0fdf4;
+    border: 2px solid #0c0e0d;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin: 20px 0;
+  }
+  .amount-box .label {
+    font-size: 14px;
+    color: #0e0f0f;
+  }
+  .amount-box .value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #0b0c0b;
+  }
+</style>
+
+<div class="receipt-box">
+  <div class="receipt-header">
+    <h2 style="margin:0;font-size:24px;">إيصال تسليم مبيعات</h2>
+    <p style="margin:5px 0 0;opacity:0.9;">{{ delivery.branch.name }}  من</p>
+  </div>
+  
+  <div class="receipt-body">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:12px;color:#0a0a0a;">رقم الإيصال</div>
+      <div style="font-size:20px;font-weight:bold;letter-spacing:2px;">{{ delivery.receipt_number }}</div>
+    </div>
+    
+    <div class="info-row">
+      <span class="info-label">تاريخ التسليم</span>
+      <span class="info-value">{{ delivery.delivery_date|date:"Y-m-d H:i" }}</span>
+    </div>
+    
+    <div class="info-row">
+      <span class="info-label"> الفرع</span>
+      <span class="info-value">{{ delivery.branch.name }}</span>
+    </div>
+    
+   
+    
+    <div class="amount-box">
+      <div class="label">المبلغ المستلم</div>
+      <div class="value">{{ delivery.amount|floatformat:2|intcomma }} د.ل</div>
+      <div class="label" style="margin-top:8px;">(مبيعات - عمولة الفرع)</div>
+    </div>
+    
+    {% if delivery.notes %}
+    <div class="info-row">
+      <span class="info-label"> ملاحظات</span>
+      <span class="info-value">{{ delivery.notes }}</span>
+    </div>
+    {% endif %}
+    
+    <div class="info-row">
+      <span class="info-label">تم بواسطة</span>
+      <span class="info-value">{{ delivery.created_by.get_full_name|default:delivery.created_by.username }}</span>
+    </div>
+    
+    <div class="info-row">
+      <span class="info-label">هذا الواصل يثبت عملية تسليم المبيعات  الخاصة بالفرع الفرعي للفرع الرئيسي بعد خصم عمولة الطرف الاول</span>
+      <span class="info-value">{{ delivery.created_at|date:"Y-m-d H:i" }}</span>
+    </div>
+  </div>
+  
+  <div class="receipt-footer">
+    <div style="font-size:12px;color:#0d0d0e;">شكراً للتعاون</div>
+  </div>
+</div>
+
+<div class="no-print" style="text-align:center;margin-top:20px;">
+  <button onclick="window.print();" class="btn btn-primary">
+     طباعة الإيصال
+  </button>
+  <a href="{% url 'branches_detail' delivery.branch.pk %}" class="btn btn-outline">
+    ↩ رجوع 
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}حركة المخزون{% endblock %}
+{% block page_title %}سجل حركة المخزون{% endblock %}
+{% block nav_movements %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"> حركات المخزون</span>
+  </div>
+  <div class="card-body" style="padding:10px 16px;border-bottom:1px solid var(--border-color);">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;">
+      {% if user.can_see_all_data %}
+      <select name="branch" class="form-select" style="width:160px;">
+        <option value="">كل الفروع</option>
+        {% for b in branches %}
+        <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="type" class="form-select" style="width:160px;">
+        <option value="">كل الأنواع</option>
+        {% for code, label in movement_types %}
+        <option value="{{ code }}" {% if selected_type == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">تصفية</button>
+      <a href="{% url 'inventory_movements' %}" class="btn btn-outline btn-sm">إعادة</a>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>التاريخ</th><th>الفرع</th><th>المنتج</th><th>نوع الحركة</th><th>الكمية</th><th>قبل</th><th>بعد</th><th>الموظف</th></tr>
+      </thead>
+      <tbody>
+        {% for m in movements %}
+        <tr>
+          <td style="font-size:12px;white-space:nowrap;">{{ m.created_at|date:"Y/m/d H:i" }}</td>
+          <td>{{ m.branch.name }}</td>
+          <td>
+            <div class="fw-600">{{ m.product.name }}</div>
+            <div class="text-muted" style="font-size:11px;">{{ m.product.code }}</div>
+          </td>
+          <td>
+            <span class="badge {% if 'in' in m.movement_type or m.movement_type in 'in,transfer_in,return_in,supply' %}badge-success{% else %}badge-warning{% endif %}">
+              {{ m.get_movement_type_display }}
+            </span>
+          </td>
+          <td>
+            <span class="fw-bold {% if m.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+              {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
+            </span>
+          </td>
+          <td class="text-muted">{{ m.quantity_before }}</td>
+          <td class="fw-600">{{ m.quantity_after }}</td>
+          <td>{{ m.employee.get_full_name|default:m.employee.username|default:"-" }}</td>
+          
+        </tr>
+        {% empty %}
+        <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔄</div><h5>لا توجد حركات</h5></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_users %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;">
+  <div class="card-header"><span class="card-title">{{ title }}</span></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      {% if not user_obj %}
+      <div class="form-group"><label class="form-label">اسم المستخدم *</label>{{ form.username }}</div>
+      {% endif %}
+    
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">الدور *</label>{{ form.role }}</div>
+        <div class="form-group"><label class="form-label">الفرع</label>{{ form.branch }}</div>
+      </div>
+      {% if not user_obj %}
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">كلمة المرور *</label>{{ form.password1 }}</div>
+        <div class="form-group"><label class="form-label">تأكيد كلمة المرور *</label>{{ form.password2 }}</div>
+      </div>
+      {% endif %}
+      {% if user_obj %}
+      <div class="form-check" style="margin-bottom:16px;">{{ form.is_active }} <label class="form-label" style="display:inline;">نشط</label></div>
+      {% endif %}
+      {% if form.errors %}
+      <div class="alert alert-danger">
+        {% for field in form %} {% for error in field.errors %}<p>{{ field.label }}: {{ error }}</p>{% endfor %}{% endfor %}
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+      {% endif %}
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">💾 حفظ</button>
+        <a href="{% url 'users_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}الفئات{% endblock %}
+{% block page_title %}فئات المنتجات{% endblock %}
+{% block nav_categories %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">الفئات</span>
+    {% if user.can_modify_prices %}
+    <a href="{% url 'category_create' %}" class="btn btn-primary btn-sm">+ إضافة فئة</a>
+    {% endif %}
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead><tr><th>اسم الفئة</th><th>عدد المنتجات</th><th>الحالة</th></tr></thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td class="fw-600">{{ cat.name }}</td>
+          <td>{{ cat.products.count }}</td>
+          <td>{% if cat.is_active %}<span class="badge badge-success">نشطة</span>{% else %}<span class="badge badge-danger">معطلة</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4"><div class="empty-state"><div class="empty-icon">__</div><h5>لا توجد فئات</h5></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

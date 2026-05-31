@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_branches %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;">
+  <div class="card-header"><span class="card-title">{{ title }}</span></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">{{ form.name.label }}</label>
+          {{ form.name }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.phone.label }}</label>
+          {{ form.phone }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.address.label }}</label>
+        {{ form.address }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.commission_percentage.label }}</label>
+        {{ form.commission_percentage }}
+        <small class="text-muted">نسبة العمولة من مبيعات الفرع (0-100%)</small>
+      </div>
+      <div style="display:flex;gap:20px;margin-bottom:16px;">
+        <div class="form-check">
+          {{ form.is_main }} <label class="form-label" style="display:inline;">{{ form.is_main.label }}</label>
+          <small class="text-muted d-block">سيلغي تعيين الفرع الرئيسي الحالي</small>
+        </div>
+        <div class="form-check">
+          {{ form.is_active }} <label class="form-label" style="display:inline;">{{ form.is_active.label }}</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">💾 حفظ</button>
+        <a href="{% url 'branches_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ invoice.invoice_number }}</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    body { margin: 0; padding: 20px; background: white; }
+    @media screen { .print-btn { display: inline-flex; } }
+    @media print { .print-btn { display: none !important; } body { padding: 0; } }
+  </style>
+</head>
+<body>
+<div style="text-align:center;margin-bottom:16px;" class="print-btn">
+  <button onclick="window.print()" class="btn btn-primary">🖨️ طباعة</button>
+  <button onclick="window.close()" class="btn btn-outline">إغلاق</button>
+</div>
+
+<div class="print-invoice" style="max-width:800px;margin:0 auto;">
+  <div class="invoice-header">
+    <div class="invoice-company">
+      <h2>{{ COMPANY_NAME }}</h2>
+      <p>{{ invoice.branch.name }}</p>
+      {% if invoice.branch.phone %}<p>{{ invoice.branch.phone }}</p>{% endif %}
+    </div>
+    <div class="invoice-meta">
+      <div class="invoice-number">{{ invoice.invoice_number }}</div>
+      <div class="invoice-type">{{ invoice.get_invoice_type_display }}</div>
+      <div style="font-size:12px;color:#718096;margin-top:4px;">{{ invoice.created_at|date:"Y/m/d H:i" }}</div>
+      <div style="margin-top:6px;">
+        <span class="badge {% if invoice.status == 'paid' %}badge-success{% elif invoice.status == 'confirmed' %}badge-info{% elif invoice.status == 'partial' %}badge-warning{% else %}badge-secondary{% endif %}">{{ invoice.get_status_display }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="invoice-parties">
+    <div class="invoice-party">
+      <h6>من</h6>
+      <p>{{ COMPANY_NAME }}</p>
+      <p style="font-weight:400;font-size:12px;">{{ invoice.branch.name }}</p>
+      {% if invoice.employee %}<p style="font-weight:400;font-size:12px;">الموظف: {{ invoice.employee.get_full_name|default:invoice.employee.username }}</p>{% endif %}
+    </div>
+    <div class="invoice-party">
+      <h6>{% if invoice.customer %}العميل{% elif invoice.target_branch %}الفرع المستلم{% else %}المورد{% endif %}</h6>
+      {% if invoice.customer %}
+      <p>{{ invoice.customer.full_name }}</p>
+      <p style="font-weight:400;font-size:12px;">{{ invoice.customer.phone }}</p>
+      {% if invoice.customer.address %}<p style="font-weight:400;font-size:12px;">{{ invoice.customer.address }}</p>{% endif %}
+      {% elif invoice.target_branch %}
+      <p>{{ invoice.target_branch.name }}</p>
+      {% elif invoice.supplier_name %}
+      <p>{{ invoice.supplier_name }}</p>
+      {% else %}<p>-</p>{% endif %}
+    </div>
+  </div>
+
+  <table class="invoice-items-table">
+    <thead>
+      <tr>
+        <th>#</th><th>المنتج</th><th>الكود</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>نقاط الولاء</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.items.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ item.product.name }}</td>
+        <td><code>{{ item.product.code }}</code></td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.unit_price|floatformat:2|intcomma }}</td>
+        <td style="font-weight:700;">{{ item.total_price|floatformat:2|intcomma }}</td>
+        <td>{% if item.loyalty_points > 0 %}{{ item.loyalty_points }}{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    {% if invoice.notes %}
+    <div style="background:var(--bg-light);padding:12px;border-radius:8px;max-width:280px;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">ملاحظات</div>
+      <div style="font-size:13px;">{{ invoice.notes }}</div>
+    </div>
+    {% else %}<div></div>{% endif %}
+
+    <div class="invoice-totals" style="min-width:220px;">
+      <div class="invoice-total-row"><span>المجموع الفرعي:</span><span>{{ invoice.subtotal|floatformat:2|intcomma }} د.ل</span></div>
+      {% if invoice.discount > 0 %}
+      <div class="invoice-total-row" style="color:var(--danger);"><span>الخصم:</span><span>- {{ invoice.discount|floatformat:2|intcomma }} د.ل</span></div>
+      {% endif %}
+      <div class="invoice-total-row grand-total"><span>الإجمالي:</span><span>{{ invoice.total|floatformat:2|intcomma }} د.ل</span></div>
+      <div class="invoice-total-row" style="color:var(--success);"><span>المدفوع:</span><span>{{ invoice.paid_amount|floatformat:2|intcomma }} د.ل</span></div>
+      {% if invoice.remaining_amount > 0 %}
+      <div class="invoice-total-row" style="color:var(--danger);"><span>المتبقي:</span><span>{{ invoice.remaining_amount|floatformat:2|intcomma }} د.ل</span></div>
+      {% endif %}
+      {% if invoice.total_loyalty_points > 0 %}
+      <div class="invoice-total-row" style="color:var(--primary);margin-top:8px;border-top:1px solid var(--primary);padding-top:8px;">
+        <span>⭐ نقاط الولاء:</span><span>{{ invoice.total_loyalty_points }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:30px;padding-top:16px;border-top:2px solid var(--border-color);color:var(--text-muted);font-size:12px;">
+    <p>شكراً لتعاملكم معنا | {{ COMPANY_NAME }}</p>
+  </div>
+</div>
+</body>
+</html>

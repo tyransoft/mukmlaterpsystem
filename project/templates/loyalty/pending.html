@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}التحويلات المعلقة{% endblock %}
+{% block page_title %}نقاط الولاء المعلقة{% endblock %}
+{% block nav_loyalty %}active{% endblock %}
+
+{% block content %}
+<div class="grid-3" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-value">{{ total_pending_points|intcomma }}</div>
+      <div class="stat-label">إجمالي النقاط المعلقة</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-value">{{ customers_summary|length }}</div>
+      <div class="stat-label">عملاء لديهم نقاط معلقة</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-info">
+      <div class="stat-value">{{ transfers|length }}</div>
+      <div class="stat-label">عمليات معلقة</div>
+    </div>
+  </div>
+</div>
+
+<!-- Customers Summary -->
+{% if customers_summary %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title"> ملخص العملاء</span>
+    <button onclick="markAllTransferred('', '{{ selected_branch }}')" class="btn btn-success btn-sm"> تحويل الكل</button>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead><tr><th>العميل</th><th>الهاتف</th><th>إجمالي النقاط المعلقة</th><th>الإجراء</th></tr></thead>
+      <tbody>
+        {% for cs in customers_summary %}
+        <tr>
+          <td class="fw-600">{{ cs.customer__full_name }}</td>
+          <td>{{ cs.customer__phone }}</td>
+          <td><span class="badge badge-primary" style="font-size:14px;"> {{ cs.total_points|intcomma }}</span></td>
+          <td>
+            <button onclick="markAllTransferred('{{ cs.customer__pk }}', '')" class="btn btn-success btn-sm"> تحويل نقاط هذا العميل</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Individual Transfers -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"> تفاصيل النقاط المعلقة</span>
+    <div style="display:flex;gap:8px;">
+      <form method="get" style="display:flex;gap:8px;">
+        <select name="branch" class="form-select" style="width:160px;">
+          <option value="">كل الفروع</option>
+          {% for b in branches %}<option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline btn-sm">تصفية</button>
+      </form>
+      <a href="{% url 'loyalty_history' %}" class="btn btn-outline btn-sm"> السجل</a>
+    </div>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>العميل</th><th>الفرع</th><th>النقاط</th><th>الفاتورة</th><th>التاريخ</th><th>تحويل</th></tr>
+      </thead>
+      <tbody>
+        {% for t in transfers %}
+        <tr id="loyalty-row-{{ t.pk }}">
+          <td>
+            <a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a>
+            <div class="text-muted" style="font-size:12px;">{{ t.customer.phone }}</div>
+          </td>
+          <td>{{ t.branch.name }}</td>
+          <td><span class="badge badge-primary" style="font-size:13px;"> {{ t.points|intcomma }}</span></td>
+          <td>
+            {% if t.invoice %}<a href="{% url 'invoices_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>{% else %}-{% endif %}
+          </td>
+          <td style="font-size:12px;">{{ t.created_at|date:"Y/m/d H:i" }}</td>
+          <td>
+            <button onclick="markTransferred({{ t.pk }})" class="btn btn-success btn-sm"> تم التحويل</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع نقاط الولاء تم تحويلها</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

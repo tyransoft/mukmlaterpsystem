@@ -1,0 +1,259 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ COMPANY_NAME }} - نظام ERP{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="erp-wrapper">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"></div>
+      <div class="brand-text">
+        <h6>{{ COMPANY_NAME }}</h6>
+        <small>نظام إدارة الموارد</small>
+      </div>
+    </div>
+
+    {% if user.is_authenticated %}
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ user.first_name|first|default:user.username|first }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+        <div class="user-role">{{ user.get_role_display }}</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Dashboard -->
+      <div class="nav-section">الرئيسية</div>
+      <div class="nav-item">
+        <a href="{% url 'dashboard_home' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+           لوحة التحكم
+        </a>
+      </div>
+
+      {% if user.can_see_all_data %}
+      <!-- Admin only -->
+      <div class="nav-section">الإدارة</div>
+      <div class="nav-item">
+        <a href="{% url 'branches_list' %}" class="nav-link {% block nav_branches %}{% endblock %}">
+          الفروع
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'users_list' %}" class="nav-link {% block nav_users %}{% endblock %}">
+         المستخدمون
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Products -->
+      <div class="nav-section">المنتجات</div>
+      <div class="nav-item">
+        <a href="{% url 'products_list' %}" class="nav-link {% block nav_products %}{% endblock %}">
+          المنتجات
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'categories' %}" class="nav-link {% block nav_categories %}{% endblock %}">
+          الفئات
+        </a>
+      </div>
+
+      <!-- Inventory -->
+      <div class="nav-section">المخزون</div>
+      <div class="nav-item">
+        <a href="{% url 'inventory_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_inventory %}{% endblock %}">
+          المخزون
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'inventory_movements' %}" class="nav-link {% block nav_movements %}{% endblock %}">
+          حركة المخزون
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'inventory_low_stock' %}" class="nav-link {% block nav_lowstock %}{% endblock %}">
+          تنبيهات المخزون
+        </a>
+      </div>
+
+ <div class="nav-section">المبيعات</div>
+<div class="nav-item">
+  <a href="{% url 'sale_invoices_list' %}" class="nav-link {% block nav_sale_invoices %}{% endblock %}">
+   
+    فواتير المبيعات
+  </a>
+</div>
+<div class="nav-item">
+  <a href="{% url 'sale_invoice_create' %}" class="nav-link {% block nav_sale_invoice_create %}{% endblock %}">
+   
+    فاتورة مبيعات جديدة
+  </a>
+</div>
+
+<!-- Purchases Section -->
+<div class="nav-section">المشتريات</div>
+<div class="nav-item">
+  <a href="{% url 'purchase_invoices_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_purchase_invoices %}{% endblock %}">   
+    فواتير المشتريات
+  </a>
+</div>
+<div class="nav-item">
+  <a href="{% url 'purchase_invoice_create' %}" class="nav-link {% block nav_purchase_invoice_create %}{% endblock %}">
+ 
+    فاتورة مشتريات جديدة
+  </a>
+</div>
+
+      <div class="nav-section">العملاء</div>
+      <div class="nav-item">
+        <a href="{% url 'customers_list' %}" class="nav-link {% block nav_customers %}{% endblock %}">
+          العملاء
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'customers_create' %}" class="nav-link {% block nav_customer_create %}{% endblock %}">
+          عميل جديد
+        </a>
+      </div>
+<div class="nav-section">الموردين</div>
+<div class="nav-item">
+  <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">
+  
+    إدارة الموردين
+  </a>
+</div>
+      <!-- Loyalty -->
+      {% if user.is_loyalty_employee or user.can_see_all_data %}
+      <div class="nav-section">نقاط الولاء</div>
+      <div class="nav-item">
+        <a href="{% url 'loyalty_pending' %}" class="nav-link {% block nav_loyalty %}{% endblock %}">
+          التحويلات المعلقة
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'loyalty_history' %}" class="nav-link {% block nav_loyalty_history %}{% endblock %}">
+          سجل التحويلات
+        </a>
+      </div>
+      {% endif %}
+
+      {% if user.can_see_all_data or user.is_accountant %}
+      <div class="nav-section">المحاسبة</div>
+      <div class="nav-item">
+        <a href="{% url 'dashboard_accountant' %}" class="nav-link {% block nav_accounting %}{% endblock %}">
+          المحاسبة
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'inventory_report' %}" class="nav-link {% block nav_inv_report %}{% endblock %}">
+          تقرير المخزون
+        </a>
+      </div>
+      {% endif %}
+
+   
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="{% url 'profile' %}">
+         الملف الشخصي
+      </a>
+      <a href="{% url 'logout' %}">
+         تسجيل الخروج
+      </a>
+    </div>
+    {% endif %}
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+      </div>
+      <div class="topbar-right">
+        {% if user.is_authenticated %}
+        <span style="font-size:13px;color:#718096;">مرحباً، {{ user.first_name|default:user.username }}</span>
+        {% if user.branch %}
+        <span class="badge badge-primary">{{ user.branch.name }}</span>
+        {% endif %}
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="page-content">
+      {% if messages %}
+      <div style="margin-bottom:16px;">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" data-auto-dismiss>
+          <span>{% if message.tags == 'success' %}{% elif message.tags == 'error' %}{% else %}ℹ{% endif %}</span>
+          <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="{% static 'js/main.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+            var buttons = this.querySelectorAll('button[type="submit"], input[type="submit"]');
+            buttons.forEach(function(btn) {
+                btn.disabled = true;
+                var originalText = btn.innerHTML;
+                btn.innerHTML = ' جاري...';
+                setTimeout(function() {
+                    if (btn.disabled) {
+                        btn.innerHTML = originalText;
+                    }
+                }, 3000);
+            });
+            return true;
+        });
+    });
+    
+    document.querySelectorAll('.btn-delete, .btn-danger').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            if (this.disabled) {
+                e.preventDefault();
+                return false;
+            }
+            var confirmMsg = this.getAttribute('data-confirm') || 'هل أنت متأكد؟';
+            if (!confirm(confirmMsg)) {
+                e.preventDefault();
+                return false;
+            }
+            this.disabled = true;
+            this.innerHTML = ' جاري...';
+        });
+    });
+});
+</script>
+
+<style>
+button:disabled, 
+input:disabled,
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+</style>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

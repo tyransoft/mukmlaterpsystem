@@ -1,0 +1,275 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>فاتورة مبيعات - {{ invoice.invoice_number }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: white;
+      color: #333;
+    }
+    .invoice-container {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #080808;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #0a0a0a;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    .invoice-title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 20px 0;
+      background: #f3f4f6;
+      padding: 10px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .info-card {
+      flex: 1;
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 10px 15px;
+      text-align: center;
+      min-width: 120px;
+    }
+    .info-label {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .info-value {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .products-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .products-table th,
+    .products-table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    .products-table th {
+      background: #f3f4f6;
+      font-weight: bold;
+    }
+    .products-table thead {
+      display: table-header-group;
+    }
+    .products-table tfoot {
+      display: table-footer-group;
+    }
+    .totals-wrapper {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .totals-box {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 15px;
+      width: 280px;
+      border: 1px solid #e5e7eb;
+    }
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .totals-row:last-child {
+      border-bottom: none;
+    }
+    .totals-row.total {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .text-danger {
+      color: #dc2626;
+    }
+    .text-success {
+      color: #16a34a;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .badge-warning {
+      background: #fed7aa;
+      color: #92400e;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 11px;
+      color: #666;
+    }
+    @media print {
+      .no-print {
+        display: none;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .products-table thead {
+        display: table-header-group;
+      }
+      .products-table tfoot {
+        display: table-footer-group;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="invoice-container">
+  
+  <div class="header">
+    <div class="logo">{{ invoice.branch.name }}</div>
+    <div class="subtitle">فاتورة مبيعات</div>
+  </div>
+  
+  <div class="invoice-title">رقم الفاتورة: {{ invoice.invoice_number }}</div>
+  
+  <div class="info-row">
+    <div class="info-card">
+      <div class="info-label">التاريخ</div>
+      <div class="info-value">{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+    </div>
+    
+    <div class="info-card">
+      <div class="info-label">الفرع</div>
+      <div class="info-value">{{ invoice.branch.name }}</div>
+    </div>
+    {% if invoice.customer %}
+    <div class="info-card">
+      <div class="info-label">العميل</div>
+      <div class="info-value">{{ invoice.customer.full_name }}</div>
+      <div class="subtitle" style="font-size:10px;">{{ invoice.customer.phone }}</div>
+    </div>
+    {% endif %}
+    <div class="info-card">
+      <div class="info-label">تم بواسطة</div>
+      <div class="info-value">{{ invoice.employee.get_full_name|default:invoice.employee.username }}</div>
+    </div>
+  </div>
+  
+  {% if invoice.notes %}
+  <div style="margin-bottom:15px;padding:8px 12px;background:#fef3c7;border-radius:8px;">
+    <span class="info-label">ملاحظات:</span>
+    <span style="font-size:12px;">{{ invoice.notes }}</span>
+  </div>
+  {% endif %}
+  
+  <table class="products-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>المنتج</th>
+        <th>الكمية</th>
+        <th>السعر</th>
+        <th>الإجمالي</th>
+        <th>نقاط</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.items.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td style="text-align:right;">{{ item.product.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.unit_price|floatformat:2 }}</td>
+        <td>{{ item.total_price|floatformat:2 }}</td>
+        <td>{{ item.loyalty_points }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="6" style="border:none;"> </td>
+      </tr>
+    </tfoot>
+  </table>
+  
+  <div class="totals-wrapper">
+    <div class="totals-box">
+      <div class="totals-row">
+        <span>المجموع الفرعي</span>
+        <span>{{ invoice.subtotal|floatformat:2 }} د.ل</span>
+      </div>
+      <div class="totals-row">
+        <span>الخصم</span>
+        <span class="text-danger">- {{ invoice.discount|floatformat:2 }} د.ل</span>
+      </div>
+      <div class="totals-row total">
+        <span>الإجمالي</span>
+        <span style="font-size:20px;">{{ invoice.total|floatformat:2 }} د.ل</span>
+      </div>
+      {% if invoice.sale_type == 'customer' %}
+      <div class="totals-row">
+        <span>المدفوع</span>
+        <span class="text-success">{{ invoice.paid_amount|floatformat:2 }} د.ل</span>
+      </div>
+      <div class="totals-row">
+        <span>المتبقي</span>
+        <span class="text-danger">{{ invoice.remaining_amount|floatformat:2 }} د.ل</span>
+      </div>
+      {% endif %}
+      {% if invoice.total_loyalty_points > 0 %}
+      <div class="totals-row">
+        <span>نقاط الولاء</span>
+        <span>{{ invoice.total_loyalty_points }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="footer">
+    <div>شكراً لتعاملكم معنا</div>
+  </div>
+</div>
+
+<div class="no-print" style="text-align:center;margin-top:20px;">
+  <button onclick="window.print();" class="btn btn-primary">طباعة</button>
+  <button onclick="window.close();" class="btn btn-outline">إغلاق</button>
+</div>
+</body>
+</html>

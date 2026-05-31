@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}تعديل المخزون{% endblock %}
+{% block page_title %}تعديل المخزون{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:500px;">
+  <div class="card-header"><span class="card-title">🔧 تعديل المخزون</span></div>
+  <div class="card-body">
+    <div style="background:var(--bg-light);padding:14px;border-radius:8px;margin-bottom:20px;">
+      <div class="fw-600">{{ inv.product.name }}</div>
+      <div class="text-muted" style="font-size:12px;">{{ inv.branch.name }} | الكمية الحالية: <strong>{{ inv.quantity }}</strong></div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">{{ form.quantity.label }}</label>
+        {{ form.quantity }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.notes.label }}</label>
+        {{ form.notes }}
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">💾 حفظ التعديل</button>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

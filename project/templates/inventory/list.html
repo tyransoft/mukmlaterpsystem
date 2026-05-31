@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}المخزون{% endblock %}
+{% block page_title %}إدارة المخزون{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <polyline points="16 3 12 7 8 3"></polyline>
+      </svg>
+      المخزون
+    </span>
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline btn-sm"> المنخفض</a>
+      <a href="{% url 'inventory_report' %}" class="btn btn-outline btn-sm">تقرير</a>
+    </div>
+  </div>
+  
+  <div class="card-body" style="padding:12px 16px;border-bottom:1px solid var(--border-color);">
+    <form method="get" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+      
+      {% if user.can_see_all_data %}
+      <select name="branch" class="form-select">
+        <option value="">كل الفروع</option>
+        {% for b in branches %}
+        <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <div class="form-control" style="background:#f3f4f6;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <polyline points="16 3 12 7 8 3"></polyline>
+        </svg>
+        الفرع: {{ user.branch.name }}
+      </div>
+      {% endif %}
+      
+      <select name="category" class="form-select">
+        <option value="">كل الفئات</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if selected_category|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>
+          {{ cat.name }}
+        </option>
+        {% endfor %}
+      </select>
+      
+      <input type="text" name="product" class="form-control" 
+             placeholder=" بحث بالمنتج أو الباركود..." 
+             value="{{ product_query }}">
+      
+      <select name="low_stock" class="form-select">
+        <option value="">كل المنتجات</option>
+        <option value="1" {% if low_stock_filter %}selected{% endif %}>المخزون المنخفض فقط</option>
+      </select>
+      
+      <div style="display:flex;gap:5px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;"> بحث</button>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline" style="flex:1;"> إعادة تعيين</a>
+      </div>
+    </form>
+  </div>
+  
+  <div class="card-body" style="padding:0;">
+    <div class="table-responsive">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            {% if user.can_see_all_data %}
+            <th>الفرع</th>
+            {% endif %}
+            <th>المنتج</th>
+            <th>الباركود</th>
+            <th>الفئة</th>
+            <th>الكمية</th>
+            <th>القيمة</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in inventory %}
+          <tr>
+            {% if user.can_see_all_data %}
+            <td class="fw-600">{{ inv.branch.name }}
+              {% if inv.branch.is_main %}
+                <span class="badge badge-primary" style="font-size:10px;">رئيسي</span>
+              {% endif %}
+            </td>
+            {% endif %}
+            <td>
+              <div class="fw-600">{{ inv.product.name }}</div>
+              <div class="text-muted" style="font-size:11px;">كود: {{ inv.product.barcode|default:"-" }}</div>
+            </td>
+            <td><code style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-size:12px;">{{ inv.product.barcode|default:"-" }}</code></td>
+            <td>{{ inv.product.category.name|default:"-" }}</td>
+            <td class="{% if inv.is_low_stock %}text-danger fw-bold{% endif %}" style="font-size:16px;font-weight:800;">
+              {{ inv.quantity }}
+            </td>
+            <td class="text-primary fw-bold">{{ inv.stock_value|floatformat:2|intcomma }} د.ل</td>
+            <td>
+              {% if inv.is_low_stock %}
+              <span class="low-stock-badge"> منخفض</span>
+              {% else %}
+              <span class="badge badge-success"> كافٍ</span>
+              {% endif %}
+             </td>
+            <td>
+              {% if user.can_see_all_data or user.branch == inv.branch %}
+              <a href="{% url 'inventory_adjust' inv.pk %}" class="btn btn-outline btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
+                  <path d="M4 20h16"></path>
+                </svg>
+                تعديل
+              </a>
+              {% endif %}
+             </td>
+           </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{% if user.can_see_all_data %}9{% else %}8{% endif %}" class="text-center text-muted" style="padding:60px;">
+              <div style="font-size:48px;margin-bottom:10px;">--</div>
+              <h5>لا توجد بيانات مخزون</h5>
+              <p class="text-muted">لم يتم العثور على منتجات تطابق معايير البحث</p>
+              <a href="{% url 'inventory_list' %}" class="btn btn-primary btn-sm">عرض الكل</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+
+</div>
+
+<style>
+.low-stock-badge {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+</style>
+{% endblock %}

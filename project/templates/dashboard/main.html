@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}لوحة التحكم الرئيسية{% endblock %}
+{% block page_title %}لوحة التحكم الرئيسية{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<!-- Quick Actions Bar - TOP -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary">
+         
+          فاتورة جديدة
+        </a>
+        <a href="{% url 'customers_create' %}" class="btn btn-outline-primary">
+          
+          عميل جديد
+        </a>
+        <a href="{% url 'products_create' %}" class="btn btn-outline-primary">
+          
+          منتج جديد
+        </a>
+        <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline">
+          
+          تنبيهات المخزون
+        </a>
+        <a href="{% url 'loyalty_pending' %}" class="btn btn-outline">
+          
+          نقاط الولاء
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid-4" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <div class="stat-icon orange">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <polyline points="16 3 12 7 8 3"></polyline>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ branch_count }}</div>
+      <div class="stat-label">الفروع النشطة</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">مبيعات اليوم </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">مبيعات الشهر </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="20" x2="12" y2="10"></line>
+        <line x1="18" y1="20" x2="18" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="16"></line>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ net_profit|floatformat:0|intcomma }}</div>
+      <div class="stat-label">صافي الربح </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-4" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon orange">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_customers }}</div>
+      <div class="stat-label">إجمالي العملاء</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <polyline points="16 3 12 7 8 3"></polyline>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_products }}</div>
+      <div class="stat-label">المنتجات النشطة</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ low_stock_count }}</div>
+      <div class="stat-label">تنبيهات المخزون</div>
+      {% if low_stock_count > 0 %}
+      <div class="stat-change down"><a href="{% url 'inventory_low_stock' %}" style="color:inherit;">عرض التنبيهات</a></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ pending_loyalty }}</div>
+      <div class="stat-label">نقاط ولاء معلقة</div>
+      {% if pending_loyalty > 0 %}
+      <div class="stat-change"><a href="{% url 'loyalty_pending' %}" style="color:var(--primary);">تحويل النقاط</a></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <!-- Branch Sales -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;vertical-align:middle;">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <polyline points="16 3 12 7 8 3"></polyline>
+        </svg>
+        مبيعات الفروع (هذا الشهر)
+      </span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <polyline points="16 3 12 7 8 3"></polyline>
+              </svg>
+              الفرع
+            </th>
+            <th>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              المبيعات
+            </th>
+            <th>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              العمولة
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in branch_sales %}
+          <tr>
+            <td>
+              <span class="fw-600">{{ item.branch.name }}</span>
+              {% if item.branch.is_main %}<span class="badge badge-primary" style="margin-right:4px;">رئيسي</span>{% endif %}
+            </td>
+            <td class="text-success fw-bold">{{ item.sales|floatformat:2|intcomma }} د.ل</td>
+            <td class="text-primary">{{ item.commission|floatformat:2|intcomma }} د.ل</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">لا توجد مبيعات</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Invoices -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;vertical-align:middle;">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        آخر الفواتير
+      </span>
+      <a href="/" class="btn btn-outline btn-sm">عرض الكل</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              رقم
+            </th>
+            <th>النوع</th>
+            <th>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              الإجمالي
+            </th>
+            <th>الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in recent_invoices %}
+          <tr>
+            <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
+            <td><small>{{ inv.get_invoice_type_display }}</small></td>
+            <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+            <td>
+              <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% elif inv.status == 'partial' %}badge-warning{% else %}badge-secondary{% endif %}">
+                {{ inv.get_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد فواتير</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

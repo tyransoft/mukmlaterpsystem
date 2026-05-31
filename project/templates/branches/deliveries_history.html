@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}سجل تسليمات {{ branch.name }}{% endblock %}
+{% block page_title %}سجل تسليمات {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">📋 سجل تسليم المبيعات للفرع الرئيسي</span>
+    <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success btn-sm">
+      💰 تسليم جديد
+    </a>
+  </div>
+  <div class="card-body">
+    
+    <!-- فلترة التاريخ -->
+    <form method="get" style="margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:flex-end;">
+        <div>
+          <label class="text-muted" style="font-size:12px;">من تاريخ</label>
+          <input type="date" name="date_from" class="form-control" value="{{ date_from|default:'' }}">
+        </div>
+        <div>
+          <label class="text-muted" style="font-size:12px;">إلى تاريخ</label>
+          <input type="date" name="date_to" class="form-control" value="{{ date_to|default:'' }}">
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">بحث</button>
+        </div>
+        <div>
+          {% if date_from or date_to %}
+          <a href="{% url 'branch_deliveries_history' branch.pk %}" class="btn btn-outline" style="width:100%;">إعادة تعيين</a>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+    
+    <!-- إحصائيات -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;">
+      <div style="background:#eff6ff;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted">إجمالي التسليمات</div>
+        <div class="fw-bold" style="font-size:22px;color:#2563eb;">{{ total_count }}</div>
+        <div class="text-muted" style="font-size:11px;">عملية تسليم</div>
+      </div>
+      <div style="background:#f0fdf4;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted">إجمالي المبلغ المسلَّم</div>
+        <div class="fw-bold" style="font-size:22px;color:#16a34a;">{{ total_amount|floatformat:0|intcomma }}</div>
+        <div class="text-muted" style="font-size:11px;">د.ل</div>
+      </div>
+      <div style="background:#fef3c7;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted">متوسط التسليم</div>
+        <div class="fw-bold" style="font-size:22px;color:#d97706;">{{ avg_amount|floatformat:0|intcomma }}</div>
+        <div class="text-muted" style="font-size:11px;">د.ل</div>
+      </div>
+    </div>
+    
+    <!-- جدول التسليمات -->
+    <div class="table-responsive">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>رقم الإيصال</th>
+            <th>تاريخ التسليم</th>
+            <th>المبلغ</th>
+            <th>الفترة</th>
+            <th>ملاحظات</th>
+            <th>تم بواسطة</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for delivery in deliveries %}
+          <tr>
+            <td class="fw-600">{{ delivery.receipt_number }}</td>
+            <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
+            <td class="text-success fw-bold">{{ delivery.amount|floatformat:2|intcomma }} د.ل</td>
+            
+            <td>{{ delivery.notes|truncatechars:30|default:"-" }}</td>
+            <td>{{ delivery.created_by.get_full_name|default:delivery.created_by.username }}</td>
+            <td>
+              <a href="{% url 'branch_delivery_receipt' delivery.pk %}" class="btn btn-outline btn-icon btn-sm" target="_blank" title="طباعة">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 9V2h12v7"></path>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted" style="padding:40px;">
+              لا توجد تسليمات مبيعات مسجلة
+              <br>
+              <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-primary btn-sm" style="margin-top:10px;">تسجيل تسليم جديد</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if deliveries.has_other_pages %}
+    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;">
+      {% if deliveries.has_previous %}
+        <a href="?page={{ deliveries.previous_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="btn btn-outline btn-sm">السابق</a>
+      {% endif %}
+      
+      <span class="btn btn-primary btn-sm" style="background:#2563eb;">{{ deliveries.number }}</span>
+      
+      {% if deliveries.has_next %}
+        <a href="?page={{ deliveries.next_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="btn btn-outline btn-sm">التالي</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

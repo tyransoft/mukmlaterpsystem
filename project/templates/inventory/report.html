@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}تقرير المخزون{% endblock %}
+{% block page_title %}تقرير المخزون{% endblock %}
+{% block nav_inv_report %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-body" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;">
+      {% if user.can_see_all_data %}
+      <select name="branch" class="form-select" style="width:180px;">
+        <option value="">كل الفروع</option>
+        {% for b in branches %}
+        <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">عرض</button>
+    </form>
+  </div>
+</div>
+
+<div class="stat-card" style="margin-bottom:20px;max-width:300px;">
+  <div class="stat-info">
+    <div class="stat-value">{{ total_value|floatformat:2|intcomma }}</div>
+    <div class="stat-label">إجمالي قيمة المخزون </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title"> تفاصيل المخزون</span></div>
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>الفرع</th><th>المنتج</th><th>الفئة</th><th>الكمية</th><th>سعر التكلفة</th><th>القيمة الإجمالية</th><th>الحالة</th></tr>
+      </thead>
+      <tbody>
+        {% for inv in inventory %}
+        <tr>
+          <td>{{ inv.branch.name }}</td>
+          <td>
+            <div class="fw-600">{{ inv.product.name }}</div>
+            <div class="text-muted" style="font-size:11px;">{{ inv.product.code }}</div>
+          </td>
+          <td>{{ inv.product.category.name|default:"-" }}</td>
+          <td class="fw-bold">{{ inv.quantity }}</td>
+          <td>{{ inv.product.cost_price|floatformat:2|intcomma }}</td>
+          <td class="fw-bold text-success">{{ inv.stock_value|floatformat:2|intcomma }}</td>
+          <td>{% if inv.is_low_stock %}<span class="low-stock-badge">منخفض</span>{% else %}<span class="badge badge-success">كافٍ</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted" style="padding:20px;">لا توجد بيانات</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

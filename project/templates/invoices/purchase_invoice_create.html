@@ -1,0 +1,427 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}فاتورة مشتريات جديدة{% endblock %}
+{% block page_title %}فاتورة مشتريات جديدة{% endblock %}
+
+{% block content %}
+<style>
+  .supplier-card {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+</style>
+
+<form method="post" id="purchase-invoice-form">
+  {% csrf_token %}
+  <div style="display:grid;grid-template-columns:1fr 350px;gap:20px;">
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <polyline points="16 3 12 7 8 3"></polyline>
+          </svg>
+          إضافة المنتجات
+        </span>
+      </div>
+      <div class="card-body">
+        <div style="margin-bottom:20px;">
+          <input type="text" id="product-search" class="form-control" 
+                 placeholder=" ابحث عن منتج بالاسم أو الباركود...">
+          <div id="search-results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:300px;overflow-y:auto;display:none;z-index:1000;"></div>
+        </div>
+        
+        <div class="items-table-wrapper">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th>المنتج</th>
+                <th style="width:100px;">الكمية</th>
+                <th style="width:120px;">سعر الشراء</th>
+                <th style="width:100px;">الإجمالي</th>
+                <th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="items-container">
+              <tr id="empty-row">
+                <td colspan="5" class="text-center text-muted" style="padding:40px;">
+                  ابحث عن منتج وأضفه للفاتورة
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"> بيانات الفاتورة</span>
+        </div>
+        <div class="card-body">
+          
+          
+          <div class="form-group">
+            <label class="form-label">البحث عن مورد</label>
+            <input type="text" id="supplier-search" class="form-control" 
+                   placeholder="ابحث باسم المورد أو رقم الجوال...">
+            <div id="supplier-results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:200px;overflow-y:auto;display:none;z-index:1000;"></div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">اختر مورد</label>
+            <select name="supplier" id="supplier_select" class="form-select">
+              <option value="">-- اختر مورد --</option>
+              {% for supplier in suppliers %}
+                <option value="{{ supplier.id }}" data-name="{{ supplier.name }}" >
+                  {{ supplier.name }} 
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div id="supplier_details" class="supplier-card" style="display:none;">
+            <div class="text-muted" style="font-size:13px;" id="supplier_info"></div>
+          </div>
+          
+
+          <div class="form-group">
+            <label class="form-label">الخصم (د.ل)</label>
+            <input type="number" name="discount" id="discount" class="form-control" step="0.01" value="0">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">ملاحظات</label>
+            <textarea name="notes" class="form-control" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <!-- الإجماليات -->
+      <div class="card" style="margin-top:15px;">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;">
+            <span>المجموع الفرعي</span>
+            <span class="fw-600" id="subtotal">0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+            <span>الخصم</span>
+            <span class="fw-600 text-danger" id="discount_display">0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;">
+            <span class="fw-bold">الإجمالي</span>
+            <span class="fw-bold text-primary" style="font-size:20px;" id="total">0.00</span>
+          </div>
+          
+          <div class="form-group" style="margin-top:15px;">
+            <div style="display:flex;gap:10px;">
+              <button type="submit" class="btn btn-primary" style="flex:1;">
+                حفظ الفاتورة
+              </button>
+              <a href="{% url 'purchase_invoices_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    let selectedProducts = [];
+    let searchTimeout;
+    let supplierTimeout;
+    
+    $('#submit-btn').on('click', function(e) {
+        var $btn = $(this);
+        if ($btn.data('clicked')) {
+            e.preventDefault();
+            return false;
+        }
+        $btn.data('clicked', true);
+        $btn.html('<span class="spinner"></span> جاري الحفظ...');
+        $btn.prop('disabled', true);
+        setTimeout(function() { 
+            $btn.data('clicked', false);
+        }, 5000);
+    });
+    
+    $('#product-search').on('input', function() {
+        clearTimeout(searchTimeout);
+        const query = $(this).val();
+        if (query.length < 2) {
+            $('#search-results').hide();
+            return;
+        }
+        
+        searchTimeout = setTimeout(function() {
+            $.get('/products/search/', {
+                q: query
+            }, function(data) {
+                if (data.products && data.products.length > 0) {
+                    displaySearchResults(data.products);
+                } else {
+                    $('#search-results').hide();
+                }
+            }).fail(function() {
+                $('#search-results').hide();
+            });
+        }, 300);
+    });
+    
+    function displaySearchResults(results) {
+        const $results = $('#search-results');
+        if (results.length === 0) {
+            $results.hide();
+            return;
+        }
+        
+        $results.empty().show();
+        results.forEach(product => {
+            $results.append(`
+                <div class="search-result-item" data-id="${product.id}" 
+                     data-name="${product.name}" data-price="${product.cost_price}"
+                     data-selling-price="${product.selling_price}"
+                     style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
+                    <div class="fw-600">${escapeHtml(product.name)}</div>
+                    <div class="text-muted" style="font-size:12px;">
+                        سعر الشراء الحالي: ${product.cost_price} د.ل | سعر البيع: ${product.selling_price} د.ل
+                    </div>
+                    <div class="text-muted" style="font-size:11px;color:#2563eb;">
+                        ✏️ يمكنك تعديل سعر الشراء من الجدول
+                    </div>
+                </div>
+            `);
+        });
+        
+        $('.search-result-item').on('click', function() {
+            const productData = $(this).data();
+            addProductToTable({
+                id: productData.id,
+                name: productData.name,
+                cost_price: productData.price
+            });
+            $('#product-search').val('');
+            $results.hide();
+        });
+    }
+    
+    function addProductToTable(product) {
+        const existing = selectedProducts.find(p => p.id === product.id);
+        if (existing) {
+            existing.quantity++;
+            existing.total = existing.quantity * existing.price;
+            updateProductRow(existing);
+        } else {
+            const newProduct = {
+                id: product.id,
+                name: product.name,
+                quantity: 1,
+                price: parseFloat(product.cost_price),
+                total: parseFloat(product.cost_price)
+            };
+            selectedProducts.push(newProduct);
+            addProductRow(newProduct);
+        }
+        updateTotals();
+    }
+    
+    function addProductRow(product) {
+        const $container = $('#items-container');
+        if ($('#empty-row').is(':visible')) {
+            $('#empty-row').hide();
+        }
+        
+        const rowId = `product-row-${product.id}`;
+        const rowHtml = `
+            <tr id="${rowId}" class="product-row">
+                <td class="fw-600">${escapeHtml(product.name)}<\/td>
+                <td>
+                    <input type="number" class="form-control quantity-input" 
+                           value="${product.quantity}" min="1" step="1"
+                           style="width:80px;" data-id="${product.id}">
+                 <\/td>
+                <td>
+                    <input type="number" class="form-control price-input" 
+                           value="${product.price}" step="0.01"
+                           style="width:100px;" data-id="${product.id}">
+                 <\/td>
+                <td class="total-price-${product.id} fw-600">${product.total.toFixed(2)}<\/td>
+                <td class="text-center">
+                    <span class="remove-product" data-id="${product.id}" style="cursor:pointer;color:#ef4444;">🗑️<\/span>
+                 <\/td>
+             <\/tr>
+        `;
+        $container.append(rowHtml);
+        
+        $container.append(`
+            <input type="hidden" name="product_${product.id}_id" value="${product.id}" class="hidden-id-${product.id}">
+            <input type="hidden" name="product_${product.id}_quantity" class="hidden-quantity-${product.id}" value="${product.quantity}">
+            <input type="hidden" name="product_${product.id}_price" class="hidden-price-${product.id}" value="${product.price}">
+        `);
+    }
+    
+    function updateProductRow(product) {
+        $(`.quantity-input[data-id="${product.id}"]`).val(product.quantity);
+        $(`.price-input[data-id="${product.id}"]`).val(product.price);
+        $(`.hidden-quantity-${product.id}`).val(product.quantity);
+        $(`.hidden-price-${product.id}`).val(product.price);
+        product.total = product.quantity * product.price;
+        $(`.total-price-${product.id}`).text(product.total.toFixed(2));
+        updateTotals();
+    }
+    
+    $(document).on('input', '.quantity-input', function() {
+        const id = parseInt($(this).data('id'));
+        const product = selectedProducts.find(p => p.id === id);
+        if (product) {
+            let qty = parseInt($(this).val());
+            if (isNaN(qty) || qty < 1) qty = 1;
+            product.quantity = qty;
+            product.total = product.quantity * product.price;
+            $(`.hidden-quantity-${id}`).val(qty);
+            $(`.total-price-${id}`).text(product.total.toFixed(2));
+            updateTotals();
+        }
+    });
+    
+    $(document).on('input', '.price-input', function() {
+        const id = parseInt($(this).data('id'));
+        const product = selectedProducts.find(p => p.id === id);
+        if (product) {
+            let price = parseFloat($(this).val());
+            if (isNaN(price) || price < 0) price = 0;
+            product.price = price;
+            product.total = product.quantity * product.price;
+            $(`.hidden-price-${id}`).val(price);
+            $(`.total-price-${id}`).text(product.total.toFixed(2));
+            updateTotals();
+        }
+    });
+    
+    $(document).on('click', '.remove-product', function() {
+        const id = parseInt($(this).data('id'));
+        selectedProducts = selectedProducts.filter(p => p.id !== id);
+        $(`#product-row-${id}`).remove();
+        $(`.hidden-id-${id}`).remove();
+        $(`.hidden-quantity-${id}`).remove();
+        $(`.hidden-price-${id}`).remove();
+        
+        if (selectedProducts.length === 0) {
+            $('#empty-row').show();
+        }
+        updateTotals();
+    });
+    
+    function updateTotals() {
+        const subtotal = selectedProducts.reduce((sum, p) => sum + p.total, 0);
+        const discount = parseFloat($('#discount').val()) || 0;
+        const total = subtotal - discount;
+        
+        $('#subtotal').text(subtotal.toFixed(2));
+        $('#discount_display').text(discount.toFixed(2));
+        $('#total').text(total.toFixed(2));
+    }
+    
+    $('#discount').on('input', updateTotals);
+    
+    $('#supplier-search').on('input', function() {
+        clearTimeout(supplierTimeout);
+        const query = $(this).val();
+        if (query.length < 2) {
+            $('#supplier-results').hide();
+            return;
+        }
+        
+        supplierTimeout = setTimeout(function() {
+            $.get('/suppliers/search/ajax/', {q: query}, function(data) {
+                if (data.suppliers && data.suppliers.length > 0) {
+                    displaySupplierResults(data.suppliers);
+                } else {
+                    $('#supplier-results').hide();
+                }
+            });
+        }, 300);
+    });
+    
+    function displaySupplierResults(results) {
+        const $results = $('#supplier-results');
+        $results.empty().show();
+        
+        results.forEach(supplier => {
+            $results.append(`
+                <div class="supplier-result" data-id="${supplier.id}" 
+                     data-name="${supplier.name}" data-phone="${supplier.phone}"
+                     style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
+                    <div class="fw-600">${escapeHtml(supplier.name)}</div>
+                </div>
+            `);
+        });
+        
+        $('.supplier-result').on('click', function() {
+            const data = $(this).data();
+            $('#supplier_select').val(data.id);
+            $('#supplier-search').val(data.name);
+            $('#supplier-results').hide();
+            $('#supplier_info').html(`
+                <div class="fw-600">${escapeHtml(data.name)}</div>
+            `);
+        });
+    }
+    
+    $('#supplier_select').on('change', function() {
+        const option = $(this).find(':selected');
+        if ($(this).val()) {
+            const name = option.data('name');
+            const phone = option.data('phone');
+            $('#supplier_details').show();
+            $('#supplier_info').html(`
+                <div class="fw-600">${escapeHtml(name)}</div>
+            `);
+            $('#supplier-search').val(name);
+        } else {
+            $('#supplier_details').hide();
+            $('#supplier_info').html('');
+            $('#supplier-search').val('');
+        }
+    });
+    
+    $('#purchase-invoice-form').on('submit', function(e) {
+        if (selectedProducts.length === 0) {
+            e.preventDefault();
+            alert(' الرجاء إضافة منتجات للفاتورة');
+            return false;
+        }
+        
+        const supplierId = $('#supplier_select').val();
+        if (!supplierId) {
+            e.preventDefault();
+            alert(' الرجاء اختيار مورد');
+            return false;
+        }
+        
+        return true;
+    });
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+});
+</script>
+{% endblock %}

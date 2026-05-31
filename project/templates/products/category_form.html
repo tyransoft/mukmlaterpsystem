@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_categories %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:500px;">
+  <div class="card-header"><span class="card-title">{{ title }}</span></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group"><label class="form-label">{{ form.name.label }}</label>{{ form.name }}</div>
+      <div class="form-check" style="margin-bottom:16px;">{{ form.is_active }} <label class="form-label" style="display:inline;">{{ form.is_active.label }}</label></div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a href="{% url 'categories' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

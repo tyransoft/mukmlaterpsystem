@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}تفاصيل فاتورة مشتريات{% endblock %}
+{% block page_title %}تفاصيل فاتورة مشتريات{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:20px;">
+  <a href="{% url 'purchase_invoices_list' %}" class="btn btn-outline btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+    رجوع
+  </a>
+  <a href="{% url 'purchase_invoice_print' invoice.pk %}" class="btn btn-outline btn-sm" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+      <path d="M6 9V2h12v7"></path>
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+      <rect x="6" y="14" width="12" height="8"></rect>
+    </svg>
+    طباعة
+  </a>
+  {% if invoice.status == 'draft' and not invoice.is_auto_generated %}
+    <a href="{% url 'purchase_invoice_confirm' invoice.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟ سيتم إضافة المنتجات للمخزون.')">
+      تأكيد الفاتورة
+    </a>
+  {% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 350px;gap:20px;">
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📄 معلومات الفاتورة</span>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
+        <div>
+          <div class="text-muted" style="font-size:12px;">رقم الفاتورة</div>
+          <div class="fw-bold" style="font-size:18px;">{{ invoice.invoice_number }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">التاريخ</div>
+          <div>{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">الحالة</div>
+          <span class="badge {% if invoice.status == 'confirmed' %}badge-success{% elif invoice.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
+            {{ invoice.get_status_display }}
+          </span>
+          {% if invoice.is_auto_generated %}
+            <span class="badge badge-info">تم إنشاؤها تلقائياً</span>
+          {% endif %}
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">الفرع</div>
+          <div>{{ invoice.branch.name }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:12px;">المورد</div>
+          <div>
+            {% if invoice.supplier %}
+              {{ invoice.supplier.name }}<br>
+              <small>{{ invoice.supplier.phone }}</small>
+            {% elif invoice.supplier_name %}
+              {{ invoice.supplier_name }}
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if invoice.source_sale_invoice %}
+        <div>
+          <div class="text-muted" style="font-size:12px;">مصدر الفاتورة</div>
+          <div>توريد من فرع: {{ invoice.source_sale_invoice.branch.name }}</div>
+          <div><small>الفاتورة الأصلية: {{ invoice.source_sale_invoice.invoice_number }}</small></div>
+        </div>
+        {% endif %}
+      </div>
+      
+      <table class="erp-table">
+        <thead>
+          <tr><th>المنتج</th><th>الكمية</th><th>سعر الشراء</th><th>الإجمالي</th></tr>
+        </thead>
+        <tbody>
+          {% for item in invoice.items.all %}
+          <tr>
+            <td>{{ item.product.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.unit_price|floatformat:2|intcomma }}</td>
+            <td class="fw-bold">{{ item.total_price|floatformat:2|intcomma }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+       </table>
+      
+      {% if invoice.notes %}
+      <div style="margin-top:15px;padding:10px;background:#f8fafc;border-radius:8px;">
+        <div class="text-muted" style="font-size:12px;">ملاحظات</div>
+        <div>{{ invoice.notes }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">💰 الإجماليات</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;">
+        <span>المجموع الفرعي</span>
+        <span>{{ invoice.subtotal|floatformat:2|intcomma }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;">
+        <span>الخصم</span>
+        <span class="text-danger">{{ invoice.discount|floatformat:2|intcomma }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;">
+        <span class="fw-bold">الإجمالي</span>
+        <span class="fw-bold text-primary" style="font-size:20px;">{{ invoice.total|floatformat:2|intcomma }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

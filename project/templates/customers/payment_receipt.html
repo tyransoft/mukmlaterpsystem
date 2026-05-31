@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}إيصال تسديد دين{% endblock %}
+{% block page_title %}إيصال تسديد دين{% endblock %}
+
+{% block content %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .receipt-box { box-shadow: none !important; border: 1px solid #ddd !important; }
+  }
+  .receipt-box {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .receipt-header {
+    background: transparent;
+    color: rgb(20, 19, 19);
+    padding: 25px;
+    text-align: center;
+  }
+  .receipt-body { padding: 25px; }
+  .receipt-footer {
+    background: #f8fafc;
+    padding: 15px;
+    text-align: center;
+    border-top: 1px solid #e5e7eb;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+  .amount-box {
+    background: #f0fdf4;
+    border: 2px solid #0d0f0e;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    margin: 20px 0;
+  }
+</style>
+
+<div class="receipt-box">
+  <div class="receipt-header">
+    <h2 style="margin:0;font-size:22px;">إيصال تسديد دين</h2>
+    <p style="margin:5px 0 0;opacity:0.9;">رقم الإيصال: {{ payment.receipt_number }}</p>
+  </div>
+  
+  <div class="receipt-body">
+    <div class="info-row">
+      <span></span> تاريخ التسديد</span>
+      <span>{{ payment.payment_date|date:"Y-m-d" }}</span>
+    </div>
+    <div class="info-row">
+      <span>اسم العميل</span>
+      <span class="fw-600">{{ payment.customer.full_name }}</span>
+    </div>
+    <div class="info-row">
+      <span> رقم الهاتف</span>
+      <span dir="ltr">{{ payment.customer.phone }}</span>
+    </div>
+    
+    <div class="amount-box">
+      <div style="font-size:14px;color:#0e0f0e;">المبلغ المسدد</div>
+      <div style="font-size:32px;font-weight:bold;color:#101311;">{{ payment.amount|floatformat:2|intcomma }} د.ل</div>
+    </div>
+    
+    {% if payment.notes %}
+    <div class="info-row">
+      <span> ملاحظات</span>
+      <span>{{ payment.notes }}</span>
+    </div>
+    {% endif %}
+    
+    <div class="info-row">
+      <span>تم بواسطة</span>
+      <span>{{ payment.created_by.get_full_name|default:payment.created_by.username }}</span>
+    </div>
+    
+    <div class="info-row">
+      <span>المتبقي  </span>
+      <span class="text-danger fw-bold">{{ payment.customer.debt_balance|floatformat:2|intcomma }} د.ل</span>
+    </div>
+  </div>
+  
+  <div class="receipt-footer">
+    <div style="font-size:12px;">شكراً لتعاملكم معنا</div>
+  </div>
+</div>
+
+<div class="no-print" style="text-align:center;margin-top:20px;">
+  <button onclick="window.print();" class="btn btn-primary">
+     طباعة الإيصال
+  </button>
+  <a href="{% url 'customers_detail' payment.customer.pk %}" class="btn btn-outline">
+    ↩ رجوع 
+  </a>
+</div>
+{% endblock %}

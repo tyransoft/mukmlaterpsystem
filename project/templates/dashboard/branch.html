@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}لوحة تحكم الفرع - {{ branch.name }}{% endblock %}
+{% block page_title %}لوحة تحكم الفرع{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+  <div style="background:var(--primary);color:white;padding:8px 16px;border-radius:8px;font-weight:700;">{{ branch.name }}</div>
+  {% if branch.is_main %}<span class="badge badge-primary">الفرع الرئيسي</span>{% endif %}
+  <span class="text-muted" style="font-size:13px;">نسبة العمولة: {{ branch.commission_percentage }}%</span>
+</div>
+
+<div class="grid-4" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <div class="stat-icon green">💰</div>
+    <div class="stat-info">
+      <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">مبيعات اليوم  </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">📅</div>
+    <div class="stat-info">
+      <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">مبيعات الشهر </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon orange">🏆</div>
+    <div class="stat-info">
+      <div class="stat-value">{{ commission|floatformat:0|intcomma }}</div>
+      <div class="stat-label">عمولة الشهر </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">🧾</div>
+    <div class="stat-info">
+      <div class="stat-value">{{ invoice_count_today }}</div>
+      <div class="stat-label">فواتير اليوم</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <!-- Recent Invoices -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🧾 آخر الفواتير</span>
+      <a href="{% url 'invoices_create' %}" class="btn btn-primary btn-sm">+ جديدة</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table class="erp-table">
+        <thead><tr><th>رقم الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>الحالة</th></tr></thead>
+        <tbody>
+          {% for inv in recent_invoices %}
+          <tr>
+            <td><a href="{% url 'invoices_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
+            <td>{{ inv.customer.full_name|default:"-" }}</td>
+            <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+            <td>
+              <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}">
+                {{ inv.get_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد فواتير</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Low Stock -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚠️ تنبيهات المخزون المنخفض</span>
+      <a href="{% url 'inventory_list' %}" class="btn btn-outline btn-sm">المخزون</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if low_stock %}
+      <table class="erp-table">
+        <thead><tr><th>المنتج</th><th>المتاح</th><th>الحد الأدنى</th></tr></thead>
+        <tbody>
+          {% for item in low_stock %}
+          <tr>
+            <td class="fw-600">{{ item.product.name }}</td>
+            <td><span class="badge badge-danger">{{ item.quantity }}</span></td>
+            <td class="text-muted">{{ item.min_quantity }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state" style="padding:30px;">
+        <div class="empty-icon">✅</div>
+        <h5>المخزون كافٍ</h5>
+        <p>لا توجد تنبيهات مخزون منخفض</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card" style="margin-top:20px;">
+  <div class="card-body">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <a href="{% url 'invoices_create' %}" class="btn btn-primary">➕ فاتورة مبيعات</a>
+      <a href="{% url 'customers_create' %}" class="btn btn-outline-primary">👤 عميل جديد</a>
+      <a href="{% url 'inventory_list' %}" class="btn btn-outline">📦 المخزون</a>
+      <a href="{% url 'invoices_list' %}" class="btn btn-outline">🧾 الفواتير</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

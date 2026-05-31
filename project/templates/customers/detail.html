@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ customer.full_name }}{% endblock %}
+{% block page_title %}ملف العميل{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:280px 1fr;gap:20px;">
+  <div>
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:24px;">
+        <div style="width:64px;height:64px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;color:white;font-weight:700;">{{ customer.full_name|first }}</div>
+        <h3 style="font-size:17px;font-weight:800;margin-bottom:4px;">{{ customer.full_name }}</h3>
+        <p class="text-muted">{{ customer.phone }}</p>
+        {% if customer.address %}<p style="font-size:12px;color:#718096;">{{ customer.address }}</p>{% endif %}
+        <a href="{% url 'customers_edit' customer.pk %}" class="btn btn-outline" style="width:100%;margin-top:10px;"> تعديل</a>
+      </div>
+    </div>
+    <div class="loyalty-card">
+      <div style="font-size:12px;opacity:0.8;">نقاط الولاء الحالية</div>
+      <div style="font-size:32px;font-weight:800;margin:4px 0;"> {{ customer.loyalty_points }}</div>
+      <div style="font-size:12px;opacity:0.7;">نقطة مكتسبة</div>
+      {% if pending_transfers %}
+      <div style="margin-top:8px;background:rgba(255,255,255,0.2);padding:8px;border-radius:6px;">
+        <div style="font-size:11px;">نقاط معلقة: {{ pending_transfers.count }} عملية</div>
+      </div>
+      {% endif %}
+    </div>
+    {% if customer.debt_balance > 0 %}
+    <div class="card" style="margin-top:16px;border-right:4px solid var(--danger);">
+      <div class="card-body">
+        <div class="text-muted" style="font-size:12px;">رصيد الدين</div>
+        <div style="font-size:22px;font-weight:800;color:var(--danger);">{{ customer.debt_balance|floatformat:2|intcomma }} د.ل</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"> سجل المشتريات</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead><tr><th>رقم الفاتورة</th><th>النوع</th><th>الفرع</th><th>الإجمالي</th><th>نقاط</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+          <tbody>
+            {% for inv in invoices %}
+            <tr>
+              <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
+              <td>{{ inv.get_invoice_type_display }}</td>
+              <td>{{ inv.branch.name }}</td>
+              <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+              <td>{% if inv.total_loyalty_points > 0 %} {{ inv.total_loyalty_points }}{% else %}-{% endif %}</td>
+              <td><span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% else %}badge-secondary{% endif %}">{{ inv.get_status_display }}</span></td>
+              <td style="font-size:12px;">{{ inv.created_at|date:"Y/m/d" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted" style="padding:20px;">لا يوجد سجل مشتريات</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

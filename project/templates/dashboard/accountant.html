@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}لوحة تحكم المحاسب{% endblock %}
+{% block page_title %}لوحة التحكم المالية{% endblock %}
+{% block nav_accounting %}active{% endblock %}
+
+{% block content %}
+<style>
+  .filter-bar {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .debt-card {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 15px;
+  }
+  .profit-positive { color: #16a34a; }
+  .profit-negative { color: #dc2626; }
+</style>
+
+<!-- فلترة التاريخ -->
+<div class="filter-bar">
+  <form method="get" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:flex-end;">
+    <div>
+      <label class="text-muted" style="font-size:12px;">من تاريخ</label>
+      <input type="date" name="date_from" class="form-control" value="{{ date_from|default:'' }}">
+    </div>
+    <div>
+      <label class="text-muted" style="font-size:12px;">إلى تاريخ</label>
+      <input type="date" name="date_to" class="form-control" value="{{ date_to|default:'' }}">
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">عرض التقرير</button>
+    </div>
+    <div>
+      {% if date_from or date_to %}
+      <a href="{% url 'dashboard_accountant' %}" class="btn btn-outline" style="width:100%;">إعادة تعيين</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px;">
+  <div class="stat-card">
+    <div class="stat-icon green"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_revenue|floatformat:0|intcomma }}</div>
+      <div class="stat-label">إجمالي الإيرادات</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon orange"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ cogs|floatformat:0|intcomma }}</div>
+      <div class="stat-label">تكلفة المبيعات </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ gross_profit|floatformat:0|intcomma }}</div>
+      <div class="stat-label">الربح الإجمالي</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple"></div>
+    <div class="stat-info">
+      <div class="stat-value {% if net_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
+        {{ net_profit|floatformat:0|intcomma }}
+      </div>
+      <div class="stat-label">صافي الربح</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:25px;">
+  <div class="stat-card">
+    <div class="stat-icon"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">مبيعات اليوم</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">مبيعات الشهر</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ active_customers }}</div>
+      <div class="stat-label">العملاء النشطين</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ low_stock_count }}</div>
+      <div class="stat-label">منتجات منخفضة المخزون</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+  
+  <!-- ديون العملاء -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"> ديون العملاء</span>
+      <a href="{% url 'customers_list' %}?has_debt=1" class="btn btn-outline btn-sm">عرض الكل</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div style="background:#fef3c7;padding:12px;text-align:center;border-bottom:1px solid var(--border-color);">
+        <span class="text-muted">إجمالي الديون المستحقة</span>
+        <span class="fw-bold text-danger" style="font-size:20px;margin-right:10px;">{{ total_customer_debt|floatformat:0|intcomma }} د.ل</span>
+      </div>
+      <table class="erp-table">
+        <thead><tr><th>العميل</th><th>رقم الهاتف</th><th>الدين</th><th></th></tr></thead>
+        <tbody>
+          {% for debt in customer_debt_details %}
+          <tr>
+            <td class="fw-600">{{ debt.name }}</td>
+            <td dir="ltr">{{ debt.phone }}</td>
+            <td class="text-danger fw-bold">{{ debt.debt|floatformat:2|intcomma }}</td>
+            <td><a href="{% url 'customer_payment_create' debt.id %}" class="btn btn-success btn-sm">تسديد</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted" style="padding:30px;"> لا توجد ديون مستحقة</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"> ديون الفروع (مستحقات الرئيسي)</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div style="background:#fef3c7;padding:12px;text-align:center;border-bottom:1px solid var(--border-color);">
+        <span class="text-muted">إجمالي العمولات غير المسددة</span>
+        <span class="fw-bold text-warning" style="font-size:20px;margin-right:10px;">{{ total_unpaid_commissions|floatformat:0|intcomma }} د.ل</span>
+      </div>
+      <table class="erp-table">
+        <thead><tr><th>الفرع</th><th>النسبة</th><th>المبيعات</th><th>العمولة</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th></th></tr></thead>
+        <tbody>
+          {% for branch in branch_debt_list %}
+          <tr>
+            <td class="fw-600">{{ branch.name }}</td>
+            <td>{{ branch.commission_percentage }}%</td>
+            <td>{{ branch.total_sales|floatformat:0|intcomma }}</td>
+            <td>{{ branch.commission|floatformat:0|intcomma }}</td>
+            <td>{{ branch.amount_due|floatformat:0|intcomma }}</td>
+            <td class="text-success">{{ branch.paid|floatformat:0|intcomma }}</td>
+            <td class="{% if branch.remaining > 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+              {{ branch.remaining|floatformat:0|intcomma }}
+            </td>
+            <td>
+              {% if branch.remaining > 0 %}
+              <a href="{% url 'branch_sales_delivery' branch.id %}" class="btn btn-success btn-sm">تسليم</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">لا توجد فروع</td></tr>
+          {% endfor %}
+        </tbody>
+       </table>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"> الفواتير المتأخرة</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table class="erp-table">
+        <thead><tr><th>رقم الفاتورة</th><th>الفرع</th><th>العميل</th><th>المتبقي</th><th>تاريخ الاستحقاق</th></tr></thead>
+        <tbody>
+          {% for inv in overdue_invoices %}
+          <tr>
+            <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
+            <td>{{ inv.branch.name }}</td>
+            <td>{{ inv.customer.full_name|default:"-" }}</td>
+            <td class="text-danger fw-bold">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
+            <td><span class="badge badge-danger">{{ inv.due_date }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted" style="padding:30px;"> لا توجد فواتير متأخرة</td></tr>
+          {% endfor %}
+        </tbody>
+       </table>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">ملخص الأرباح</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+        <span>إجمالي الإيرادات</span>
+        <span class="fw-bold text-success">{{ total_revenue|floatformat:2|intcomma }} د.ل</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+        <span>(-) تكلفة المبيعات (COGS)</span>
+        <span class="fw-bold text-danger">{{ cogs|floatformat:2|intcomma }} د.ل</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+        <span class="fw-bold">= الربح الإجمالي</span>
+        <span class="fw-bold text-primary">{{ gross_profit|floatformat:2|intcomma }} د.ل</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+        <span>(-) عمولات الفروع</span>
+        <span class="fw-bold text-danger">{{ total_commissions|floatformat:2|intcomma }} د.ل</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;margin-top:5px;background:#f0fdf4;border-radius:8px;">
+        <span class="fw-bold">= صافي الربح</span>
+        <span class="fw-bold {% if net_profit >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:20px;">
+          {{ net_profit|floatformat:2|intcomma }} د.ل
+        </span>
+      </div>
+      
+      {% if total_revenue > 0 %}
+      <div style="margin-top:15px;">
+        <div class="text-muted" style="font-size:12px;">نسبة الربحية</div>
+        <div style="background:#e5e7eb;border-radius:10px;height:20px;overflow:hidden;">
+          <div style="width:{% widthratio net_profit total_revenue 100 %}%;background:#16a34a;height:20px;border-radius:10px;"></div>
+        </div>
+        <div class="text-center fw-bold mt-1">{% widthratio net_profit total_revenue 100 %}%</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

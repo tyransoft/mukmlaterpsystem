@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}تنبيهات المخزون{% endblock %}
+{% block page_title %}تنبيهات المخزون المنخفض{% endblock %}
+{% block nav_lowstock %}active{% endblock %}
+
+{% block content %}
+{% if inventory %}
+<div class="alert alert-warning">
+  ⚠️ يوجد {{ inventory|length }} منتج بمخزون منخفض يحتاج إلى إعادة تعبئة
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr><th>الفرع</th><th>المنتج</th><th>الكمية الحالية</th></tr>
+      </thead>
+      <tbody>
+        {% for inv in inventory %}
+        <tr>
+          <td>{{ inv.branch.name }}</td>
+          <td>
+            <a href="{% url 'products_detail' inv.product.pk %}" class="fw-600 text-primary">{{ inv.product.name }}</a>
+            <div class="text-muted" style="font-size:11px;">{{ inv.product.code }}</div>
+          </td>
+          <td><span class="badge badge-danger" style="font-size:14px;">{{ inv.quantity }}</span></td>
+
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">✅</div><h5>كل المخزون كافٍ</h5><p>لا توجد تنبيهات مخزون منخفض</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,574 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}فاتورة مبيعات جديدة{% endblock %}
+{% block page_title %}فاتورة مبيعات جديدة{% endblock %}
+
+{% block content %}
+<style>
+  .sale-type-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .sale-type-btn {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: white;
+    font-weight: 500;
+  }
+  .sale-type-btn.active {
+    border-color: var(--primary);
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary);
+  }
+  .customer-card, .branch-card {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .product-row {
+    transition: background 0.2s;
+  }
+  .product-row:hover {
+    background: #f8fafc;
+  }
+  .quantity-input {
+    width: 80px;
+    text-align: center;
+  }
+  .price-input {
+    width: 100px;
+    text-align: center;
+  }
+  .remove-product {
+    cursor: pointer;
+    color: #ef4444;
+  }
+  .remove-product:hover {
+    color: #dc2626;
+  }
+  .info-branch {
+    background: #eff6ff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+</style>
+
+<form method="post" id="sale-invoice-form">
+  {% csrf_token %}
+  <div style="display:grid;grid-template-columns:1fr 350px;gap:20px;">
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <polyline points="16 3 12 7 8 3"></polyline>
+          </svg>
+          إضافة المنتجات
+        </span>
+      </div>
+      <div class="card-body">
+        <div style="margin-bottom:20px;">
+          <input type="text" id="product-search" class="form-control" 
+                 placeholder=" ابحث عن منتج بالاسم أو الباركود...">
+          <div id="search-results" style="position:absolute;background:white;border:1px solid var(--border-color);border-radius:8px;width:calc(100% - 40px);max-height:300px;overflow-y:auto;display:none;z-index:1000;"></div>
+        </div>
+        
+        <div class="items-table-wrapper">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th style="width:35%;">المنتج</th>
+                <th style="width:15%;">الكمية</th>
+                <th style="width:20%;">السعر</th>
+                <th style="width:20%;">الإجمالي</th>
+                <th style="width:10%;"></th>
+              </tr>
+            </thead>
+            <tbody id="items-container">
+              <tr id="empty-row">
+                <td colspan="5" class="text-center text-muted" style="padding:40px;">
+                  ابحث عن منتج وأضفه للفاتورة
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            بيانات الفاتورة
+          </span>
+        </div>
+        <div class="card-body">
+          
+          <div class="info-branch">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <polyline points="16 3 12 7 8 3"></polyline>
+            </svg>
+            الفرع المصدر: <strong>{{ user_branch.name }}</strong>
+            {% if user_branch.is_main %}
+              <span class="badge badge-success">رئيسي</span>
+            {% endif %}
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">نوع البيع *</label>
+            <div class="sale-type-selector">
+              <div class="sale-type-btn active" data-type="customer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                بيع لعميل
+              </div>
+              {% if allowed_sale_types|length > 1 %}
+              <div class="sale-type-btn" data-type="branch">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <polyline points="16 3 12 7 8 3"></polyline>
+                </svg>
+                توريد لفرع
+              </div>
+              {% endif %}
+            </div>
+            <input type="hidden" name="sale_type" id="sale_type" value="customer">
+          </div>
+          
+          <div id="target_branch_group" class="form-group" style="display:none;">
+            <label class="form-label">الفرع المستلم *</label>
+            <select name="target_branch" id="target_branch" class="form-select">
+              <option value="">-- اختر الفرع --</option>
+              {% for branch in branches %}
+                <option value="{{ branch.id }}">{{ branch.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div id="customer_group">
+            <div class="form-group">
+              <label class="form-label">البحث عن عميل</label>
+              <input type="text" id="customer_search" class="form-control" 
+                     placeholder="ابحث بالاسم أو رقم الجوال...">
+              <div id="customer_results" style="position:absolute;background:white;border:1px solid var(--border-color);border-radius:8px;width:calc(100% - 40px);max-height:200px;overflow-y:auto;display:none;z-index:1000;"></div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">اختر عميل</label>
+              <select name="customer" id="customer_select" class="form-select">
+                <option value="">-- اختر عميل --</option>
+                {% for customer in customers %}
+                  <option value="{{ customer.id }}" data-points="{{ customer.loyalty_points }}" data-debt="{{ customer.debt_balance }}">
+                    {{ customer.full_name }} - {{ customer.phone }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div id="customer_details" class="customer-card" style="display:none;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span> نقاط الولاء المتاحة:</span>
+                <span class="fw-600 text-primary" id="customer_points">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span>رصيد الدين الحالي:</span>
+                <span class="fw-600 text-danger" id="customer_debt">0.00 د.ل</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">الخصم</label>
+            <input type="number" name="discount" id="discount" class="form-control" step="0.01" value="0">
+          </div>
+          
+          <div id="payment_group">
+            <div class="form-group">
+              <label class="form-label">المبلغ المدفوع</label>
+              <input type="number" name="paid_amount" id="paid_amount" class="form-control" step="0.01" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">تاريخ الاستحقاق</label>
+              <input type="date" name="due_date" id="due_date" class="form-control">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">ملاحظات</label>
+            <textarea name="notes" id="notes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:15px;">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;">
+            <span>المجموع الفرعي</span>
+            <span class="fw-600" id="subtotal">0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+            <span>الخصم</span>
+            <span class="fw-600 text-danger" id="discount_display">0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;">
+            <span class="fw-bold">الإجمالي</span>
+            <span class="fw-bold text-primary" style="font-size:20px;" id="total">0.00</span>
+          </div>
+          
+          <div id="payment_summary" style="border-top:1px solid var(--border-color);padding-top:12px;margin-top:5px;">
+            <div style="display:flex;justify-content:space-between;padding:5px 0;">
+              <span>المدفوع</span>
+              <span class="text-success fw-600" id="paid_display">0.00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;">
+              <span>المتبقي</span>
+              <span class="text-danger fw-600" id="remaining">0.00</span>
+            </div>
+          </div>
+          
+          <div id="loyalty_summary" style="border-top:1px solid var(--border-color);padding-top:12px;margin-top:5px;">
+            <div style="display:flex;justify-content:space-between;">
+              <span> نقاط الولاء  </span>
+              <span class="fw-600 text-primary" id="points">0</span>
+            </div>
+            
+          </div>
+          
+          <div class="form-group" style="margin-top:15px;">
+            <div style="display:flex;gap:10px;">
+              <button type="submit" class="btn btn-primary" style="flex:1;" id="submit-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                حفظ الفاتورة
+              </button>
+              <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+$(document).ready(function() {
+    let selectedProducts = [];
+    let customers = [];
+    
+    $.get('/customers/search/?q=', function(data) {
+        if (data.customers) {
+            customers = data.customers;
+        }
+    });
+    
+    let searchTimeout;
+    $('#product-search').on('input', function() {
+        clearTimeout(searchTimeout);
+        const query = $(this).val();
+        if (query.length < 2) {
+            $('#search-results').hide();
+            return;
+        }
+        
+        searchTimeout = setTimeout(function() {
+            $.get('/products/search/?q=' + encodeURIComponent(query), function(data) {
+                if (data.products) {
+                    displaySearchResults(data.products);
+                }
+            });
+        }, 300);
+    });
+    
+    function displaySearchResults(results) {
+        const $results = $('#search-results');
+        if (results.length === 0) {
+            $results.hide();
+            return;
+        }
+        
+        $results.empty().show();
+        results.forEach(product => {
+            $results.append(`
+                <div class="search-result-item" data-id="${product.id}" 
+                     data-name="${product.name}" data-price="${product.selling_price}"
+                     data-points="${product.loyalty_points}"
+                     style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
+                    <div class="fw-600">${product.name}</div>
+                    <div class="text-muted" style="font-size:12px;">
+                        السعر: ${product.selling_price} د.ل | النقاط: ${product.loyalty_points}/وحدة
+                    </div>
+                </div>
+            `);
+        });
+        
+        $('.search-result-item').on('click', function() {
+            const productData = $(this).data();
+            addProductToTable({
+                id: productData.id,
+                name: productData.name,
+                selling_price: productData.price,
+                loyalty_points: productData.points
+            });
+            $('#product-search').val('');
+            $results.hide();
+        });
+    }
+    
+    function addProductToTable(product) {
+        const existing = selectedProducts.find(p => p.id === product.id);
+        if (existing) {
+            existing.quantity++;
+            updateProductRow(existing);
+        } else {
+            const newProduct = {
+                id: product.id,
+                name: product.name,
+                quantity: 1,
+                price: parseFloat(product.selling_price),
+                points: product.loyalty_points,
+                total: parseFloat(product.selling_price)
+            };
+            selectedProducts.push(newProduct);
+            addProductRow(newProduct);
+        }
+        updateTotals();
+    }
+    
+    function addProductRow(product) {
+        const $container = $('#items-container');
+        if ($('#empty-row').is(':visible')) {
+            $('#empty-row').hide();
+        }
+        
+        const rowId = `product-row-${product.id}`;
+        $container.append(`
+            <tr id="${rowId}" class="product-row">
+                <td class="fw-600">${escapeHtml(product.name)}</td>
+                <td>
+                    <input type="number" class="form-control quantity-input" 
+                           value="${product.quantity}" min="1" step="1"
+                           style="width:80px;" data-id="${product.id}">
+                </td>
+                <td>
+                    <input type="number" class="form-control price-input" 
+                           value="${product.price}" step="0.01"
+                           style="width:100px;" data-id="${product.id}">
+                </td>
+                <td class="total-price-${product.id} fw-600">${product.total.toFixed(2)}</td>
+                <td class="text-center">
+                    <span class="remove-product" data-id="${product.id}" style="cursor:pointer;color:#ef4444;">🗑️</span>
+                </td>
+            </tr>
+        `);
+        
+        $container.append(`
+            <input type="hidden" name="product_${product.id}_id" value="${product.id}">
+            <input type="hidden" name="product_${product.id}_quantity" class="hidden-quantity-${product.id}" value="${product.quantity}">
+            <input type="hidden" name="product_${product.id}_price" class="hidden-price-${product.id}" value="${product.price}">
+        `);
+    }
+    
+    function updateProductRow(product) {
+        $(`.quantity-input[data-id="${product.id}"]`).val(product.quantity);
+        $(`.hidden-quantity-${product.id}`).val(product.quantity);
+        product.total = product.quantity * product.price;
+        $(`.total-price-${product.id}`).text(product.total.toFixed(2));
+        updateTotals();
+    }
+    
+    $(document).on('change', '.quantity-input', function() {
+        const id = parseInt($(this).data('id'));
+        const product = selectedProducts.find(p => p.id === id);
+        if (product) {
+            let qty = parseInt($(this).val());
+            if (isNaN(qty) || qty < 1) qty = 1;
+            product.quantity = qty;
+            updateProductRow(product);
+        }
+    });
+    
+    $(document).on('change', '.price-input', function() {
+        const id = parseInt($(this).data('id'));
+        const product = selectedProducts.find(p => p.id === id);
+        if (product) {
+            let price = parseFloat($(this).val());
+            if (isNaN(price) || price < 0) price = 0;
+            product.price = price;
+            updateProductRow(product);
+        }
+    });
+    
+    $(document).on('click', '.remove-product', function() {
+        const id = parseInt($(this).data('id'));
+        selectedProducts = selectedProducts.filter(p => p.id !== id);
+        $(`#product-row-${id}`).remove();
+        $(`input[name="product_${id}_id"]`).remove();
+        $(`input[name="product_${id}_quantity"]`).remove();
+        $(`input[name="product_${id}_price"]`).remove();
+        
+        if (selectedProducts.length === 0) {
+            $('#empty-row').show();
+        }
+        updateTotals();
+    });
+    
+    function updateTotals() {
+        const subtotal = selectedProducts.reduce((sum, p) => sum + p.total, 0);
+        const discount = parseFloat($('#discount').val()) || 0;
+        const total = subtotal - discount;
+        const paid = parseFloat($('#paid_amount').val()) || 0;
+        const remaining = total - paid;
+        const points = selectedProducts.reduce((sum, p) => sum + (p.points * p.quantity), 0);
+        
+        $('#subtotal').text(subtotal.toFixed(2));
+        $('#discount_display').text(discount.toFixed(2));
+        $('#total').text(total.toFixed(2));
+        $('#paid_display').text(paid.toFixed(2));
+        $('#remaining').text(remaining.toFixed(2));
+        $('#points').text(points);
+    }
+    
+    $('#discount, #paid_amount').on('input', updateTotals);
+    
+    $('.sale-type-btn').on('click', function() {
+        $('.sale-type-btn').removeClass('active');
+        $(this).addClass('active');
+        const type = $(this).data('type');
+        $('#sale_type').val(type);
+        
+        if (type === 'customer') {
+            $('#target_branch_group').hide();
+            $('#customer_group').show();
+            $('#payment_group').show();
+        } else {
+            $('#target_branch_group').show();
+            $('#customer_group').hide();
+            $('#payment_group').hide();
+            $('#paid_amount').val(0);
+            $('#due_date').val('');
+        }
+        updateTotals();
+    });
+    
+    let customerTimeout;
+    $('#customer_search').on('input', function() {
+        clearTimeout(customerTimeout);
+        const query = $(this).val();
+        if (query.length < 2) {
+            $('#customer_results').hide();
+            return;
+        }
+        
+        customerTimeout = setTimeout(function() {
+            $.get('/customers/search/?q=' + encodeURIComponent(query), function(data) {
+                if (data.customers) {
+                    displayCustomerResults(data.customers);
+                }
+            });
+        }, 300);
+    });
+    
+    function displayCustomerResults(results) {
+        const $results = $('#customer_results');
+        if (results.length === 0) {
+            $results.hide();
+            return;
+        }
+        
+        $results.empty().show();
+        results.forEach(customer => {
+            $results.append(`
+                <div class="customer-result" data-id="${customer.id}" 
+                     data-name="${customer.full_name}" data-phone="${customer.phone}"
+                     data-points="${customer.loyalty_points}" data-debt="${customer.debt_balance}"
+                     style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
+                    <div class="fw-600">${escapeHtml(customer.full_name)}</div>
+                    <div class="text-muted" style="font-size:12px;">${escapeHtml(customer.phone)}</div>
+                </div>
+            `);
+        });
+        
+        $('.customer-result').on('click', function() {
+            const data = $(this).data();
+            $('#customer_select').val(data.id).trigger('change');
+            $('#customer_search').val(data.name);
+            $('#customer_results').hide();
+        });
+    }
+    
+    $('#customer_select').on('change', function() {
+        const option = $(this).find(':selected');
+        const points = option.data('points') || 0;
+        const debt = option.data('debt') || 0;
+        
+        if ($(this).val()) {
+            $('#customer_details').show();
+            $('#customer_points').text(points);
+            $('#customer_debt').text(debt.toFixed(2) + 'د.ل');
+        } else {
+            $('#customer_details').hide();
+        }
+    });
+    
+    $('#sale-invoice-form').on('submit', function(e) {
+        if (selectedProducts.length === 0) {
+            e.preventDefault();
+            alert('الرجاء إضافة منتجات للفاتورة');
+            return false;
+        }
+        
+        const saleType = $('#sale_type').val();
+        if (saleType === 'customer' && !$('#customer_select').val()) {
+            e.preventDefault();
+            alert('الرجاء اختيار عميل');
+            return false;
+        }
+        
+        if (saleType === 'branch' && !$('#target_branch').val()) {
+            e.preventDefault();
+            alert('الرجاء اختيار الفرع المستلم');
+            return false;
+        }
+        
+        return true;
+    });
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+});
+</script>
+{% endblock %}

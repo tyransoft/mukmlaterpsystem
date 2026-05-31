@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:280px 1fr;gap:20px;">
+  <div class="card">
+    <div class="card-body">
+    
+      <h3 style="font-size:16px;font-weight:800;margin-bottom:4px;">{{ product.name }}</h3>
+      <code style="background:var(--bg-light);padding:3px 8px;border-radius:4px;font-size:12px;">{{ product.code }}</code>
+      {% if product.loyalty_points > 0 %}
+      <div class="loyalty-card" style="margin-top:12px;padding:12px;border-radius:8px;">
+        <div style="font-size:11px;opacity:0.8;">نقاط الولاء لكل وحدة</div>
+        <div style="font-size:22px;font-weight:800;"> {{ product.loyalty_points }}</div>
+      </div>
+      {% endif %}
+      {% if user.can_modify_prices %}
+      <a href="{% url 'products_edit' product.pk %}" class="btn btn-primary" style="width:100%;margin-top:12px;">✏️ تعديل</a>
+      {% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">معلومات التسعير</span></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div style="background:var(--bg-light);padding:16px;border-radius:8px;text-align:center;">
+            <div class="text-muted" style="font-size:12px;">سعر التكلفة</div>
+            <div style="font-size:20px;font-weight:800;color:var(--danger);">{{ product.cost_price|floatformat:2|intcomma }}</div>
+          </div>
+          <div style="background:var(--bg-light);padding:16px;border-radius:8px;text-align:center;">
+            <div class="text-muted" style="font-size:12px;">سعر البيع</div>
+            <div style="font-size:20px;font-weight:800;color:var(--primary);">{{ product.selling_price|floatformat:2|intcomma }}</div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title"> المخزون بالفروع</span></div>
+      <div class="card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead><tr><th>الفرع</th><th>الكمية</th><th>الحد الأدنى</th><th>الحالة</th></tr></thead>
+          <tbody>
+            {% for stock in branch_stocks %}
+            <tr>
+              <td class="fw-600">{{ stock.branch.name }}</td>
+              <td class="fw-bold">{{ stock.quantity }}</td>
+              <td class="text-muted">{{ stock.min_quantity }}</td>
+              <td>{% if stock.is_low_stock %}<span class="low-stock-badge">منخفض</span>{% else %}<span class="badge badge-success">كافٍ</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد بيانات مخزون</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

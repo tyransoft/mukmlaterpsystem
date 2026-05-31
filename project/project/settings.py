@@ -25,9 +25,11 @@ SECRET_KEY = 'django-insecure-quz(+0z6oyf$g#sema_ntb4wdo)_1vpisx*q^09eq4g$t%=ms_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['mukmelat.tip2.libyanspider.cloud']
 
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://mukmelat.tip2.libyanspider.cloud",
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -70,7 +72,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
-
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 

@@ -14,28 +14,24 @@
 
 <div class="grid-4" style="margin-bottom:20px;">
   <div class="stat-card">
-    <div class="stat-icon green">💰</div>
     <div class="stat-info">
       <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
       <div class="stat-label">مبيعات اليوم  </div>
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon blue">📅</div>
     <div class="stat-info">
       <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
       <div class="stat-label">مبيعات الشهر </div>
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon orange">🏆</div>
     <div class="stat-info">
       <div class="stat-value">{{ commission|floatformat:0|intcomma }}</div>
       <div class="stat-label">عمولة الشهر </div>
     </div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon purple">🧾</div>
     <div class="stat-info">
       <div class="stat-value">{{ invoice_count_today }}</div>
       <div class="stat-label">فواتير اليوم</div>
@@ -47,8 +43,8 @@
   <!-- Recent Invoices -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">🧾 آخر الفواتير</span>
-      <a href="{% url 'invoices_create' %}" class="btn btn-primary btn-sm">+ جديدة</a>
+      <span class="card-title">آخر الفواتير</span>
+      <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary btn-sm">+ جديدة</a>
     </div>
     <div class="card-body" style="padding:0;">
       <table class="erp-table">
@@ -76,7 +72,7 @@
   <!-- Low Stock -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">⚠️ تنبيهات المخزون المنخفض</span>
+      <span class="card-title"> تنبيهات المخزون المنخفض</span>
       <a href="{% url 'inventory_list' %}" class="btn btn-outline btn-sm">المخزون</a>
     </div>
     <div class="card-body" style="padding:0;">
@@ -95,7 +91,7 @@
       </table>
       {% else %}
       <div class="empty-state" style="padding:30px;">
-        <div class="empty-icon">✅</div>
+        <div class="empty-icon">--</div>
         <h5>المخزون كافٍ</h5>
         <p>لا توجد تنبيهات مخزون منخفض</p>
       </div>
@@ -108,10 +104,10 @@
 <div class="card" style="margin-top:20px;">
   <div class="card-body">
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <a href="{% url 'invoices_create' %}" class="btn btn-primary">➕ فاتورة مبيعات</a>
-      <a href="{% url 'customers_create' %}" class="btn btn-outline-primary">👤 عميل جديد</a>
-      <a href="{% url 'inventory_list' %}" class="btn btn-outline">📦 المخزون</a>
-      <a href="{% url 'invoices_list' %}" class="btn btn-outline">🧾 الفواتير</a>
+      <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary"> فاتورة مبيعات</a>
+      <a href="{% url 'customers_create' %}" class="btn btn-outline-primary">عميل جديد</a>
+      <a href="{% url 'inventory_list' %}" class="btn btn-outline"> المخزون</a>
+      <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline"> الفواتير</a>
     </div>
   </div>
 </div>

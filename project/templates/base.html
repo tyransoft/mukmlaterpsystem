@@ -53,7 +53,6 @@
          المستخدمون
         </a>
       </div>
-      {% endif %}
 
       <!-- Products -->
       <div class="nav-section">المنتجات</div>
@@ -67,6 +66,7 @@
           الفئات
         </a>
       </div>
+      {% endif %}
 
       <!-- Inventory -->
       <div class="nav-section">المخزون</div>
@@ -125,6 +125,8 @@
           عميل جديد
         </a>
       </div>
+      {% if user.can_see_all_data %}
+
 <div class="nav-section">الموردين</div>
 <div class="nav-item">
   <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">
@@ -132,6 +134,7 @@
     إدارة الموردين
   </a>
 </div>
+{% endif %}
       <!-- Loyalty -->
       {% if user.is_loyalty_employee or user.can_see_all_data %}
       <div class="nav-section">نقاط الولاء</div>

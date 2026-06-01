@@ -677,7 +677,6 @@ def purchase_invoice_detail(request, pk):
 
 @login_required
 def sale_invoice_confirm(request, pk):
-    """تأكيد فاتورة مبيعات"""
     from .models import SaleInvoice
     
     invoice = get_object_or_404(SaleInvoice, pk=pk)
@@ -1326,23 +1325,22 @@ def sale_invoices_list(request):
     }
     return render(request, 'invoices/sale_invoices_list.html', context)
 
-
 @login_required
 def purchase_invoices_list(request):
-    if not request.user.is_main_admin() and not request.user.is_accountant():
-        messages.error(request, 'غير مصرح لك بالوصول إلى هذه الصفحة')
-        return redirect('dashboard_home')
     
     invoices = PurchaseInvoice.objects.select_related('branch', 'supplier', 'employee')
     
     branch_filter = request.GET.get('branch', '')
     
-    if not request.user.is_main_admin():
-        invoices = invoices.filter(branch=request.user.branch)
-        branch_filter = str(request.user.branch.id) if request.user.branch else ''
-    else:
+    if request.user.can_see_all_data(): 
         if branch_filter:
             invoices = invoices.filter(branch_id=branch_filter)
+    else:
+        if request.user.branch:
+            invoices = invoices.filter(branch=request.user.branch)
+            branch_filter = str(request.user.branch.id)
+        else:
+            invoices = invoices.none()
     
     status = request.GET.get('status', '')
     if status:
@@ -1364,7 +1362,7 @@ def purchase_invoices_list(request):
         'confirmed_count': invoices.filter(status='confirmed').count(),
     }
     
-    branches = Branch.objects.filter(is_active=True) if request.user.is_main_admin() else []
+    branches = request.user.get_accessible_branches()
     
     context = {
         'invoices': invoices,
@@ -1379,7 +1377,6 @@ def purchase_invoices_list(request):
         'user_branch': request.user.branch,
     }
     return render(request, 'invoices/purchase_invoices_list.html', context)
-
 
 
 @login_required
@@ -1732,3 +1729,14 @@ def customer_payments_history(request, pk):
         'customer': customer,
         'payments': payments,
     })    
+
+
+@login_required
+def api_products_stock(request):
+    if not request.user.branch:
+        return JsonResponse({'stock': {}})
+    
+    stocks = BranchInventory.objects.filter(branch=request.user.branch)
+    stock_data = {str(stock.product.id): stock.quantity for stock in stocks}
+    
+    return JsonResponse({'stock': stock_data})

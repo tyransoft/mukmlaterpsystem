@@ -81,7 +81,7 @@ urlpatterns = [
     path('purchases/<int:pk>/', purchase_invoice_detail, name='purchase_invoice_detail'),
     path('purchases/<int:pk>/confirm/', purchase_invoice_confirm, name='purchase_invoice_confirm'),
     path('purchases/<int:pk>/print/', purchase_invoice_print, name='purchase_invoice_print'),
-
+    path('api/products-stock/', api_products_stock, name='api_products_stock'),
 ]
 
 

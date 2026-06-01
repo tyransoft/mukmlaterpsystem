@@ -62,6 +62,16 @@
     margin-bottom: 15px;
     text-align: center;
   }
+  .error-message {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+  }
+  .product-row.has-error {
+    background: #fef2f2;
+    border-right: 3px solid #dc2626;
+  }
 </style>
 
 <form method="post" id="sale-invoice-form">
@@ -71,14 +81,13 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">
-          
           إضافة المنتجات
         </span>
       </div>
       <div class="card-body">
         <div style="margin-bottom:20px;">
           <input type="text" id="product-search" class="form-control" 
-                 placeholder=" ابحث عن منتج بالاسم أو الباركود...">
+                 placeholder="ابحث عن منتج بالاسم أو الباركود...">
           <div id="search-results" style="position:absolute;background:white;border:1px solid var(--border-color);border-radius:8px;width:calc(100% - 40px);max-height:300px;overflow-y:auto;display:none;z-index:1000;"></div>
         </div>
         
@@ -109,14 +118,12 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">
-            
             بيانات الفاتورة
           </span>
         </div>
         <div class="card-body">
           
           <div class="info-branch">
-            
             الفرع المصدر: <strong>{{ user_branch.name }}</strong>
             {% if user_branch.is_main %}
               <span class="badge badge-success">رئيسي</span>
@@ -127,12 +134,10 @@
             <label class="form-label">نوع البيع *</label>
             <div class="sale-type-selector">
               <div class="sale-type-btn active" data-type="customer">
-                
                 بيع لعميل
               </div>
               {% if allowed_sale_types|length > 1 %}
               <div class="sale-type-btn" data-type="branch">
-                
                 توريد لفرع
               </div>
               {% endif %}
@@ -172,7 +177,7 @@
             
             <div id="customer_details" class="customer-card" style="display:none;">
               <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <span> نقاط الولاء المتاحة:</span>
+                <span>نقاط الولاء المتاحة:</span>
                 <span class="fw-600 text-primary" id="customer_points">0</span>
               </div>
               <div style="display:flex;justify-content:space-between;">
@@ -233,10 +238,9 @@
           
           <div id="loyalty_summary" style="border-top:1px solid var(--border-color);padding-top:12px;margin-top:5px;">
             <div style="display:flex;justify-content:space-between;">
-              <span> نقاط الولاء  </span>
+              <span>نقاط الولاء</span>
               <span class="fw-600 text-primary" id="points">0</span>
             </div>
-            
           </div>
           
           <div class="form-group" style="margin-top:15px;">
@@ -266,6 +270,20 @@
 $(document).ready(function() {
     let selectedProducts = [];
     let customers = [];
+    let isUpdatingPaidAmount = false;
+    let productStock = {}; 
+    
+    loadProductStock();
+    
+    function loadProductStock() {
+        $.get('/api/products-stock/', function(data) {
+            if (data.stock) {
+                productStock = data.stock;
+            }
+        }).fail(function() {
+            console.log('فشل في تحميل بيانات المخزون');
+        });
+    }
     
     $.get('/customers/search/?q=', function(data) {
         if (data.customers) {
@@ -300,14 +318,18 @@ $(document).ready(function() {
         
         $results.empty().show();
         results.forEach(product => {
+            const availableStock = productStock[product.id] || 0;
             $results.append(`
                 <div class="search-result-item" data-id="${product.id}" 
                      data-name="${product.name}" data-price="${product.selling_price}"
-                     data-points="${product.loyalty_points}"
+                     data-points="${product.loyalty_points}" data-stock="${availableStock}"
                      style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
                     <div class="fw-600">${product.name}</div>
                     <div class="text-muted" style="font-size:12px;">
                         السعر: ${product.selling_price} د.ل | النقاط: ${product.loyalty_points}/وحدة
+                        <span class="text-${availableStock > 0 ? 'success' : 'danger'}" style="display:block;">
+                            المخزون: ${availableStock}
+                        </span>
                     </div>
                 </div>
             `);
@@ -319,30 +341,73 @@ $(document).ready(function() {
                 id: productData.id,
                 name: productData.name,
                 selling_price: productData.price,
-                loyalty_points: productData.points
+                loyalty_points: productData.points,
+                available_stock: productData.stock
             });
             $('#product-search').val('');
             $results.hide();
         });
     }
     
+    function getCurrentStock(productId) {
+        return productStock[productId] || 0;
+    }
+    
+    function updateStock(productId, quantityChange) {
+        if (productStock[productId] !== undefined) {
+            productStock[productId] -= quantityChange;
+        }
+    }
+    
+    function validateQuantity(product, requestedQuantity) {
+        const availableStock = getCurrentStock(product.id);
+        const currentQuantityInCart = selectedProducts.find(p => p.id === product.id)?.quantity || 0;
+        const totalRequested = requestedQuantity;
+        
+        if (totalRequested > availableStock) {
+            return {
+                valid: false,
+                message: `الكمية المطلوبة (${totalRequested}) تتجاوز المخزون المتوفر (${availableStock}) للمنتج ${product.name}`
+            };
+        }
+        
+        return {
+            valid: true,
+            message: ''
+        };
+    }
+    
     function addProductToTable(product) {
         const existing = selectedProducts.find(p => p.id === product.id);
+        let newQuantity = existing ? existing.quantity + 1 : 1;
+        
+        const validation = validateQuantity(product, newQuantity);
+        
+        if (!validation.valid) {
+            showErrorNotification(validation.message);
+            return;
+        }
+        
         if (existing) {
-            existing.quantity++;
+            existing.quantity = newQuantity;
+            existing.total = existing.quantity * existing.price;
             updateProductRow(existing);
+            removeErrorFromRow(existing.id);
         } else {
             const newProduct = {
                 id: product.id,
                 name: product.name,
-                quantity: 1,
+                quantity: newQuantity,
                 price: parseFloat(product.selling_price),
                 points: product.loyalty_points,
-                total: parseFloat(product.selling_price)
+                total: parseFloat(product.selling_price),
+                available_stock: product.available_stock
             };
             selectedProducts.push(newProduct);
             addProductRow(newProduct);
         }
+        
+        updateStock(product.id, 1);
         updateTotals();
     }
     
@@ -352,11 +417,14 @@ $(document).ready(function() {
             $('#empty-row').hide();
         }
         
+        const availableStock = getCurrentStock(product.id);
         const rowId = `product-row-${product.id}`;
         $container.append(`
-            <tr id="${rowId}" class="product-row">
-                <td class="fw-600">${escapeHtml(product.name)}</td>
-                <td>
+            <tr id="${rowId}" class="product-row" data-product-id="${product.id}" data-max-stock="${availableStock}">
+                <td class="fw-600">${escapeHtml(product.name)}
+                    <div class="error-message" id="error-${product.id}" style="color:#dc2626;font-size:11px;margin-top:5px;"></div>
+                </td>
+                <tr>
                     <input type="number" class="form-control quantity-input" 
                            value="${product.quantity}" min="1" step="1"
                            style="width:80px;" data-id="${product.id}">
@@ -385,7 +453,31 @@ $(document).ready(function() {
         $(`.hidden-quantity-${product.id}`).val(product.quantity);
         product.total = product.quantity * product.price;
         $(`.total-price-${product.id}`).text(product.total.toFixed(2));
+        removeErrorFromRow(product.id);
         updateTotals();
+    }
+    
+    function showErrorForProduct(productId, message) {
+        $(`#error-${productId}`).text(message).show();
+        $(`#product-row-${productId}`).addClass('has-error');
+    }
+    
+    function removeErrorFromRow(productId) {
+        $(`#error-${productId}`).text('').hide();
+        $(`#product-row-${productId}`).removeClass('has-error');
+    }
+    
+    function showErrorNotification(message) {
+        if (!window.swal) {
+            alert(message);
+        } else {
+            Swal.fire({
+                title: 'خطأ',
+                text: message,
+                icon: 'error',
+                confirmButtonText: 'حسناً'
+            });
+        }
     }
     
     $(document).on('change', '.quantity-input', function() {
@@ -394,8 +486,22 @@ $(document).ready(function() {
         if (product) {
             let qty = parseInt($(this).val());
             if (isNaN(qty) || qty < 1) qty = 1;
+            
+            const oldQuantity = product.quantity;
+            const quantityDifference = qty - oldQuantity;
+            const availableStock = getCurrentStock(product.id);
+            
+            if (quantityDifference > 0 && quantityDifference > availableStock) {
+                showErrorForProduct(product.id, 
+                    `الكمية المطلوبة (${qty}) تتجاوز المخزون المتوفر (${availableStock + oldQuantity}). الحد الأقصى المسموح: ${availableStock + oldQuantity}`);
+                $(this).val(oldQuantity);
+                return;
+            }
+            
             product.quantity = qty;
+            updateStock(product.id, quantityDifference);
             updateProductRow(product);
+            removeErrorFromRow(product.id);
         }
     });
     
@@ -412,6 +518,10 @@ $(document).ready(function() {
     
     $(document).on('click', '.remove-product', function() {
         const id = parseInt($(this).data('id'));
+        const product = selectedProducts.find(p => p.id === id);
+        if (product) {
+            updateStock(product.id, -product.quantity);
+        }
         selectedProducts = selectedProducts.filter(p => p.id !== id);
         $(`#product-row-${id}`).remove();
         $(`input[name="product_${id}_id"]`).remove();
@@ -428,19 +538,76 @@ $(document).ready(function() {
         const subtotal = selectedProducts.reduce((sum, p) => sum + p.total, 0);
         const discount = parseFloat($('#discount').val()) || 0;
         const total = subtotal - discount;
-        const paid = parseFloat($('#paid_amount').val()) || 0;
-        const remaining = total - paid;
-        const points = selectedProducts.reduce((sum, p) => sum + (p.points * p.quantity), 0);
         
         $('#subtotal').text(subtotal.toFixed(2));
         $('#discount_display').text(discount.toFixed(2));
         $('#total').text(total.toFixed(2));
-        $('#paid_display').text(paid.toFixed(2));
-        $('#remaining').text(remaining.toFixed(2));
+        
+        const points = selectedProducts.reduce((sum, p) => sum + (p.points * p.quantity), 0);
         $('#points').text(points);
+        
+        if (!isUpdatingPaidAmount) {
+            const paidAmount = parseFloat($('#paid_amount').val()) || 0;
+            const remaining = total - paidAmount;
+            $('#paid_display').text(paidAmount.toFixed(2));
+            $('#remaining').text(remaining.toFixed(2));
+        }
+        
+        const currentPaidAmount = parseFloat($('#paid_amount').val()) || 0;
+        const remaining = total - currentPaidAmount;
+        $('#remaining').text(remaining.toFixed(2));
     }
     
-    $('#discount, #paid_amount').on('input', updateTotals);
+    function setPaidAmountToTotal() {
+        if (!isUpdatingPaidAmount) {
+            const total = parseFloat($('#total').text()) || 0;
+            $('#paid_amount').val(total.toFixed(2));
+            $('#paid_display').text(total.toFixed(2));
+            const remaining = total - total;
+            $('#remaining').text(remaining.toFixed(2));
+        }
+    }
+    
+    $('#discount').on('input', function() {
+        updateTotals();
+        setPaidAmountToTotal();
+    });
+    
+    $('#paid_amount').on('input', function() {
+        isUpdatingPaidAmount = true;
+        
+        const paidAmount = parseFloat($(this).val()) || 0;
+        const total = parseFloat($('#total').text()) || 0;
+        const remaining = total - paidAmount;
+        
+        $('#paid_display').text(paidAmount.toFixed(2));
+        $('#remaining').text(remaining.toFixed(2));
+        
+        setTimeout(function() {
+            isUpdatingPaidAmount = false;
+        }, 100);
+    });
+    
+    $('#paid_amount').on('blur', function() {
+        let paidAmount = parseFloat($(this).val()) || 0;
+        const total = parseFloat($('#total').text()) || 0;
+        
+        if (paidAmount < 0) {
+            paidAmount = 0;
+            $(this).val(0);
+        }
+        
+        if (paidAmount > total) {
+            paidAmount = total;
+            $(this).val(total.toFixed(2));
+        }
+        
+        $('#paid_display').text(paidAmount.toFixed(2));
+        const remaining = total - paidAmount;
+        $('#remaining').text(remaining.toFixed(2));
+        
+        isUpdatingPaidAmount = false;
+    });
     
     $('.sale-type-btn').on('click', function() {
         $('.sale-type-btn').removeClass('active');
@@ -458,8 +625,8 @@ $(document).ready(function() {
             $('#payment_group').hide();
             $('#paid_amount').val(0);
             $('#due_date').val('');
+            updateTotals();
         }
-        updateTotals();
     });
     
     let customerTimeout;
@@ -516,7 +683,7 @@ $(document).ready(function() {
         if ($(this).val()) {
             $('#customer_details').show();
             $('#customer_points').text(points);
-            $('#customer_debt').text(debt.toFixed(2) + 'د.ل');
+            $('#customer_debt').text(debt.toFixed(2) + ' د.ل');
         } else {
             $('#customer_details').hide();
         }
@@ -527,6 +694,15 @@ $(document).ready(function() {
             e.preventDefault();
             alert('الرجاء إضافة منتجات للفاتورة');
             return false;
+        }
+        
+        for (const product of selectedProducts) {
+            const availableStock = getCurrentStock(product.id);
+            if (product.quantity > availableStock) {
+                e.preventDefault();
+                alert(`المنتج ${product.name}: الكمية المطلوبة (${product.quantity}) تتجاوز المخزون المتوفر (${availableStock + product.quantity})`);
+                return false;
+            }
         }
         
         const saleType = $('#sale_type').val();
@@ -555,5 +731,20 @@ $(document).ready(function() {
             .replace(/'/g, '&#39;');
     }
 });
+
+$(document).ready(function() {
+    setTimeout(function() {
+        setPaidAmountToTotal();
+    }, 100);
+});
+
+function setPaidAmountToTotal() {
+    const total = parseFloat($('#total').text()) || 0;
+    $('#paid_amount').val(total.toFixed(2));
+    $('#paid_display').text(total.toFixed(2));
+    const remaining = total - total;
+    $('#remaining').text(remaining.toFixed(2));
+}
+
 </script>
 {% endblock %}

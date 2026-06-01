@@ -361,13 +361,11 @@ $(document).ready(function() {
     
     function validateQuantity(product, requestedQuantity) {
         const availableStock = getCurrentStock(product.id);
-        const currentQuantityInCart = selectedProducts.find(p => p.id === product.id)?.quantity || 0;
-        const totalRequested = requestedQuantity;
         
-        if (totalRequested > availableStock) {
+        if (requestedQuantity > availableStock) {
             return {
                 valid: false,
-                message: `الكمية المطلوبة (${totalRequested}) تتجاوز المخزون المتوفر (${availableStock}) للمنتج ${product.name}`
+                message: `الكمية المطلوبة (${requestedQuantity}) تتجاوز المخزون المتوفر (${availableStock}) للمنتج ${product.name}`
             };
         }
         
@@ -409,6 +407,7 @@ $(document).ready(function() {
         
         updateStock(product.id, 1);
         updateTotals();
+        setPaidAmountToTotal();
     }
     
     function addProductRow(product) {
@@ -455,6 +454,7 @@ $(document).ready(function() {
         $(`.total-price-${product.id}`).text(product.total.toFixed(2));
         removeErrorFromRow(product.id);
         updateTotals();
+        setPaidAmountToTotal();
     }
     
     function showErrorForProduct(productId, message) {
@@ -468,16 +468,7 @@ $(document).ready(function() {
     }
     
     function showErrorNotification(message) {
-        if (!window.swal) {
-            alert(message);
-        } else {
-            Swal.fire({
-                title: 'خطأ',
-                text: message,
-                icon: 'error',
-                confirmButtonText: 'حسناً'
-            });
-        }
+        alert(message);
     }
     
     $(document).on('change', '.quantity-input', function() {
@@ -532,6 +523,7 @@ $(document).ready(function() {
             $('#empty-row').show();
         }
         updateTotals();
+        setPaidAmountToTotal();
     });
     
     function updateTotals() {
@@ -545,17 +537,6 @@ $(document).ready(function() {
         
         const points = selectedProducts.reduce((sum, p) => sum + (p.points * p.quantity), 0);
         $('#points').text(points);
-        
-        if (!isUpdatingPaidAmount) {
-            const paidAmount = parseFloat($('#paid_amount').val()) || 0;
-            const remaining = total - paidAmount;
-            $('#paid_display').text(paidAmount.toFixed(2));
-            $('#remaining').text(remaining.toFixed(2));
-        }
-        
-        const currentPaidAmount = parseFloat($('#paid_amount').val()) || 0;
-        const remaining = total - currentPaidAmount;
-        $('#remaining').text(remaining.toFixed(2));
     }
     
     function setPaidAmountToTotal() {
@@ -626,6 +607,7 @@ $(document).ready(function() {
             $('#paid_amount').val(0);
             $('#due_date').val('');
             updateTotals();
+            setPaidAmountToTotal();
         }
     });
     
@@ -730,21 +712,9 @@ $(document).ready(function() {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
     }
+    
+    setPaidAmountToTotal();
 });
-
-$(document).ready(function() {
-    setTimeout(function() {
-        setPaidAmountToTotal();
-    }, 100);
-});
-
-function setPaidAmountToTotal() {
-    const total = parseFloat($('#total').text()) || 0;
-    $('#paid_amount').val(total.toFixed(2));
-    $('#paid_display').text(total.toFixed(2));
-    const remaining = total - total;
-    $('#remaining').text(remaining.toFixed(2));
-}
 
 </script>
 {% endblock %}

@@ -1,4 +1,3 @@
-<!-- templates/invoices/sale_invoice_create.html -->
 {% extends 'base.html' %}
 {% load humanize %}
 
@@ -55,45 +54,39 @@
     background: #f9fafb;
     font-weight: 600;
   }
-  .product-search-container {
-    position: relative;
+  .product-select-container {
     margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
   }
-  .search-results-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    z-index: 1000;
-    display: none;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  .product-select-container select {
+    flex: 2;
+    min-width: 250px;
   }
-  .search-result-item {
-    padding: 10px 15px;
+  .product-select-container input {
+    flex: 1;
+    min-width: 150px;
+  }
+  .btn-add-product {
+    padding: 8px 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
     cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
   }
-  .search-result-item:hover {
-    background: #f3f4f6;
-  }
-  .search-result-item .product-name {
-    font-weight: 600;
-  }
-  .search-result-item .product-details {
-    font-size: 12px;
-    color: #6b7280;
+  .btn-add-product:hover {
+    background: #1d4ed8;
   }
   .quantity-input {
-    width: 80px;
+    width: 65px;
     text-align: center;
+    margin: 0 5px;
   }
   .price-input {
-    width: 100px;
+    width: 90px;
     text-align: center;
   }
   .btn-sm {
@@ -102,7 +95,7 @@
     padding: 0;
     font-size: 16px;
     font-weight: bold;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #d1d5db;
     background: white;
     border-radius: 6px;
     cursor: pointer;
@@ -114,7 +107,7 @@
     background: none;
     border: none;
     color: #dc2626;
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
   }
   .remove-btn:hover {
@@ -127,18 +120,30 @@
   <div style="display:grid; grid-template-columns:1fr 380px; gap:20px;">
     
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">إضافة منتجات</span>
-      </div>
+      
       <div class="card-body">
         
-        <div class="product-search-container">
-          <input type="text" id="product-search" class="form-control" 
-                 placeholder="ابحث عن منتج بالاسم أو الباركود..." autocomplete="off">
-          <div id="search-results" class="search-results-dropdown"></div>
+        <div class="product-select-container">
+          <select id="product-select" class="form-select">
+            <option value="">-- اختر منتج --</option>
+            {% for product in products %}
+            <option value="{{ product.id }}" 
+                    data-name="{{ product.name }}"
+                    data-price="{{ product.selling_price }}"
+                    data-points="{{ product.loyalty_points }}"
+                    data-stock="{{ product.stock }}">
+              {{ product.name }} - السعر: {{ product.selling_price }} د.ل - المخزون: {{ product.stock }}
+              {% if product.stock <= 0 %} (غير متوفر){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          
+          <input type="text" id="product-filter" class="form-control" placeholder="بحث في المنتجات...">
+          
+          <button type="button" id="add-product-btn" class="btn-add-product">اضافة منتج</button>
         </div>
         
-        <div style="max-height: 400px; overflow-y: auto;">
+        <div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">
           <table class="products-table">
             <thead>
               <tr>
@@ -152,11 +157,11 @@
             <tbody id="products-tbody">
               <tr id="empty-row">
                 <td colspan="5" style="text-align:center; padding:40px; color:#9ca3af;">
-                  ابحث عن منتج وأضفه للفاتورة
+                  لا توجد منتجات مضافة
                 </td>
               </tr>
             </tbody>
-          </table>
+          <tr>
         </div>
       </div>
     </div>
@@ -222,7 +227,7 @@
               </div>
               
               <div id="customer_details" class="customer-card" style="display:none;">
-                <div>نقاط : <strong id="customer_points">0</strong></div>
+                <div>نقاط الولاء: <strong id="customer_points">0</strong></div>
                 <div>الدين: <strong id="customer_debt">0.00 د.ل</strong></div>
               </div>
             </div>
@@ -284,7 +289,7 @@
             <span>المتبقي</span> <span class="text-danger" id="remaining">0.00</span>
           </div>
           <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:1px solid #e5e7eb; margin-top:5px; padding-top:10px;">
-            <span>نقاط </span> <span id="points">0</span>
+            <span>نقاط الولاء</span> <span id="points">0</span>
           </div>
           
           <div style="margin-top:15px; display:flex; gap:10px;">
@@ -301,122 +306,50 @@
 <script>
 $(document).ready(function() {
     let selectedProducts = [];
-    let searchTimeout;
     
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text.replace(/&/g, '&amp;')
-                   .replace(/</g, '&lt;')
-                   .replace(/>/g, '&gt;')
-                   .replace(/"/g, '&quot;')
-                   .replace(/'/g, '&#39;');
+    function filterProducts() {
+        let filterText = $('#product-filter').val().toLowerCase();
+        
+        $('#product-select option').each(function() {
+            let option = $(this);
+            let productText = option.text().toLowerCase();
+            
+            if (filterText === '' || productText.includes(filterText)) {
+                option.show();
+            } else {
+                option.hide();
+            }
+        });
     }
     
-    $('#product-search').on('input', function() {
-        clearTimeout(searchTimeout);
-        let query = $(this).val().trim();
-        
-        if (query.length < 2) {
-            $('#search-results').hide();
-            return;
-        }
-        
-        searchTimeout = setTimeout(function() {
-            $.ajax({
-                url: '/api/products-stock/',
-                method: 'GET',
-                data: { q: query },
-                success: function(data) {
-                    if (data.products && data.products.length > 0) {
-                        displaySearchResults(data.products);
-                    } else {
-                        $('#search-results').hide();
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log('خطأ في جلب المنتجات: ' + error);
-                    $('#search-results').hide();
-                }
-            });
-        }, 300);
+    $('#product-filter').on('input', function() {
+        filterProducts();
     });
     
-    function displaySearchResults(products) {
-        let $results = $('#search-results');
+    function addProductFromSelect() {
+        let select = $('#product-select');
+        let selectedOption = select.find(':selected');
         
-        if (!products || products.length === 0) {
-            $results.hide();
+        if (selectedOption.val() === '') {
+            alert('الرجاء اختيار منتج');
             return;
         }
         
-        $results.empty();
-        $results.show();
+        let productId = parseInt(selectedOption.val());
+        let productName = selectedOption.data('name');
+        let productPrice = parseFloat(selectedOption.data('price'));
+        let productPoints = parseInt(selectedOption.data('points'));
+        let productStock = parseInt(selectedOption.data('stock'));
         
-        for (let i = 0; i < products.length; i++) {
-            let product = products[i];
-            let stockText = '';
-            let stockColor = '';
-            
-            if (product.stock > 0) {
-                stockText = 'المخزون: ' + product.stock;
-                stockColor = 'color:#4b5563';
-            } else {
-                stockText = 'غير متوفر';
-                stockColor = 'color:#dc2626';
-            }
-            
-            let resultItem = $('<div>')
-                .addClass('search-result-item')
-                .attr('data-id', product.id)
-                .attr('data-name', product.name)
-                .attr('data-price', product.price)
-                .attr('data-points', product.points)
-                .attr('data-stock', product.stock);
-            
-            let nameDiv = $('<div>')
-                .addClass('product-name')
-                .text(product.name);
-            
-            let detailsDiv = $('<div>')
-                .addClass('product-details')
-                .html('السعر: ' + product.price + ' د.ل | النقاط: ' + product.points + ' | <span style="' + stockColor + '">' + stockText + '</span>');
-            
-            resultItem.append(nameDiv);
-            resultItem.append(detailsDiv);
-            
-            resultItem.on('click', function() {
-                let stock = $(this).data('stock');
-                let productId = $(this).data('id');
-                let productName = $(this).data('name');
-                let productPrice = $(this).data('price');
-                let productPoints = $(this).data('points');
-                
-                if (stock <= 0) {
-                    alert('هذا المنتج غير متوفر حاليا');
-                    return;
-                }
-                
-                addProduct({
-                    id: productId,
-                    name: productName,
-                    price: productPrice,
-                    points: productPoints,
-                    stock: stock
-                });
-                
-                $('#product-search').val('');
-                $('#search-results').hide();
-            });
-            
-            $results.append(resultItem);
+        if (productStock <= 0) {
+            alert('هذا المنتج غير متوفر حاليا');
+            return;
         }
-    }
-    
-    function addProduct(product) {
+        
         let existingProduct = null;
         
         for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id === product.id) {
+            if (selectedProducts[i].id === productId) {
                 existingProduct = selectedProducts[i];
                 break;
             }
@@ -435,13 +368,13 @@ $(document).ready(function() {
             updateProductRow(existingProduct);
         } else {
             let newProduct = {
-                id: product.id,
-                name: product.name,
+                id: productId,
+                name: productName,
                 quantity: 1,
-                price: product.price,
-                points: product.points,
-                total: product.price,
-                maxStock: product.stock
+                price: productPrice,
+                points: productPoints,
+                total: productPrice,
+                maxStock: productStock
             };
             
             selectedProducts.push(newProduct);
@@ -450,6 +383,17 @@ $(document).ready(function() {
         
         updateTotals();
     }
+    
+    $('#add-product-btn').on('click', function() {
+        addProductFromSelect();
+    });
+    
+    $('#product-select').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            addProductFromSelect();
+        }
+    });
     
     function addProductRow(product) {
         let emptyRow = $('#empty-row');
@@ -460,12 +404,9 @@ $(document).ready(function() {
         let rowId = 'product-row-' + product.id;
         
         if ($('#' + rowId).length === 0) {
-            let newRow = $('<tr>')
-                .attr('id', rowId);
+            let newRow = $('<tr>').attr('id', rowId);
             
-            let nameCell = $('<td>')
-                .attr('style', 'text-align:right;')
-                .text(product.name);
+            let nameCell = $('<td>').attr('style', 'text-align:right;').text(product.name);
             
             let quantityCell = $('<td>');
             
@@ -513,7 +454,7 @@ $(document).ready(function() {
                 .addClass('total-' + product.id)
                 .text(product.total.toFixed(2));
             
-            let actionCell = $('<td>');
+            let actionCell = $('<tr>');
             
             let removeButton = $('<button>')
                 .addClass('remove-btn')
@@ -748,14 +689,6 @@ $(document).ready(function() {
         $('#paid_display').text(paidAmount.toFixed(2));
         $('#remaining').text(remaining.toFixed(2));
     }
-    
-    $(document).on('click', function(event) {
-        let isClickInside = $(event.target).closest('.product-search-container').length > 0;
-        
-        if (!isClickInside) {
-            $('#search-results').hide();
-        }
-    });
     
     $('.sale-type-btn').on('click', function() {
         $('.sale-type-btn').removeClass('active');

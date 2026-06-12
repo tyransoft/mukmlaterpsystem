@@ -1824,13 +1824,28 @@ def customer_payments_history(request, pk):
 
 @login_required
 def api_products_stock(request):
-    if not request.user.branch:
-        return JsonResponse({'stock': {}})
+    branch = request.user.branch
+    if not branch:
+        return JsonResponse({'products': []})
     
-    stocks = BranchInventory.objects.filter(branch=request.user.branch)
-    stock_data = {str(stock.product.id): stock.quantity for stock in stocks}
+    q = request.GET.get('q', '')
+    products_list = []
     
-    return JsonResponse({'stock': stock_data})
+    inventories = BranchInventory.objects.filter(branch=branch, quantity__gt=0)
+    
+    if q:
+        inventories = inventories.filter(product__name__icontains=q)
+    
+    for inv in inventories.select_related('product')[:20]:
+        products_list.append({
+            'id': inv.product.id,
+            'name': inv.product.name,
+            'price': float(inv.product.selling_price),
+            'points': inv.product.loyalty_points,
+            'stock': inv.quantity
+        })
+    
+    return JsonResponse({'products': products_list})
 
 
 

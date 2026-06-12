@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required, staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from .models import *
@@ -1834,7 +1834,6 @@ def api_products_stock(request):
 
 
 
-@staff_member_required
 def payment_methods_list(request):
     payment_methods = PaymentMethod.objects.all()
     
@@ -1856,7 +1855,6 @@ def payment_methods_list(request):
     }
     return render(request, 'payment_methods/list.html', context)
 
-@staff_member_required
 def payment_method_create(request):
     if request.method == 'POST':
         form = PaymentMethodForm(request.POST)
@@ -1870,7 +1868,6 @@ def payment_method_create(request):
     context = {'form': form}
     return render(request, 'payment_methods/form.html', context)
 
-@staff_member_required
 def payment_method_edit(request, pk):
     payment_method = get_object_or_404(PaymentMethod, pk=pk)
     
@@ -1886,7 +1883,6 @@ def payment_method_edit(request, pk):
     context = {'form': form, 'payment_method': payment_method}
     return render(request, 'payment_methods/form.html', context)
 
-@staff_member_required
 def payment_method_delete(request, pk):
     payment_method = get_object_or_404(PaymentMethod, pk=pk)
     
@@ -1899,7 +1895,6 @@ def payment_method_delete(request, pk):
     context = {'payment_method': payment_method}
     return render(request, 'payment_methods/confirm_delete.html', context)
 
-@staff_member_required
 def payment_method_toggle_status(request, pk):
     payment_method = get_object_or_404(PaymentMethod, pk=pk)
     payment_method.is_active = not payment_method.is_active

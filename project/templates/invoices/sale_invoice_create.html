@@ -742,7 +742,17 @@ $(document).ready(function() {
         
         updateTotals();
     });
+    function setPaidAmountToTotal() {
+    let totalText = $('#total').text();
+    let total = parseFloat(totalText);
     
+    if (!isNaN(total)) {
+        $('#paid_amount').val(total.toFixed(2));
+        $('#paid_display').text(total.toFixed(2));
+        $('#remaining').text('0.00');
+    }
+}
+
     function updateTotals() {
         let subtotal = 0;
         
@@ -789,6 +799,7 @@ $(document).ready(function() {
         $('#points').text(points);
         $('#paid_display').text(paidAmount.toFixed(2));
         $('#remaining').text(remaining.toFixed(2));
+        setPaidAmountToTotal();
     }
     
     $(document).on('click', function(event) {

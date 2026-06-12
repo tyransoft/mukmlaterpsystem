@@ -328,7 +328,7 @@
     </div>
   </div>
 </form>
-
+{% block extra_js %}
 <script>
 $(document).ready(function() {
     let selectedProducts = [];
@@ -916,4 +916,5 @@ $(document).ready(function() {
     });
 });
 </script>
+{% endblock %}
 {% endblock %}

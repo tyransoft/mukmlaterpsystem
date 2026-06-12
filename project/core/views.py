@@ -517,11 +517,19 @@ def sale_invoice_create(request):
             messages.error(request, 'لا يوجد فرع مرتبط بحسابك ولا يوجد فرع رئيسي')
             return redirect('dashboard_home')
     
-    allowed_sale_types = request.user.get_allowed_sale_types()
+    user_branch = request.user.branch
+    if user_branch.is_main:
+        allowed_sale_types = ['customer', 'branch']
+    else:
+        allowed_sale_types = ['customer']
     
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                sale_type = request.POST.get('sale_type')
+                if sale_type == 'branch' and not user_branch.is_main:
+                    raise ValidationErr('الفرع الفرعي لا يمكنه عمل توريد لفرع آخر')
+                
                 payment_method_id = request.POST.get('payment_method')
                 payment_method = None
                 if payment_method_id:
@@ -529,18 +537,22 @@ def sale_invoice_create(request):
                 
                 is_cash_customer = request.POST.get('is_cash_customer') == 'on'
                 customer_id = None
+                cash_customer_name = None
+                cash_customer_phone = None
                 
                 if is_cash_customer:
-                    pass
-                
+                    cash_customer_name = request.POST.get('cash_customer_name', '').strip()
+                    cash_customer_phone = request.POST.get('cash_customer_phone', '').strip()
+                    if not cash_customer_name:
+                        raise ValidationErr('الرجاء إدخال اسم العميل النقدي')
                 else:
                     customer_id = request.POST.get('customer') or None
-                    if not customer_id and request.POST.get('sale_type') == 'customer':
+                    if not customer_id and sale_type == 'customer':
                         raise ValidationErr('الرجاء اختيار عميل')
                 
                 invoice = SaleInvoice(
-                    sale_type=request.POST.get('sale_type'),
-                    branch=request.user.branch,
+                    sale_type=sale_type,
+                    branch=user_branch,
                     target_branch_id=request.POST.get('target_branch') or None,
                     customer_id=customer_id,
                     discount=Decimal(request.POST.get('discount', 0)),
@@ -553,7 +565,8 @@ def sale_invoice_create(request):
                     total=0,
                     payment_method=payment_method,
                     is_cash_customer=is_cash_customer,
-                  
+                    cash_customer_name=cash_customer_name,
+                    cash_customer_phone=cash_customer_phone,
                 )
                 invoice.save()
                 
@@ -570,6 +583,18 @@ def sale_invoice_create(request):
                         if quantity > 0:
                             items_added = True
                             product = Product.objects.get(id=product_id)
+                            
+                            inventory = BranchInventory.objects.filter(
+                                branch=user_branch, 
+                                product=product
+                            ).first()
+                            
+                            available_stock = inventory.quantity if inventory else 0
+                            if quantity > available_stock:
+                                raise ValidationErr(
+                                    f'الكمية المطلوبة للمنتج {product.name} ({quantity}) تتجاوز المخزون المتوفر ({available_stock})'
+                                )
+                            
                             total_price = unit_price * quantity
                             subtotal += total_price
                             
@@ -592,10 +617,9 @@ def sale_invoice_create(request):
                     invoice.total += invoice.additional_fees
                 
                 invoice.save()
-                
                 invoice.update_loyalty_points()
                 
-                if invoice.sale_type == 'branch':
+                if sale_type == 'branch':
                     invoice.paid_amount = invoice.total
                     invoice.debt_amount = 0
                     invoice.save()
@@ -619,31 +643,35 @@ def sale_invoice_create(request):
             return redirect('sale_invoice_create')
     
     branches = Branch.objects.filter(is_active=True)
-    if not request.user.is_main_admin():
-        branches = branches.exclude(pk=request.user.branch.pk)
+    if not user_branch.is_main:
+        branches = branches.exclude(pk=user_branch.pk)
     
     payment_methods = PaymentMethod.objects.filter(is_active=True)
     
     products_with_stock = []
-    for product in Product.objects.filter(is_active=True):
-        inventory = BranchInventory.objects.filter(
-            branch=request.user.branch, 
-            product=product
-        ).first()
+    branch_inventories = BranchInventory.objects.filter(
+        branch=user_branch,
+        quantity__gt=0 
+    ).select_related('product')
+    
+    for inventory in branch_inventories:
         products_with_stock.append({
-            'id': product.id,
-            'name': product.name,
-            'selling_price': product.selling_price,
-            'loyalty_points': product.loyalty_points,
-            'stock': inventory.quantity if inventory else 0,
-            'barcode': product.barcode
+            'id': inventory.product.id,
+            'name': inventory.product.name,
+            'selling_price': inventory.product.selling_price,
+            'loyalty_points': inventory.product.loyalty_points,
+            'stock': inventory.quantity,
+            'barcode': inventory.product.barcode,
+            'cost_price': inventory.product.cost_price
         })
+    
+    products_with_stock.sort(key=lambda x: x['name'])
     
     context = {
         'branches': branches,
         'customers': Customer.objects.filter(is_active=True),
         'allowed_sale_types': allowed_sale_types,
-        'user_branch': request.user.branch,
+        'user_branch': user_branch,
         'payment_methods': payment_methods,
         'products': products_with_stock,
     }

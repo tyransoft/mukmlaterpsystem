@@ -15,7 +15,7 @@
     flex: 1;
     padding: 12px;
     text-align: center;
-    border: 2px solid var(--border-color);
+    border: 2px solid #e5e7eb;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s;
@@ -23,37 +23,14 @@
     font-weight: 500;
   }
   .sale-type-btn.active {
-    border-color: var(--primary);
+    border-color: #2563eb;
     background: rgba(37, 99, 235, 0.1);
-    color: var(--primary);
+    color: #2563eb;
   }
-  .customer-card, .branch-card {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 10px;
-  }
-  .product-row {
-    transition: background 0.2s;
-  }
-  .product-row:hover {
-    background: #f8fafc;
-  }
-  .quantity-input {
-    width: 80px;
-    text-align: center;
-  }
-  .price-input {
-    width: 100px;
-    text-align: center;
-  }
-  .remove-product {
-    cursor: pointer;
-    color: #ef4444;
-  }
-  .remove-product:hover {
-    color: #dc2626;
+  .sale-type-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f3f4f6;
   }
   .info-branch {
     background: #eff6ff;
@@ -62,30 +39,74 @@
     margin-bottom: 15px;
     text-align: center;
   }
-  .error-message {
-    color: #dc2626;
-    font-size: 12px;
-    margin-top: 5px;
-    display: none;
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 5px;
   }
-  .product-row.has-error {
-    background: #fef2f2;
-    border-right: 3px solid #dc2626;
-  }
-  .fee-info {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
+  .product-card {
+    background: white;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .product-card:hover {
+    border-color: #2563eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .product-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .product-card.disabled:hover {
+    transform: none;
+  }
+  .stock-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #e5e7eb;
+  }
+  .stock-low {
+    background: #fef3c7;
+    color: #d97706;
+  }
+  .selected-product {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .quantity-input {
+    width: 70px;
+    text-align: center;
+  }
+  .price-input {
+    width: 90px;
+    text-align: center;
+  }
+  .customer-card {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px;
     margin-top: 10px;
-    font-size: 13px;
   }
   .cash-customer-fields {
     background: #f8fafc;
     padding: 15px;
     border-radius: 8px;
-    margin-top: 10px;
     margin-bottom: 15px;
+  }
+  .error-msg {
+    color: #dc2626;
+    font-size: 11px;
+    margin-top: 5px;
   }
 </style>
 
@@ -95,34 +116,32 @@
     
     <div class="card">
       <div class="card-header">
-        <span class="card-title">إضافة المنتجات</span>
+        <span class="card-title">المنتجات المتاحة - {{ user_branch.name }}</span>
       </div>
       <div class="card-body">
-        <div style="margin-bottom:20px;">
-          <input type="text" id="product-search" class="form-control" 
-                 placeholder="ابحث عن منتج بالاسم أو الباركود...">
-          <div id="search-results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:300px;overflow-y:auto;display:none;z-index:1000;"></div>
-        </div>
+        <input type="text" id="product-filter" class="form-control" 
+               placeholder="ابحث عن منتج بالاسم..." style="margin-bottom:15px;">
         
-        <div class="items-table-wrapper">
-          <table class="erp-table">
-            <thead>
-              <tr>
-                <th style="width:35%;">المنتج</th>
-                <th style="width:15%;">الكمية</th>
-                <th style="width:20%;">السعر</th>
-                <th style="width:20%;">الإجمالي</th>
-                <th style="width:10%;"></th>
-              </tr>
-            </thead>
-            <tbody id="items-container">
-              <tr id="empty-row">
-                <td colspan="5" class="text-center text-muted" style="padding:40px;">
-                  ابحث عن منتج وأضفه للفاتورة
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div id="products-list" class="products-grid">
+          {% for product in products %}
+          <div class="product-card" 
+               data-id="{{ product.id }}"
+               data-name="{{ product.name }}"
+               data-price="{{ product.selling_price }}"
+               data-points="{{ product.loyalty_points }}"
+               data-stock="{{ product.stock }}">
+            <div style="font-weight: 600; margin-bottom: 5px;">{{ product.name }}</div>
+            <div style="font-size: 12px; color: #6b7280;">السعر: {{ product.selling_price }} د.ل</div>
+            <div style="font-size: 11px; margin-top: 5px;">
+              <span class="stock-badge {% if product.stock <= 5 %}stock-low{% endif %}">
+                 المخزون: {{ product.stock }}
+              </span>
+              <span style="margin-right: 5px;"> {{ product.loyalty_points }} نقطة</span>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center text-muted" style="padding: 40px;">لا توجد منتجات متاحة</div>
+          {% endfor %}
         </div>
       </div>
     </div>
@@ -135,85 +154,63 @@
         <div class="card-body">
           
           <div class="info-branch">
-            الفرع المصدر: <strong>{{ user_branch.name }}</strong>
+            <strong>{{ user_branch.name }}</strong>
             {% if user_branch.is_main %}
-              <span class="badge badge-success">رئيسي</span>
+              <span class="badge badge-success">فرع رئيسي</span>
+            {% else %}
+              <span class="badge badge-info">فرع فرعي</span>
             {% endif %}
           </div>
           
           <div class="form-group">
-            <label class="form-label">نوع البيع *</label>
+            <label class="form-label">نوع البيع</label>
             <div class="sale-type-selector">
-              <div class="sale-type-btn active" data-type="customer">
-                بيع لعميل
-              </div>
-              {% if allowed_sale_types|length > 1 %}
-              <div class="sale-type-btn" data-type="branch">
-                توريد لفرع
-              </div>
+              <div class="sale-type-btn active" data-type="customer">بيع لعميل</div>
+              {% if user_branch.is_main %}
+              <div class="sale-type-btn" data-type="branch">توريد لفرع</div>
               {% endif %}
             </div>
             <input type="hidden" name="sale_type" id="sale_type" value="customer">
           </div>
           
           <div id="target_branch_group" class="form-group" style="display:none;">
-            <label class="form-label">الفرع المستلم *</label>
+            <label class="form-label">الفرع المستلم</label>
             <select name="target_branch" id="target_branch" class="form-select">
               <option value="">-- اختر الفرع --</option>
               {% for branch in branches %}
+                {% if branch.id != user_branch.id %}
                 <option value="{{ branch.id }}">{{ branch.name }}</option>
+                {% endif %}
               {% endfor %}
             </select>
           </div>
           
           <div id="customer_section">
             <div class="form-group">
-              <label class="form-label">
+              <label>
                 <input type="checkbox" id="is_cash_customer" name="is_cash_customer">
-                عميل نقدي 
+                عميل نقديل
               </label>
             </div>
             
-            <div id="cash_customer_fields" class="cash-customer-fields" style="display:none;">
-              <div class="form-group">
-                <label class="form-label">اسم العميل *</label>
-                <input type="text" name="cash_customer_name" id="cash_customer_name" class="form-control" placeholder="أدخل اسم العميل">
-              </div>
-              <div class="form-group">
-                <label class="form-label">رقم الجوال</label>
-                <input type="tel" name="cash_customer_phone" id="cash_customer_phone" class="form-control" placeholder="أدخل رقم الجوال">
-              </div>
-            </div>
+            
             
             <div id="registered_customer_fields">
-              <div class="form-group">
-                <label class="form-label">البحث عن عميل</label>
-                <input type="text" id="customer_search" class="form-control" 
-                       placeholder="ابحث بالاسم أو رقم الجوال...">
-                <div id="customer_results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:200px;overflow-y:auto;display:none;z-index:1000;"></div>
-              </div>
-              
               <div class="form-group">
                 <label class="form-label">اختر عميل</label>
                 <select name="customer" id="customer_select" class="form-select">
                   <option value="">-- اختر عميل --</option>
                   {% for customer in customers %}
-                    <option value="{{ customer.id }}" data-points="{{ customer.loyalty_points }}" data-debt="{{ customer.debt_balance }}">
-                      {{ customer.full_name }} - {{ customer.phone }}
-                    </option>
+                  <option value="{{ customer.id }}" data-points="{{ customer.loyalty_points }}" data-debt="{{ customer.debt_balance }}">
+                    {{ customer.full_name }} - {{ customer.phone }}
+                  </option>
                   {% endfor %}
                 </select>
               </div>
               
               <div id="customer_details" class="customer-card" style="display:none;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                  <span>النقاط المتاحة</span>
-                  <span class="fw-600 text-primary" id="customer_points">0</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;">
-                  <span>رصيد الدين الحالي:</span>
-                  <span class="fw-600 text-danger" id="customer_debt">0.00 د.ل</span>
-                </div>
+                <div> النقاط : <strong id="customer_points">0</strong></div>
+                <div> الدين: <strong id="customer_debt">0.00 د.ل</strong></div>
               </div>
             </div>
           </div>
@@ -221,17 +218,13 @@
           <div class="form-group">
             <label class="form-label">طريقة الدفع</label>
             <select name="payment_method" id="payment_method" class="form-select">
-              <option value="">-- بدون طريقة دفع --</option>
+              <option value="">-- بدون رسوم --</option>
               {% for method in payment_methods %}
               <option value="{{ method.id }}" data-increase="{{ method.increase_percentage }}">
-                {{ method.name }}
-                {% if method.increase_percentage > 0 %}
-                (+{{ method.increase_percentage }}%)
-                {% endif %}
+                {{ method.name }} {% if method.increase_percentage > 0 %}(+{{ method.increase_percentage }}%){% endif %}
               </option>
               {% endfor %}
             </select>
-            <div id="fee_info" class="fee-info" style="display:none;"></div>
           </div>
           
           <div class="form-group">
@@ -252,58 +245,52 @@
           
           <div class="form-group">
             <label class="form-label">ملاحظات</label>
-            <textarea name="notes" id="notes" class="form-control" rows="2"></textarea>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
           </div>
         </div>
       </div>
       
       <div class="card" style="margin-top:15px;">
+        <div class="card-header">
+          <div style="display:flex; justify-content:space-between;">
+            <span class="card-title">المنتجات المختارة</span>
+            <span id="items-count" class="badge badge-secondary">0</span>
+          </div>
+        </div>
         <div class="card-body">
-          <div style="display:flex;justify-content:space-between;padding:8px 0;">
-            <span>المجموع الفرعي</span>
-            <span class="fw-600" id="subtotal">0.00</span>
+          <div id="empty-products-msg" class="text-center text-muted" style="padding:20px;">لا توجد منتجات مختارة</div>
+          <div id="selected-products-list"></div>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:15px;">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>المجموع الفرعي</span> <span id="subtotal">0.00</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
-            <span>الخصم</span>
-            <span class="fw-600 text-danger" id="discount_display">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>الخصم</span> <span class="text-danger" id="discount_display">0.00</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:8px 0;">
-            <span>الرسوم الإضافية</span>
-            <span class="fw-600 text-warning" id="additional_fees">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>الرسوم الإضافية</span> <span class="text-warning" id="additional_fees">0.00</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:12px 0;">
-            <span class="fw-bold">الإجمالي</span>
-            <span class="fw-bold text-primary" style="font-size:20px;" id="total">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:10px 0; border-top:1px solid #e5e7eb;">
+            <strong>الإجمالي</strong> <strong class="text-primary" style="font-size:18px;" id="total">0.00</strong>
           </div>
-          
-          <div id="payment_summary" style="border-top:1px solid var(--border-color);padding-top:12px;margin-top:5px;">
-            <div style="display:flex;justify-content:space-between;padding:5px 0;">
-              <span>المدفوع</span>
-              <span class="text-success fw-600" id="paid_display">0.00</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:5px 0;">
-              <span>المتبقي</span>
-              <span class="text-danger fw-600" id="remaining">0.00</span>
-            </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>المدفوع</span> <span class="text-success" id="paid_display">0.00</span>
           </div>
-          
-          <div id="loyalty_summary" style="border-top:1px solid var(--border-color);padding-top:12px;margin-top:5px;">
-            <div style="display:flex;justify-content:space-between;">
-              <span>النقاط</span>
-              <span class="fw-600 text-primary" id="points">0</span>
-            </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>المتبقي</span> <span class="text-danger" id="remaining">0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0; border-top:1px solid #e5e7eb; margin-top:5px; padding-top:10px;">
+            <span> النقاط </span> <span id="points">0</span>
           </div>
           
-          <div class="form-group" style="margin-top:15px;">
-            <div style="display:flex;gap:10px;">
-              <button type="submit" class="btn btn-primary" style="flex:1;" id="submit-btn">
-                حفظ الفاتورة
-              </button>
-              <button type="submit" name="confirm" value="yes" class="btn btn-success" style="flex:1;">
-                حفظ وتأكيد
-              </button>
-              <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إلغاء</a>
-            </div>
+          <div style="margin-top:15px; display:flex; gap:10px;">
+            <button type="submit" class="btn btn-primary" style="flex:1;">حفظ الفاتورة</button>
+            <button type="submit" name="confirm" value="yes" class="btn btn-success" style="flex:1;">حفظ وتأكيد</button>
+            <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إلغاء</a>
           </div>
         </div>
       </div>
@@ -311,330 +298,210 @@
   </div>
 </form>
 
-{% block extra_js %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
     let selectedProducts = [];
-    let productStock = {};
-    let isUpdatingPaidAmount = false;
-    let originalTotal = 0;
-    
-    function loadProductStock() {
-        $.get('/api/products-stock/', function(data) {
-            if (data.stock) {
-                productStock = data.stock;
-            }
-        }).fail(function() {
-            console.log('فشل في تحميل بيانات المخزون');
-        });
+
+    function checkStock(productId, requestedQty, productName, maxStock) {
+        if (requestedQty > maxStock) {
+            alert(`الكمية المطلوبة (${requestedQty}) تتجاوز المخزون المتوفر (${maxStock}) للمنتج ${productName}`);
+            return false;
+        }
+        return true;
     }
-    loadProductStock();
-    
-    $('#is_cash_customer').on('change', function() {
-        if ($(this).is(':checked')) {
-            $('#cash_customer_fields').show();
-            $('#registered_customer_fields').hide();
-            $('#customer_select').val('');
-            $('#customer_details').hide();
-        } else {
-            $('#cash_customer_fields').hide();
-            $('#registered_customer_fields').show();
+
+    function addProduct(id, name, price, points, maxStock) {
+        if (maxStock <= 0) {
+            alert(`المنتج ${name} غير متوفر في المخزون`);
+            return false;
         }
-    });
-    
-    let searchTimeout;
-    $('#product-search').on('input', function() {
-        clearTimeout(searchTimeout);
-        const query = $(this).val();
-        if (query.length < 2) {
-            $('#search-results').hide();
-            return;
-        }
-        
-        searchTimeout = setTimeout(function() {
-            $.get('/products/search/?q=' + encodeURIComponent(query), function(data) {
-                if (data.products) {
-                    displaySearchResults(data.products);
-                }
-            });
-        }, 300);
-    });
-    
-    function displaySearchResults(results) {
-        const $results = $('#search-results');
-        if (results.length === 0) {
-            $results.hide();
-            return;
-        }
-        
-        $results.empty().show();
-        results.forEach(product => {
-            const availableStock = productStock[product.id] || 0;
-            $results.append(`
-                <div class="search-result-item" data-id="${product.id}" 
-                     data-name="${product.name}" data-price="${product.selling_price}"
-                     data-points="${product.loyalty_points}" data-stock="${availableStock}"
-                     style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
-                    <div class="fw-600">${escapeHtml(product.name)}</div>
-                    <div class="text-muted" style="font-size:12px;">
-                        السعر: ${product.selling_price} د.ل | النقاط: ${product.loyalty_points}/وحدة
-                        <span class="text-${availableStock > 0 ? 'success' : 'danger'}" style="display:block;">
-                            المخزون: ${availableStock}
-                        </span>
-                    </div>
-                </div>
-            `);
-        });
-        
-        $('.search-result-item').on('click', function() {
-            const productData = $(this).data();
-            addProductToTable({
-                id: productData.id,
-                name: productData.name,
-                selling_price: productData.price,
-                loyalty_points: productData.points,
-                available_stock: productData.stock
-            });
-            $('#product-search').val('');
-            $results.hide();
-        });
-    }
-    
-    function getCurrentStock(productId) {
-        return productStock[productId] || 0;
-    }
-    
-    function updateStock(productId, quantityChange) {
-        if (productStock[productId] !== undefined) {
-            productStock[productId] -= quantityChange;
-        }
-    }
-    
-    function validateQuantity(product, requestedQuantity) {
-        const availableStock = getCurrentStock(product.id);
-        if (requestedQuantity > availableStock) {
-            return {
-                valid: false,
-                message: `الكمية المطلوبة (${requestedQuantity}) تتجاوز المخزون المتوفر (${availableStock}) للمنتج ${product.name}`
-            };
-        }
-        return { valid: true, message: '' };
-    }
-    
-    function addProductToTable(product) {
-        const existing = selectedProducts.find(p => p.id === product.id);
-        let newQuantity = existing ? existing.quantity + 1 : 1;
-        
-        const validation = validateQuantity(product, newQuantity);
-        if (!validation.valid) {
-            alert(validation.message);
-            return;
-        }
+
+        let existing = selectedProducts.find(p => p.id === id);
         
         if (existing) {
-            existing.quantity = newQuantity;
+            let newQty = existing.quantity + 1;
+            if (!checkStock(id, newQty, name, maxStock)) return false;
+            existing.quantity = newQty;
             existing.total = existing.quantity * existing.price;
             updateProductRow(existing);
         } else {
-            const newProduct = {
-                id: product.id,
-                name: product.name,
-                quantity: newQuantity,
-                price: parseFloat(product.selling_price),
-                points: product.loyalty_points,
-                total: parseFloat(product.selling_price),
-                available_stock: product.available_stock
-            };
-            selectedProducts.push(newProduct);
-            addProductRow(newProduct);
+            selectedProducts.push({
+                id: id, name: name, quantity: 1, price: price,
+                points: points, total: price, maxStock: maxStock
+            });
+            addProductRow(selectedProducts[selectedProducts.length - 1]);
         }
         
-        updateStock(product.id, 1);
         updateTotals();
+        return true;
     }
-    
-    function addProductRow(product) {
-        const $container = $('#items-container');
-        if ($('#empty-row').is(':visible')) {
-            $('#empty-row').hide();
+
+    function addProductRow(p) {
+        $('#empty-products-msg').hide();
+        let rowId = `product-row-${p.id}`;
+        
+        if (!$(`#${rowId}`).length) {
+            $('#selected-products-list').append(`
+                <div id="${rowId}" class="selected-product">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div style="flex:2; min-width:120px;">
+                            <strong>${escapeHtml(p.name)}</strong>
+                            <div style="font-size:11px; color:#6b7280;"> ${p.points} نقطة/وحدة | المتوفر: ${p.maxStock}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dec-qty" data-id="${p.id}">-</button>
+                            <input type="number" class="form-control quantity-input" value="${p.quantity}" min="1" max="${p.maxStock}" data-id="${p.id}" style="width:65px; text-align:center;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary inc-qty" data-id="${p.id}">+</button>
+                        </div>
+                        <div>
+                            <input type="number" class="form-control price-input" value="${p.price}" step="0.01" data-id="${p.id}" style="width:90px;">
+                        </div>
+                        <div style="min-width:70px; text-align:center;">
+                            <strong class="product-total-${p.id}">${p.total.toFixed(2)}</strong>
+                        </div>
+                        <div>
+                            <span class="remove-product" data-id="${p.id}" style="cursor:pointer; color:#dc2626; font-size:18px;">✖</span>
+                        </div>
+                    </div>
+                    <div class="error-msg" id="error-${p.id}"></div>
+                </div>
+            `);
+            
+            $('#selected-products-list').append(`
+                <input type="hidden" name="product_${p.id}_id" value="${p.id}">
+                <input type="hidden" name="product_${p.id}_quantity" class="hidden-qty-${p.id}" value="${p.quantity}">
+                <input type="hidden" name="product_${p.id}_price" class="hidden-price-${p.id}" value="${p.price}">
+            `);
         }
-        
-        const rowId = `product-row-${product.id}`;
-        $container.append(`
-            <tr id="${rowId}" class="product-row" data-product-id="${product.id}">
-                <td class="fw-600">${escapeHtml(product.name)}
-                    <div class="error-message" id="error-${product.id}" style="color:#dc2626;font-size:11px;margin-top:5px;"></div>
-                </td>
-                <td>
-                    <input type="number" class="form-control quantity-input" 
-                           value="${product.quantity}" min="1" step="1"
-                           style="width:80px;" data-id="${product.id}">
-                </td>
-                <td>
-                    <input type="number" class="form-control price-input" 
-                           value="${product.price}" step="0.01"
-                           style="width:100px;" data-id="${product.id}">
-                </td>
-                <td class="total-price-${product.id} fw-600">${product.total.toFixed(2)}</td>
-                <td class="text-center">
-                    <span class="remove-product" data-id="${product.id}" style="cursor:pointer;color:#ef4444;">🗑️</span>
-                </td>
-            </tr>
-        `);
-        
-        $container.append(`
-            <input type="hidden" name="product_${product.id}_id" value="${product.id}">
-            <input type="hidden" name="product_${product.id}_quantity" class="hidden-quantity-${product.id}" value="${product.quantity}">
-            <input type="hidden" name="product_${product.id}_price" class="hidden-price-${product.id}" value="${product.price}">
-        `);
     }
-    
-    function updateProductRow(product) {
-        $(`.quantity-input[data-id="${product.id}"]`).val(product.quantity);
-        $(`.hidden-quantity-${product.id}`).val(product.quantity);
-        product.total = product.quantity * product.price;
-        $(`.total-price-${product.id}`).text(product.total.toFixed(2));
-        updateTotals();
+
+    function updateProductRow(p) {
+        $(`.quantity-input[data-id="${p.id}"]`).val(p.quantity);
+        $(`.price-input[data-id="${p.id}"]`).val(p.price);
+        $(`.product-total-${p.id}`).text(p.total.toFixed(2));
+        $(`.hidden-qty-${p.id}`).val(p.quantity);
+        $(`.hidden-price-${p.id}`).val(p.price);
+        $(`#error-${p.id}`).html('');
     }
-    
-    $(document).on('change', '.quantity-input', function() {
-        const id = parseInt($(this).data('id'));
-        const product = selectedProducts.find(p => p.id === id);
-        if (product) {
-            let qty = parseInt($(this).val());
-            if (isNaN(qty) || qty < 1) qty = 1;
-            
-            const oldQuantity = product.quantity;
-            const quantityDifference = qty - oldQuantity;
-            const availableStock = getCurrentStock(product.id);
-            
-            if (quantityDifference > 0 && quantityDifference > availableStock) {
-                alert(`الكمية المطلوبة (${qty}) تتجاوز المخزون المتوفر (${availableStock + oldQuantity})`);
-                $(this).val(oldQuantity);
-                return;
+
+    function updateTotals() {
+        let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
+        let discount = parseFloat($('#discount').val()) || 0;
+        let total = subtotal - discount;
+        let incPercent = parseFloat($('#payment_method').find(':selected').data('increase')) || 0;
+        let fees = total * incPercent / 100;
+        let finalTotal = total + fees;
+        let points = selectedProducts.reduce((s, p) => s + (p.points * p.quantity), 0);
+        let paid = parseFloat($('#paid_amount').val()) || 0;
+        
+        $('#subtotal').text(subtotal.toFixed(2));
+        $('#discount_display').text(discount.toFixed(2));
+        $('#additional_fees').text(fees.toFixed(2));
+        $('#total').text(finalTotal.toFixed(2));
+        $('#points').text(points);
+        $('#paid_display').text(paid.toFixed(2));
+        $('#remaining').text((finalTotal - paid).toFixed(2));
+        
+        let count = selectedProducts.reduce((s, p) => s + p.quantity, 0);
+        $('#items-count').text(`${selectedProducts.length} منتج (${count} قطعة)`);
+    }
+
+    $('.product-card').on('click', function() {
+        let stock = $(this).data('stock');
+        if (stock <= 0) {
+            alert(`المنتج ${$(this).data('name')} غير متوفر`);
+            return;
+        }
+        addProduct(
+            $(this).data('id'), $(this).data('name'), 
+            $(this).data('price'), $(this).data('points'), stock
+        );
+    });
+
+    $(document).on('click', '.inc-qty', function() {
+        let id = $(this).data('id');
+        let p = selectedProducts.find(p => p.id === id);
+        if (p) {
+            let newQty = p.quantity + 1;
+            if (newQty <= p.maxStock) {
+                p.quantity = newQty;
+                p.total = p.quantity * p.price;
+                updateProductRow(p);
+                updateTotals();
+            } else {
+                $(`#error-${id}`).html(`الحد الأقصى المتوفر: ${p.maxStock} قطعة`);
+                setTimeout(() => $(`#error-${id}`).html(''), 2000);
             }
-            
-            product.quantity = qty;
-            updateStock(product.id, quantityDifference);
-            updateProductRow(product);
         }
     });
-    
+
+    $(document).on('click', '.dec-qty', function() {
+        let id = $(this).data('id');
+        let p = selectedProducts.find(p => p.id === id);
+        if (p && p.quantity > 1) {
+            p.quantity--;
+            p.total = p.quantity * p.price;
+            updateProductRow(p);
+            updateTotals();
+        }
+    });
+
+    $(document).on('change', '.quantity-input', function() {
+        let id = $(this).data('id');
+        let p = selectedProducts.find(p => p.id === id);
+        if (p) {
+            let newQty = parseInt($(this).val());
+            if (isNaN(newQty) || newQty < 1) newQty = 1;
+            if (newQty > p.maxStock) {
+                $(`#error-${id}`).html(`الحد الأقصى المتوفر: ${p.maxStock} قطعة`);
+                $(this).val(p.quantity);
+                setTimeout(() => $(`#error-${id}`).html(''), 2000);
+            } else {
+                p.quantity = newQty;
+                p.total = p.quantity * p.price;
+                updateProductRow(p);
+                updateTotals();
+            }
+        }
+    });
+
     $(document).on('change', '.price-input', function() {
-        const id = parseInt($(this).data('id'));
-        const product = selectedProducts.find(p => p.id === id);
-        if (product) {
-            let price = parseFloat($(this).val());
-            if (isNaN(price) || price < 0) price = 0;
-            product.price = price;
-            updateProductRow(product);
+        let id = $(this).data('id');
+        let p = selectedProducts.find(p => p.id === id);
+        if (p) {
+            let newPrice = parseFloat($(this).val());
+            if (isNaN(newPrice) || newPrice < 0) newPrice = 0;
+            p.price = newPrice;
+            p.total = p.quantity * p.price;
+            updateProductRow(p);
+            updateTotals();
         }
     });
-    
+
     $(document).on('click', '.remove-product', function() {
-        const id = parseInt($(this).data('id'));
-        const product = selectedProducts.find(p => p.id === id);
-        if (product) {
-            updateStock(product.id, -product.quantity);
-        }
+        let id = $(this).data('id');
         selectedProducts = selectedProducts.filter(p => p.id !== id);
         $(`#product-row-${id}`).remove();
         $(`input[name="product_${id}_id"]`).remove();
         $(`input[name="product_${id}_quantity"]`).remove();
         $(`input[name="product_${id}_price"]`).remove();
-        
-        if (selectedProducts.length === 0) {
-            $('#empty-row').show();
-        }
+        if (selectedProducts.length === 0) $('#empty-products-msg').show();
         updateTotals();
     });
-    
-    function updateTotals() {
-        const subtotal = selectedProducts.reduce((sum, p) => sum + p.total, 0);
-        const discount = parseFloat($('#discount').val()) || 0;
-        let total = subtotal - discount;
-        
-        const selectedMethod = $('#payment_method').find(':selected');
-        const increasePercent = parseFloat(selectedMethod.data('increase')) || 0;
-        const additionalFees = total * (increasePercent / 100);
-        
-        $('#subtotal').text(subtotal.toFixed(2));
-        $('#discount_display').text(discount.toFixed(2));
-        $('#additional_fees').text(additionalFees.toFixed(2));
-        
-        const finalTotal = total + additionalFees;
-        $('#total').text(finalTotal.toFixed(2));
-        originalTotal = finalTotal;
-        
-        const points = selectedProducts.reduce((sum, p) => sum + (p.points * p.quantity), 0);
-        $('#points').text(points);
-        
-        if (!isUpdatingPaidAmount) {
-            if ($('#sale_type').val() === 'branch') {
-                $('#paid_amount').val(finalTotal.toFixed(2));
-                $('#paid_display').text(finalTotal.toFixed(2));
-                $('#remaining').text('0.00');
-            }
-        }
-    }
-    
-    $('#payment_method').on('change', function() {
-        const selectedOption = $(this).find(':selected');
-        const increasePercent = parseFloat(selectedOption.data('increase')) || 0;
-        
-        if (increasePercent > 0) {
-            const subtotal = parseFloat($('#subtotal').text()) || 0;
-            const discount = parseFloat($('#discount').val()) || 0;
-            const totalBeforeFees = subtotal - discount;
-            const feeAmount = totalBeforeFees * (increasePercent / 100);
-            
-            $('#fee_info').html(`
-                <strong>ملاحظة:</strong> سيتم إضافة رسوم إضافية بقيمة ${feeAmount.toFixed(2)} د.ل 
-                (${increasePercent}% من إجمالي الفاتورة قبل الرسوم)
-            `).show();
-        } else {
-            $('#fee_info').hide();
-        }
-        
-        updateTotals();
+
+    $('#product-filter').on('input', function() {
+        let val = $(this).val().toLowerCase();
+        $('.product-card').each(function() {
+            $(this).toggle($(this).data('name').toLowerCase().includes(val));
+        });
     });
-    
-    $('#discount').on('input', function() {
-        updateTotals();
-    });
-    
-    $('#paid_amount').on('input', function() {
-        isUpdatingPaidAmount = true;
-        const paidAmount = parseFloat($(this).val()) || 0;
-        const total = parseFloat($('#total').text()) || 0;
-        const remaining = total - paidAmount;
-        
-        $('#paid_display').text(paidAmount.toFixed(2));
-        $('#remaining').text(remaining.toFixed(2));
-        
-        setTimeout(() => { isUpdatingPaidAmount = false; }, 100);
-    });
-    
-    $('#paid_amount').on('blur', function() {
-        let paidAmount = parseFloat($(this).val()) || 0;
-        const total = parseFloat($('#total').text()) || 0;
-        
-        if (paidAmount < 0) paidAmount = 0;
-        if (paidAmount > total) paidAmount = total;
-        
-        $(this).val(paidAmount.toFixed(2));
-        $('#paid_display').text(paidAmount.toFixed(2));
-        $('#remaining').text((total - paidAmount).toFixed(2));
-        isUpdatingPaidAmount = false;
-    });
-    
+
     $('.sale-type-btn').on('click', function() {
+        if ($(this).hasClass('disabled')) return;
         $('.sale-type-btn').removeClass('active');
         $(this).addClass('active');
-        const type = $(this).data('type');
+        let type = $(this).data('type');
         $('#sale_type').val(type);
-        
         if (type === 'customer') {
             $('#target_branch_group').hide();
             $('#customer_section').show();
@@ -643,122 +510,75 @@ $(document).ready(function() {
             $('#target_branch_group').show();
             $('#customer_section').hide();
             $('#payment_group').hide();
-            $('#paid_amount').val(originalTotal.toFixed(2));
+            $('#paid_amount').val($('#total').text());
             updateTotals();
         }
     });
-    
-    let customerTimeout;
-    $('#customer_search').on('input', function() {
-        clearTimeout(customerTimeout);
-        const query = $(this).val();
-        if (query.length < 2) {
-            $('#customer_results').hide();
-            return;
+
+    $('#is_cash_customer').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#cash_customer_fields').show();
+            $('#registered_customer_fields').hide();
+        } else {
+            $('#cash_customer_fields').hide();
+            $('#registered_customer_fields').show();
         }
-        
-        customerTimeout = setTimeout(function() {
-            $.get('/customers/search/?q=' + encodeURIComponent(query), function(data) {
-                if (data.customers) {
-                    displayCustomerResults(data.customers);
-                }
-            });
-        }, 300);
     });
-    
-    function displayCustomerResults(results) {
-        const $results = $('#customer_results');
-        if (results.length === 0) {
-            $results.hide();
-            return;
-        }
-        
-        $results.empty().show();
-        results.forEach(customer => {
-            $results.append(`
-                <div class="customer-result" data-id="${customer.id}" 
-                     data-name="${customer.full_name}" data-phone="${customer.phone}"
-                     data-points="${customer.loyalty_points}" data-debt="${customer.debt_balance}"
-                     style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
-                    <div class="fw-600">${escapeHtml(customer.full_name)}</div>
-                    <div class="text-muted" style="font-size:12px;">${escapeHtml(customer.phone)}</div>
-                </div>
-            `);
-        });
-        
-        $('.customer-result').on('click', function() {
-            const data = $(this).data();
-            $('#customer_select').val(data.id).trigger('change');
-            $('#customer_search').val(data.name);
-            $('#customer_results').hide();
-        });
-    }
-    
+
     $('#customer_select').on('change', function() {
-        const option = $(this).find(':selected');
-        const points = option.data('points') || 0;
-        const debt = option.data('debt') || 0;
-        
+        let opt = $(this).find(':selected');
         if ($(this).val()) {
             $('#customer_details').show();
-            $('#customer_points').text(points);
-            $('#customer_debt').text(debt.toFixed(2) + ' د.ل');
+            $('#customer_points').text(opt.data('points') || 0);
+            $('#customer_debt').text((opt.data('debt') || 0).toFixed(2) + ' د.ل');
         } else {
             $('#customer_details').hide();
         }
     });
-    
+
+    $('#discount, #paid_amount, #payment_method').on('input change', function() {
+        updateTotals();
+    });
+
     $('#sale-invoice-form').on('submit', function(e) {
         if (selectedProducts.length === 0) {
             e.preventDefault();
             alert('الرجاء إضافة منتجات للفاتورة');
             return false;
         }
-        
-        for (const product of selectedProducts) {
-            const availableStock = getCurrentStock(product.id);
-            if (product.quantity > availableStock) {
+        for (let p of selectedProducts) {
+            if (p.quantity > p.maxStock) {
                 e.preventDefault();
-                alert(`المنتج ${product.name}: الكمية المطلوبة (${product.quantity}) تتجاوز المخزون المتوفر (${availableStock + product.quantity})`);
+                alert(`المنتج ${p.name}: الكمية (${p.quantity}) تتجاوز المخزون (${p.maxStock})`);
                 return false;
             }
         }
-        
-        const saleType = $('#sale_type').val();
-        const isCashCustomer = $('#is_cash_customer').is(':checked');
-        
+        let saleType = $('#sale_type').val();
+        let isCash = $('#is_cash_customer').is(':checked');
         if (saleType === 'customer') {
-            if (!isCashCustomer && !$('#customer_select').val()) {
+            if (!isCash && !$('#customer_select').val()) {
                 e.preventDefault();
-                alert('الرجاء اختيار عميل أو تفعيل خيار عميل نقدي');
+                alert('الرجاء اختيار عميل');
                 return false;
             }
-            if (isCashCustomer && !$('#cash_customer_name').val().trim()) {
+            if (isCash && !$('#cash_customer_name').val().trim()) {
                 e.preventDefault();
-                alert('الرجاء إدخال اسم العميل النقدي');
+                alert('الرجاء إدخال اسم العميل');
                 return false;
             }
         }
-        
         if (saleType === 'branch' && !$('#target_branch').val()) {
             e.preventDefault();
             alert('الرجاء اختيار الفرع المستلم');
             return false;
         }
-        
         return true;
     });
-    
+
     function escapeHtml(text) {
         if (!text) return '';
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 });
 </script>
-{% endblock %}
 {% endblock %}

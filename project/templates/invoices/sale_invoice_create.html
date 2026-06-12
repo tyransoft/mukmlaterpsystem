@@ -390,7 +390,7 @@ $(document).ready(function() {
         
         searchTimeout = setTimeout(function() {
             $.ajax({
-                url: 'api/products-stock/',
+                url: '/api/products-stock/',
                 method: 'GET',
                 data: { q: query },
                 success: function(data) {

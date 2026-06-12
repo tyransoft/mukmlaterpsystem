@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}تعديل طريقة دفع{% else %}إضافة طريقة دفع جديدة{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}تعديل طريقة دفع{% else %}إضافة طريقة دفع جديدة{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+    .form-section {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .percentage-input-group {
+        position: relative;
+    }
+    .percentage-input-group input {
+        padding-left: 30px;
+    }
+    .percentage-symbol {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        font-weight: bold;
+    }
+    .help-text {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 5px;
+    }
+    .default-warning {
+        background: #fef3c7;
+        border: 1px solid #fbbf24;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 15px;
+        font-size: 13px;
+    }
+</style>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="card-title">
+                        {% if form.instance.pk %}تعديل طريقة الدفع{% else %}إضافة طريقة دفع جديدة{% endif %}
+                    </span>
+                    <a href="{% url 'payment_methods_list' %}" class="btn btn-outline-secondary btn-sm">
+                        ← العودة 
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" id="payment-method-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label class="form-label required">اسم طريقة الدفع</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="error-message">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">مثال: بطاقة ائتمان، تحويل بنكي، محفظة إلكترونية، إلخ.</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">نسبة الزيادة (%)</label>
+                            <div class="percentage-input-group" style="position: relative;">
+                                {{ form.increase_percentage }}
+                                <span class="percentage-symbol" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%);">%</span>
+                            </div>
+                            {% if form.increase_percentage.errors %}
+                                <div class="error-message">{{ form.increase_percentage.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">
+                                النسبة المئوية التي ستضاف على إجمالي الفاتورة عند استخدام هذه الطريقة.
+                                <br>
+                                <strong>مثال:</strong> إذا كانت النسبة 2.5%، فسيتم إضافة 2.5 دينار لكل 100 دينار.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label class="form-check-label" style="display: flex; align-items: center; gap: 10px;">
+                                {{ form.is_active }}
+                                <span>طريقة دفع نشطة</span>
+                            </label>
+                            <div class="help-text">إذا كانت غير نشطة، لن تظهر في قائمة طرق الدفع عند إنشاء الفواتير.</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-check-label" style="display: flex; align-items: center; gap: 10px;">
+                                {{ form.is_default }}
+                                <span>جعل هذه الطريقة الافتراضية</span>
+                            </label>
+                            <div class="help-text">الطريقة الافتراضية ستظهر مختارة تلقائياً عند إنشاء فواتير جديدة.</div>
+                        </div>
+                        
+                        {% if form.instance.pk and form.instance.is_default %}
+                        <div class="default-warning">
+                            <strong> تنبيه:</strong> هذه هي طريقة الدفع الافتراضية حالياً. إذا قمت بتعيين طريقة أخرى كافتراضية، سيتم إلغاء تفعيل الافتراضية لهذه الطريقة.
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="submit" class="btn btn-primary">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 6px;">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                {% if form.instance.pk %}تحديث{% else %}حفظ{% endif %}
+                            </button>
+                            <a href="{% url 'payment_methods_list' %}" class="btn btn-outline-secondary">إلغاء</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if form.instance.pk %}
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <span class="card-title">معلومات إضافية</span>
+            </div>
+            <div class="card-body">
+                <table class="info-table">
+                    <tr>
+                        <th style="width: 150px;">تاريخ الإنشاء:</th>
+                        <td>{{ form.instance.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>آخر تحديث:</th>
+                        <td>{{ form.instance.updated_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>المعرف:</th>
+                        <td>#{{ form.instance.pk }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#id_increase_percentage').on('input', function() {
+        let value = parseFloat($(this).val());
+        if (isNaN(value)) {
+            $(this).val(0);
+        } else if (value < 0) {
+            $(this).val(0);
+        } else if (value > 100) {
+            $(this).val(100);
+            alert('نسبة الزيادة لا يمكن أن تتجاوز 100%');
+        }
+    });
+    
+    $('#id_name').on('blur', function() {
+        const name = $(this).val();
+        const currentId = '{{ form.instance.pk|default:"" }}';
+        
+        if (name && name.length > 2) {
+            $.ajax({
+                url: '{% url "payment_method_check_duplicate" %}',
+                method: 'GET',
+                data: {
+                    name: name,
+                    exclude_id: currentId
+                },
+                success: function(data) {
+                    if (data.exists) {
+                        $('#id_name').addClass('is-invalid');
+                        if (!$('#name-error').length) {
+                            $('#id_name').after('<div id="name-error" class="error-message" style="color:#dc2626;margin-top:5px;">هذا الاسم مستخدم بالفعل</div>');
+                        }
+                    } else {
+                        $('#id_name').removeClass('is-invalid');
+                        $('#name-error').remove();
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

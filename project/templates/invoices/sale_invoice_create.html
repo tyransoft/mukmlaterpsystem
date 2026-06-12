@@ -72,23 +72,36 @@
     background: #fef2f2;
     border-right: 3px solid #dc2626;
   }
+  .fee-info {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .cash-customer-fields {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+  }
 </style>
 
 <form method="post" id="sale-invoice-form">
   {% csrf_token %}
-  <div style="display:grid;grid-template-columns:1fr 350px;gap:20px;">
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;">
     
     <div class="card">
       <div class="card-header">
-        <span class="card-title">
-          إضافة المنتجات
-        </span>
+        <span class="card-title">إضافة المنتجات</span>
       </div>
       <div class="card-body">
         <div style="margin-bottom:20px;">
           <input type="text" id="product-search" class="form-control" 
                  placeholder="ابحث عن منتج بالاسم أو الباركود...">
-          <div id="search-results" style="position:absolute;background:white;border:1px solid var(--border-color);border-radius:8px;width:calc(100% - 40px);max-height:300px;overflow-y:auto;display:none;z-index:1000;"></div>
+          <div id="search-results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:300px;overflow-y:auto;display:none;z-index:1000;"></div>
         </div>
         
         <div class="items-table-wrapper">
@@ -117,9 +130,7 @@
     <div>
       <div class="card">
         <div class="card-header">
-          <span class="card-title">
-            بيانات الفاتورة
-          </span>
+          <span class="card-title">بيانات الفاتورة</span>
         </div>
         <div class="card-body">
           
@@ -155,36 +166,72 @@
             </select>
           </div>
           
-          <div id="customer_group">
+          <div id="customer_section">
             <div class="form-group">
-              <label class="form-label">البحث عن عميل</label>
-              <input type="text" id="customer_search" class="form-control" 
-                     placeholder="ابحث بالاسم أو رقم الجوال...">
-              <div id="customer_results" style="position:absolute;background:white;border:1px solid var(--border-color);border-radius:8px;width:calc(100% - 40px);max-height:200px;overflow-y:auto;display:none;z-index:1000;"></div>
+              <label class="form-label">
+                <input type="checkbox" id="is_cash_customer" name="is_cash_customer">
+                عميل نقدي 
+              </label>
             </div>
             
-            <div class="form-group">
-              <label class="form-label">اختر عميل</label>
-              <select name="customer" id="customer_select" class="form-select">
-                <option value="">-- اختر عميل --</option>
-                {% for customer in customers %}
-                  <option value="{{ customer.id }}" data-points="{{ customer.loyalty_points }}" data-debt="{{ customer.debt_balance }}">
-                    {{ customer.full_name }} - {{ customer.phone }}
-                  </option>
-                {% endfor %}
-              </select>
+            <div id="cash_customer_fields" class="cash-customer-fields" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">اسم العميل *</label>
+                <input type="text" name="cash_customer_name" id="cash_customer_name" class="form-control" placeholder="أدخل اسم العميل">
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم الجوال</label>
+                <input type="tel" name="cash_customer_phone" id="cash_customer_phone" class="form-control" placeholder="أدخل رقم الجوال">
+              </div>
             </div>
             
-            <div id="customer_details" class="customer-card" style="display:none;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <span>نقاط الولاء المتاحة:</span>
-                <span class="fw-600 text-primary" id="customer_points">0</span>
+            <div id="registered_customer_fields">
+              <div class="form-group">
+                <label class="form-label">البحث عن عميل</label>
+                <input type="text" id="customer_search" class="form-control" 
+                       placeholder="ابحث بالاسم أو رقم الجوال...">
+                <div id="customer_results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:200px;overflow-y:auto;display:none;z-index:1000;"></div>
               </div>
-              <div style="display:flex;justify-content:space-between;">
-                <span>رصيد الدين الحالي:</span>
-                <span class="fw-600 text-danger" id="customer_debt">0.00 د.ل</span>
+              
+              <div class="form-group">
+                <label class="form-label">اختر عميل</label>
+                <select name="customer" id="customer_select" class="form-select">
+                  <option value="">-- اختر عميل --</option>
+                  {% for customer in customers %}
+                    <option value="{{ customer.id }}" data-points="{{ customer.loyalty_points }}" data-debt="{{ customer.debt_balance }}">
+                      {{ customer.full_name }} - {{ customer.phone }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div id="customer_details" class="customer-card" style="display:none;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                  <span>النقاط المتاحة</span>
+                  <span class="fw-600 text-primary" id="customer_points">0</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span>رصيد الدين الحالي:</span>
+                  <span class="fw-600 text-danger" id="customer_debt">0.00 د.ل</span>
+                </div>
               </div>
             </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">طريقة الدفع</label>
+            <select name="payment_method" id="payment_method" class="form-select">
+              <option value="">-- بدون طريقة دفع --</option>
+              {% for method in payment_methods %}
+              <option value="{{ method.id }}" data-increase="{{ method.increase_percentage }}">
+                {{ method.name }}
+                {% if method.increase_percentage > 0 %}
+                (+{{ method.increase_percentage }}%)
+                {% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="fee_info" class="fee-info" style="display:none;"></div>
           </div>
           
           <div class="form-group">
@@ -220,6 +267,10 @@
             <span>الخصم</span>
             <span class="fw-600 text-danger" id="discount_display">0.00</span>
           </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;">
+            <span>الرسوم الإضافية</span>
+            <span class="fw-600 text-warning" id="additional_fees">0.00</span>
+          </div>
           <div style="display:flex;justify-content:space-between;padding:12px 0;">
             <span class="fw-bold">الإجمالي</span>
             <span class="fw-bold text-primary" style="font-size:20px;" id="total">0.00</span>
@@ -238,7 +289,7 @@
           
           <div id="loyalty_summary" style="border-top:1px solid var(--border-color);padding-top:12px;margin-top:5px;">
             <div style="display:flex;justify-content:space-between;">
-              <span>نقاط الولاء</span>
+              <span>النقاط</span>
               <span class="fw-600 text-primary" id="points">0</span>
             </div>
           </div>
@@ -246,12 +297,10 @@
           <div class="form-group" style="margin-top:15px;">
             <div style="display:flex;gap:10px;">
               <button type="submit" class="btn btn-primary" style="flex:1;" id="submit-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px;">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
                 حفظ الفاتورة
+              </button>
+              <button type="submit" name="confirm" value="yes" class="btn btn-success" style="flex:1;">
+                حفظ وتأكيد
               </button>
               <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إلغاء</a>
             </div>
@@ -261,19 +310,15 @@
     </div>
   </div>
 </form>
-{% endblock %}
 
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-
 $(document).ready(function() {
     let selectedProducts = [];
-    let customers = [];
+    let productStock = {};
     let isUpdatingPaidAmount = false;
-    let productStock = {}; 
-    
-    loadProductStock();
+    let originalTotal = 0;
     
     function loadProductStock() {
         $.get('/api/products-stock/', function(data) {
@@ -284,10 +329,17 @@ $(document).ready(function() {
             console.log('فشل في تحميل بيانات المخزون');
         });
     }
+    loadProductStock();
     
-    $.get('/customers/search/?q=', function(data) {
-        if (data.customers) {
-            customers = data.customers;
+    $('#is_cash_customer').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#cash_customer_fields').show();
+            $('#registered_customer_fields').hide();
+            $('#customer_select').val('');
+            $('#customer_details').hide();
+        } else {
+            $('#cash_customer_fields').hide();
+            $('#registered_customer_fields').show();
         }
     });
     
@@ -324,7 +376,7 @@ $(document).ready(function() {
                      data-name="${product.name}" data-price="${product.selling_price}"
                      data-points="${product.loyalty_points}" data-stock="${availableStock}"
                      style="padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer;">
-                    <div class="fw-600">${product.name}</div>
+                    <div class="fw-600">${escapeHtml(product.name)}</div>
                     <div class="text-muted" style="font-size:12px;">
                         السعر: ${product.selling_price} د.ل | النقاط: ${product.loyalty_points}/وحدة
                         <span class="text-${availableStock > 0 ? 'success' : 'danger'}" style="display:block;">
@@ -361,18 +413,13 @@ $(document).ready(function() {
     
     function validateQuantity(product, requestedQuantity) {
         const availableStock = getCurrentStock(product.id);
-        
         if (requestedQuantity > availableStock) {
             return {
                 valid: false,
                 message: `الكمية المطلوبة (${requestedQuantity}) تتجاوز المخزون المتوفر (${availableStock}) للمنتج ${product.name}`
             };
         }
-        
-        return {
-            valid: true,
-            message: ''
-        };
+        return { valid: true, message: '' };
     }
     
     function addProductToTable(product) {
@@ -380,9 +427,8 @@ $(document).ready(function() {
         let newQuantity = existing ? existing.quantity + 1 : 1;
         
         const validation = validateQuantity(product, newQuantity);
-        
         if (!validation.valid) {
-            showErrorNotification(validation.message);
+            alert(validation.message);
             return;
         }
         
@@ -390,7 +436,6 @@ $(document).ready(function() {
             existing.quantity = newQuantity;
             existing.total = existing.quantity * existing.price;
             updateProductRow(existing);
-            removeErrorFromRow(existing.id);
         } else {
             const newProduct = {
                 id: product.id,
@@ -407,7 +452,6 @@ $(document).ready(function() {
         
         updateStock(product.id, 1);
         updateTotals();
-        setPaidAmountToTotal();
     }
     
     function addProductRow(product) {
@@ -416,14 +460,13 @@ $(document).ready(function() {
             $('#empty-row').hide();
         }
         
-        const availableStock = getCurrentStock(product.id);
         const rowId = `product-row-${product.id}`;
         $container.append(`
-            <tr id="${rowId}" class="product-row" data-product-id="${product.id}" data-max-stock="${availableStock}">
+            <tr id="${rowId}" class="product-row" data-product-id="${product.id}">
                 <td class="fw-600">${escapeHtml(product.name)}
                     <div class="error-message" id="error-${product.id}" style="color:#dc2626;font-size:11px;margin-top:5px;"></div>
                 </td>
-                <tr>
+                <td>
                     <input type="number" class="form-control quantity-input" 
                            value="${product.quantity}" min="1" step="1"
                            style="width:80px;" data-id="${product.id}">
@@ -452,23 +495,7 @@ $(document).ready(function() {
         $(`.hidden-quantity-${product.id}`).val(product.quantity);
         product.total = product.quantity * product.price;
         $(`.total-price-${product.id}`).text(product.total.toFixed(2));
-        removeErrorFromRow(product.id);
         updateTotals();
-        setPaidAmountToTotal();
-    }
-    
-    function showErrorForProduct(productId, message) {
-        $(`#error-${productId}`).text(message).show();
-        $(`#product-row-${productId}`).addClass('has-error');
-    }
-    
-    function removeErrorFromRow(productId) {
-        $(`#error-${productId}`).text('').hide();
-        $(`#product-row-${productId}`).removeClass('has-error');
-    }
-    
-    function showErrorNotification(message) {
-        alert(message);
     }
     
     $(document).on('change', '.quantity-input', function() {
@@ -483,8 +510,7 @@ $(document).ready(function() {
             const availableStock = getCurrentStock(product.id);
             
             if (quantityDifference > 0 && quantityDifference > availableStock) {
-                showErrorForProduct(product.id, 
-                    `الكمية المطلوبة (${qty}) تتجاوز المخزون المتوفر (${availableStock + oldQuantity}). الحد الأقصى المسموح: ${availableStock + oldQuantity}`);
+                alert(`الكمية المطلوبة (${qty}) تتجاوز المخزون المتوفر (${availableStock + oldQuantity})`);
                 $(this).val(oldQuantity);
                 return;
             }
@@ -492,7 +518,6 @@ $(document).ready(function() {
             product.quantity = qty;
             updateStock(product.id, quantityDifference);
             updateProductRow(product);
-            removeErrorFromRow(product.id);
         }
     });
     
@@ -523,40 +548,64 @@ $(document).ready(function() {
             $('#empty-row').show();
         }
         updateTotals();
-        setPaidAmountToTotal();
     });
     
     function updateTotals() {
         const subtotal = selectedProducts.reduce((sum, p) => sum + p.total, 0);
         const discount = parseFloat($('#discount').val()) || 0;
-        const total = subtotal - discount;
+        let total = subtotal - discount;
+        
+        const selectedMethod = $('#payment_method').find(':selected');
+        const increasePercent = parseFloat(selectedMethod.data('increase')) || 0;
+        const additionalFees = total * (increasePercent / 100);
         
         $('#subtotal').text(subtotal.toFixed(2));
         $('#discount_display').text(discount.toFixed(2));
-        $('#total').text(total.toFixed(2));
+        $('#additional_fees').text(additionalFees.toFixed(2));
+        
+        const finalTotal = total + additionalFees;
+        $('#total').text(finalTotal.toFixed(2));
+        originalTotal = finalTotal;
         
         const points = selectedProducts.reduce((sum, p) => sum + (p.points * p.quantity), 0);
         $('#points').text(points);
-    }
-    
-    function setPaidAmountToTotal() {
+        
         if (!isUpdatingPaidAmount) {
-            const total = parseFloat($('#total').text()) || 0;
-            $('#paid_amount').val(total.toFixed(2));
-            $('#paid_display').text(total.toFixed(2));
-            const remaining = total - total;
-            $('#remaining').text(remaining.toFixed(2));
+            if ($('#sale_type').val() === 'branch') {
+                $('#paid_amount').val(finalTotal.toFixed(2));
+                $('#paid_display').text(finalTotal.toFixed(2));
+                $('#remaining').text('0.00');
+            }
         }
     }
     
+    $('#payment_method').on('change', function() {
+        const selectedOption = $(this).find(':selected');
+        const increasePercent = parseFloat(selectedOption.data('increase')) || 0;
+        
+        if (increasePercent > 0) {
+            const subtotal = parseFloat($('#subtotal').text()) || 0;
+            const discount = parseFloat($('#discount').val()) || 0;
+            const totalBeforeFees = subtotal - discount;
+            const feeAmount = totalBeforeFees * (increasePercent / 100);
+            
+            $('#fee_info').html(`
+                <strong>ملاحظة:</strong> سيتم إضافة رسوم إضافية بقيمة ${feeAmount.toFixed(2)} د.ل 
+                (${increasePercent}% من إجمالي الفاتورة قبل الرسوم)
+            `).show();
+        } else {
+            $('#fee_info').hide();
+        }
+        
+        updateTotals();
+    });
+    
     $('#discount').on('input', function() {
         updateTotals();
-        setPaidAmountToTotal();
     });
     
     $('#paid_amount').on('input', function() {
         isUpdatingPaidAmount = true;
-        
         const paidAmount = parseFloat($(this).val()) || 0;
         const total = parseFloat($('#total').text()) || 0;
         const remaining = total - paidAmount;
@@ -564,29 +613,19 @@ $(document).ready(function() {
         $('#paid_display').text(paidAmount.toFixed(2));
         $('#remaining').text(remaining.toFixed(2));
         
-        setTimeout(function() {
-            isUpdatingPaidAmount = false;
-        }, 100);
+        setTimeout(() => { isUpdatingPaidAmount = false; }, 100);
     });
     
     $('#paid_amount').on('blur', function() {
         let paidAmount = parseFloat($(this).val()) || 0;
         const total = parseFloat($('#total').text()) || 0;
         
-        if (paidAmount < 0) {
-            paidAmount = 0;
-            $(this).val(0);
-        }
+        if (paidAmount < 0) paidAmount = 0;
+        if (paidAmount > total) paidAmount = total;
         
-        if (paidAmount > total) {
-            paidAmount = total;
-            $(this).val(total.toFixed(2));
-        }
-        
+        $(this).val(paidAmount.toFixed(2));
         $('#paid_display').text(paidAmount.toFixed(2));
-        const remaining = total - paidAmount;
-        $('#remaining').text(remaining.toFixed(2));
-        
+        $('#remaining').text((total - paidAmount).toFixed(2));
         isUpdatingPaidAmount = false;
     });
     
@@ -598,16 +637,14 @@ $(document).ready(function() {
         
         if (type === 'customer') {
             $('#target_branch_group').hide();
-            $('#customer_group').show();
+            $('#customer_section').show();
             $('#payment_group').show();
         } else {
             $('#target_branch_group').show();
-            $('#customer_group').hide();
+            $('#customer_section').hide();
             $('#payment_group').hide();
-            $('#paid_amount').val(0);
-            $('#due_date').val('');
+            $('#paid_amount').val(originalTotal.toFixed(2));
             updateTotals();
-            setPaidAmountToTotal();
         }
     });
     
@@ -688,10 +725,19 @@ $(document).ready(function() {
         }
         
         const saleType = $('#sale_type').val();
-        if (saleType === 'customer' && !$('#customer_select').val()) {
-            e.preventDefault();
-            alert('الرجاء اختيار عميل');
-            return false;
+        const isCashCustomer = $('#is_cash_customer').is(':checked');
+        
+        if (saleType === 'customer') {
+            if (!isCashCustomer && !$('#customer_select').val()) {
+                e.preventDefault();
+                alert('الرجاء اختيار عميل أو تفعيل خيار عميل نقدي');
+                return false;
+            }
+            if (isCashCustomer && !$('#cash_customer_name').val().trim()) {
+                e.preventDefault();
+                alert('الرجاء إدخال اسم العميل النقدي');
+                return false;
+            }
         }
         
         if (saleType === 'branch' && !$('#target_branch').val()) {
@@ -712,9 +758,7 @@ $(document).ready(function() {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
     }
-    
-    setPaidAmountToTotal();
 });
-
 </script>
+{% endblock %}
 {% endblock %}

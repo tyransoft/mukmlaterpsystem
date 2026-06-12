@@ -174,3 +174,21 @@ class SupplierForm(forms.ModelForm):
             'name': 'اسم المورد',
             'is_active': 'نشط',
         }
+
+
+class PaymentMethodForm(forms.ModelForm):
+    class Meta:
+        model = PaymentMethod
+        fields = ['name', 'increase_percentage', 'is_active', 'is_default']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'مثال: بطاقة ائتمان'}),
+            'increase_percentage': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'name': 'اسم طريقة الدفع',
+            'increase_percentage': 'نسبة الزيادة %',
+            'is_active': 'نشط',
+            'is_default': 'الطريقة الافتراضية',
+        }        

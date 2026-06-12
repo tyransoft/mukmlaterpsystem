@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}طرق الدفع{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>طرق الدفع</h3>
+        <a href="{% url 'payment_method_create' %}" class="btn btn-primary">
+            ➕ إضافة طريقة دفع جديدة
+        </a>
+    </div>
+    <div class="card-body">
+        <table class="erp-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم الطريقة</th>
+                    <th>نسبة الزيادة</th>
+                    <th>الحالة</th>
+                    <th>افتراضية</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for method in page_obj %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ method.name }}</td>
+                    <td>{{ method.increase_percentage }}%</td>
+                    <td>
+                        {% if method.is_active %}
+                        <span class="badge badge-success">نشط</span>
+                        {% else %}
+                        <span class="badge badge-danger">غير نشط</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if method.is_default %}
+                        <span class="badge badge-primary">افتراضي</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'payment_method_edit' method.pk %}" class="btn btn-sm btn-info">تعديل</a>
+                        <a href="{% url 'payment_method_delete' method.pk %}" class="btn btn-sm btn-danger">حذف</a>
+                        <a href="{% url 'payment_method_toggle_status' method.pk %}" class="btn btn-sm btn-warning">
+                            {% if method.is_active %}تعطيل{% else %}تفعيل{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">لا توجد طرق دفع</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

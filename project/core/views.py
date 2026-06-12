@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, staff_member_required
 from django.contrib import messages
 from django.http import JsonResponse
 from .models import *
@@ -504,12 +504,15 @@ def branch_delete(request, pk):
     branch.save()
     return JsonResponse({'success': True, 'message': f'تم تعطيل الفرع {name}'})
 
+
 @login_required
 def sale_invoice_create(request):
+    
     if not request.user.branch:
         main_branch = Branch.get_main_branch()
         if main_branch:
             request.user.branch = main_branch
+            request.user.save()
         else:
             messages.error(request, 'لا يوجد فرع مرتبط بحسابك ولا يوجد فرع رئيسي')
             return redirect('dashboard_home')
@@ -519,11 +522,27 @@ def sale_invoice_create(request):
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                payment_method_id = request.POST.get('payment_method')
+                payment_method = None
+                if payment_method_id:
+                    payment_method = PaymentMethod.objects.filter(id=payment_method_id, is_active=True).first()
+                
+                is_cash_customer = request.POST.get('is_cash_customer') == 'on'
+                customer_id = None
+                
+                if is_cash_customer:
+                    pass
+                
+                else:
+                    customer_id = request.POST.get('customer') or None
+                    if not customer_id and request.POST.get('sale_type') == 'customer':
+                        raise ValidationErr('الرجاء اختيار عميل')
+                
                 invoice = SaleInvoice(
                     sale_type=request.POST.get('sale_type'),
-                    branch=request.user.branch,  
+                    branch=request.user.branch,
                     target_branch_id=request.POST.get('target_branch') or None,
-                    customer_id=request.POST.get('customer') or None,
+                    customer_id=customer_id,
                     discount=Decimal(request.POST.get('discount', 0)),
                     paid_amount=Decimal(request.POST.get('paid_amount', 0)),
                     due_date=request.POST.get('due_date') or None,
@@ -531,12 +550,16 @@ def sale_invoice_create(request):
                     employee=request.user,
                     status='draft',
                     subtotal=0,
-                    total=0
+                    total=0,
+                    payment_method=payment_method,
+                    is_cash_customer=is_cash_customer,
+                  
                 )
-                
                 invoice.save()
                 
                 subtotal = Decimal(0)
+                items_added = False
+                
                 for key, value in request.POST.items():
                     if key.endswith('_id'):
                         product_id = value
@@ -545,6 +568,7 @@ def sale_invoice_create(request):
                         unit_price = Decimal(request.POST.get(f'{prefix}_price', 0))
                         
                         if quantity > 0:
+                            items_added = True
                             product = Product.objects.get(id=product_id)
                             total_price = unit_price * quantity
                             subtotal += total_price
@@ -557,35 +581,74 @@ def sale_invoice_create(request):
                                 total_price=total_price
                             )
                 
+                if not items_added:
+                    raise ValidationErr('الرجاء إضافة منتج واحد على الأقل للفاتورة')
+                
                 invoice.subtotal = subtotal
                 invoice.total = subtotal - invoice.discount
+                
+                if invoice.payment_method and invoice.payment_method.increase_percentage > 0:
+                    invoice.additional_fees = invoice.total * (invoice.payment_method.increase_percentage / Decimal('100'))
+                    invoice.total += invoice.additional_fees
+                
                 invoice.save()
                 
                 invoice.update_loyalty_points()
                 
+                if invoice.sale_type == 'branch':
+                    invoice.paid_amount = invoice.total
+                    invoice.debt_amount = 0
+                    invoice.save()
+                
                 messages.success(request, f'تم إنشاء الفاتورة رقم {invoice.invoice_number} بنجاح')
                 
                 if request.POST.get('confirm') == 'yes':
-                    invoice.confirm()
-                    messages.info(request, 'تم تأكيد الفاتورة ومعالجة المخزون')
+                    try:
+                        invoice.confirm()
+                        messages.info(request, 'تم تأكيد الفاتورة ومعالجة المخزون')
+                    except ValidationErr as e:
+                        messages.warning(request, f'تم إنشاء الفاتورة ولكن حدث خطأ في التأكيد: {str(e)}')
                 
                 return redirect('sale_invoice_detail', pk=invoice.pk)
                 
+        except ValidationErr as e:
+            messages.error(request, str(e))
+            return redirect('sale_invoice_create')
         except Exception as e:
-            messages.error(request, f'حدث خطأ: {str(e)}')
+            messages.error(request, f'حدث خطأ غير متوقع: {str(e)}')
             return redirect('sale_invoice_create')
     
     branches = Branch.objects.filter(is_active=True)
     if not request.user.is_main_admin():
         branches = branches.exclude(pk=request.user.branch.pk)
     
+    payment_methods = PaymentMethod.objects.filter(is_active=True)
+    
+    products_with_stock = []
+    for product in Product.objects.filter(is_active=True):
+        inventory = BranchInventory.objects.filter(
+            branch=request.user.branch, 
+            product=product
+        ).first()
+        products_with_stock.append({
+            'id': product.id,
+            'name': product.name,
+            'selling_price': product.selling_price,
+            'loyalty_points': product.loyalty_points,
+            'stock': inventory.quantity if inventory else 0,
+            'barcode': product.barcode
+        })
+    
     context = {
         'branches': branches,
         'customers': Customer.objects.filter(is_active=True),
         'allowed_sale_types': allowed_sale_types,
-        'user_branch': request.user.branch,  
+        'user_branch': request.user.branch,
+        'payment_methods': payment_methods,
+        'products': products_with_stock,
     }
     return render(request, 'invoices/sale_invoice_create.html', context)
+
 
 @login_required
 def purchase_invoice_create(request):
@@ -1740,3 +1803,80 @@ def api_products_stock(request):
     stock_data = {str(stock.product.id): stock.quantity for stock in stocks}
     
     return JsonResponse({'stock': stock_data})
+
+
+
+@staff_member_required
+def payment_methods_list(request):
+    payment_methods = PaymentMethod.objects.all()
+    
+    search_query = request.GET.get('search', '')
+    if search_query:
+        payment_methods = payment_methods.filter(name__icontains=search_query)
+    
+    sort_by = request.GET.get('sort', 'name')
+    payment_methods = payment_methods.order_by(sort_by)
+    
+    paginator = Paginator(payment_methods, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'sort_by': sort_by,
+    }
+    return render(request, 'payment_methods/list.html', context)
+
+@staff_member_required
+def payment_method_create(request):
+    if request.method == 'POST':
+        form = PaymentMethodForm(request.POST)
+        if form.is_valid():
+            payment_method = form.save()
+            messages.success(request, f'تم إضافة طريقة الدفع "{payment_method.name}" بنجاح')
+            return redirect('payment_methods_list')
+    else:
+        form = PaymentMethodForm()
+    
+    context = {'form': form}
+    return render(request, 'payment_methods/form.html', context)
+
+@staff_member_required
+def payment_method_edit(request, pk):
+    payment_method = get_object_or_404(PaymentMethod, pk=pk)
+    
+    if request.method == 'POST':
+        form = PaymentMethodForm(request.POST, instance=payment_method)
+        if form.is_valid():
+            payment_method = form.save()
+            messages.success(request, f'تم تعديل طريقة الدفع "{payment_method.name}" بنجاح')
+            return redirect('payment_methods_list')
+    else:
+        form = PaymentMethodForm(instance=payment_method)
+    
+    context = {'form': form, 'payment_method': payment_method}
+    return render(request, 'payment_methods/form.html', context)
+
+@staff_member_required
+def payment_method_delete(request, pk):
+    payment_method = get_object_or_404(PaymentMethod, pk=pk)
+    
+    if request.method == 'POST':
+        method_name = payment_method.name
+        payment_method.delete()
+        messages.success(request, f'تم حذف طريقة الدفع "{method_name}" بنجاح')
+        return redirect('payment_methods_list')
+    
+    context = {'payment_method': payment_method}
+    return render(request, 'payment_methods/confirm_delete.html', context)
+
+@staff_member_required
+def payment_method_toggle_status(request, pk):
+    payment_method = get_object_or_404(PaymentMethod, pk=pk)
+    payment_method.is_active = not payment_method.is_active
+    payment_method.save()
+    
+    status = 'مفعلة' if payment_method.is_active else 'غير مفعلة'
+    messages.success(request, f'تم {status} طريقة الدفع "{payment_method.name}"')
+    return redirect('payment_methods_list')

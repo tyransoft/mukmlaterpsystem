@@ -20,7 +20,7 @@ class Branch(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='نشط')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    loyalty_points_inventory=models.FloatField(default=0.0)
     class Meta:
         verbose_name = 'فرع'
         verbose_name_plural = 'الفروع'
@@ -511,11 +511,67 @@ class PurchaseInvoiceItem(models.Model):
 
 
 
+class PaymentMethod(models.Model):
+  
+    name = models.CharField(max_length=100, verbose_name='اسم طريقة الدفع')
+    increase_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0,
+        verbose_name='نسبة الزيادة %',
+        help_text='النسبة المئوية التي تضاف على إجمالي الفاتورة'
+    )
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+    is_default = models.BooleanField(default=False, verbose_name='الطريقة الافتراضية')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'طريقة دفع'
+        verbose_name_plural = 'طرق الدفع'
+        ordering = ['-is_default', 'name']
+
+    def __str__(self):
+        increase_text = f" (+{self.increase_percentage}%)" if self.increase_percentage > 0 else ""
+        return f"{self.name}{increase_text}"
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            PaymentMethod.objects.exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_default_method(cls):
+        default = cls.objects.filter(is_default=True, is_active=True).first()
+        if not default:
+            default = cls.objects.filter(is_active=True).first()
+        return default        
 
 
 
 
-
+class LoyaltyTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('earn', 'كسب نقاط'),
+        ('redeem', 'استخدام نقاط'),
+        ('adjust', 'تعديل يدوي'),
+    ]
+    
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='loyalty_transactions')
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    sale_invoice = models.ForeignKey("core.SaleInvoice", on_delete=models.SET_NULL, null=True, blank=True)
+    points = models.IntegerField(help_text='العدد')
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'معاملة نقاط ولاء'
+        verbose_name_plural = 'معاملات نقاط الولاء'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.get_transaction_type_display()}: {self.points} نقطة - {self.created_at.date()}"
 
 
 class SaleInvoice(models.Model):
@@ -545,7 +601,9 @@ class SaleInvoice(models.Model):
     debt_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     branch_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
+    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True,verbose_name='طريقة الدفع')
+    additional_fees = models.DecimalField(max_digits=12, decimal_places=2, default=0,verbose_name='الرسوم الإضافية')
+    is_cash_customer = models.BooleanField(default=False, verbose_name='عميل نقدي ')
     total_loyalty_points = models.IntegerField(default=0)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
@@ -563,13 +621,19 @@ class SaleInvoice(models.Model):
     
     def __str__(self):
         return f"SALE-{self.invoice_number}"
+    def calculate_additional_fees(self):
     
+      if self.payment_method and self.payment_method.increase_percentage > 0:
+        fee_amount = self.total * (self.payment_method.increase_percentage / Decimal('100'))
+        return fee_amount
+      return Decimal('0')  
+      
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             self.invoice_number = self._generate_invoice_number()
         
         self.debt_amount = self.total - self.paid_amount
-        
+        self.additional_fees=self.calculate_additional_fees()
         if self.sale_type == 'customer' and not self.branch.is_main:
             commission_rate = self.branch.commission_percentage / Decimal('100')
             self.branch_commission = self.total * commission_rate
@@ -578,10 +642,12 @@ class SaleInvoice(models.Model):
         
         super().save(*args, **kwargs)
     
+
     def update_loyalty_points(self):
       result = self.items.aggregate(total=Sum('loyalty_points'))['total'] or 0
       self.total_loyalty_points = result
       self.save(update_fields=['total_loyalty_points'])
+
     @property
     def amount_due_to_main(self):
       if self.sale_type == 'customer' and not self.branch.is_main:
@@ -595,16 +661,21 @@ class SaleInvoice(models.Model):
         ).count() + 1
         return f"{prefix}{date_str}{count:04d}"
     
+
     def confirm(self):
       if self.status == 'draft':
         try:
             self.status = 'confirmed'
             self.save()
-            self._process_inventory()  
+            self._process_inventory()
             
-            if self.sale_type == 'customer' and self.customer:
-                self._create_loyalty_transfer()
-                self._update_customer_debt()
+            if self.sale_type == 'customer':
+                if not self.is_cash_customer and self.customer:
+                    self._create_loyalty_transfer()
+                    self._update_customer_debt()
+                    self._deduct_loyalty_points_from_branch()
+            elif self.sale_type == 'branch' and self.target_branch:
+                self._add_loyalty_points_to_branch()
             
             return True
         except ValidationErr as e:
@@ -616,6 +687,37 @@ class SaleInvoice(models.Model):
             self.save()
             raise e
       return False
+
+    def _add_loyalty_points_to_branch(self):
+     
+     if self.total_loyalty_points > 0 and self.target_branch:
+        self.target_branch.loyalty_points_inventory += self.total_loyalty_points
+        self.target_branch.save()
+        
+        LoyaltyTransaction.objects.create(
+            branch=self.target_branch,
+            customer=None,  
+            sale_invoice=self,
+            points=self.total_loyalty_points,
+            transaction_type='earn',
+            notes=f'نقاط ولاء من توريد من فرع {self.branch.name} - فاتورة {self.invoice_number}'
+        )
+
+    def _deduct_loyalty_points_from_branch(self):
+    
+      if self.total_loyalty_points > 0:
+        
+        self.branch.loyalty_points_inventory -= self.total_loyalty_points
+        self.branch.save()
+        
+        LoyaltyTransaction.objects.create(
+            branch=self.branch,
+            customer=self.customer,
+            sale_invoice=self,
+            points=-self.total_loyalty_points,
+            transaction_type='redeem',
+            notes=f'خصم نقاط من فاتورة مبيعات {self.invoice_number}'
+        )
     
     def _process_inventory(self):
       for item in self.items.all():
@@ -749,11 +851,26 @@ class SaleInvoice(models.Model):
         
         self.customer.debt_balance = total_debt
         self.customer.save()
+
+    def _create_loyalty_transfer(self):
     
+      if self.is_cash_customer:
+        return
+    
+      LoyaltyTransfer.objects.create(
+        customer=self.customer,
+        sale_invoice=self,
+        points=self.total_loyalty_points,
+        branch=self.branch,
+        status='pending',
+        notes=f"نقاط من فاتورة مبيعات {self.invoice_number}"
+      )    
     @property
     def remaining_amount(self):
         return self.total - self.paid_amount
-
+    @property
+    def total_with_fees(self):
+        return self.total + self.additional_fees
 
 class SaleInvoiceItem(models.Model):
     invoice = models.ForeignKey(SaleInvoice, on_delete=models.CASCADE, related_name='items')
@@ -801,3 +918,4 @@ class BranchSalesDelivery(models.Model):
             delivery_date__date=timezone.now().date()
         ).count() + 1
         return f"{date_str}{count:04d}"
+

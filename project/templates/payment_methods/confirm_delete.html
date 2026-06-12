@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف طريقة دفع{% endblock %}
+
+{% block page_title %}حذف طريقة دفع{% endblock %}
+
+{% block content %}
+<style>
+    .delete-warning {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .delete-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    .method-details {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    .method-details table {
+        width: 100%;
+    }
+    .method-details td {
+        padding: 8px;
+    }
+    .method-details td:first-child {
+        font-weight: bold;
+        width: 150px;
+    }
+    .warning-text {
+        color: #dc2626;
+        font-size: 14px;
+        margin-top: 15px;
+    }
+    .btn-danger {
+        background-color: #dc2626;
+        border-color: #dc2626;
+    }
+    .btn-danger:hover {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+    }
+</style>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">تأكيد الحذف</span>
+            </div>
+            <div class="card-body">
+                <div class="delete-warning">
+                    <div class="delete-icon"></div>
+                    <h4>هل أنت متأكد من حذف طريقة الدفع هذه؟</h4>
+                    <p class="text-muted">هذا الإجراء لا يمكن التراجع عنه.</p>
+                </div>
+                
+                <div class="method-details">
+                    <h5 style="margin-bottom: 15px;">معلومات طريقة الدفع:</h5>
+                    <table>
+                        <tr>
+                            <td>الاسم:</td>
+                            <td><strong>{{ payment_method.name }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>نسبة الزيادة:</td>
+                            <td><strong>{{ payment_method.increase_percentage }}%</strong></td>
+                        </tr>
+                        <tr>
+                            <td>الحالة:</td>
+                            <td>
+                                {% if payment_method.is_active %}
+                                <span class="badge badge-success">نشط</span>
+                                {% else %}
+                                <span class="badge badge-danger">غير نشط</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>افتراضي:</td>
+                            <td>
+                                {% if payment_method.is_default %}
+                                <span class="badge badge-primary">نعم</span>
+                                {% else %}
+                                <span class="badge badge-secondary">لا</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>تاريخ الإنشاء:</td>
+                            <td>{{ payment_method.created_at|date:"Y-m-d" }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                {% if payment_method.is_default %}
+                <div class="warning-text">
+                    <strong>تحذير:</strong> هذه هي طريقة الدفع الافتراضية. حذفها قد يؤثر على الفواتير المستقبلية.
+                </div>
+                {% endif %}
+                
+                {% if payment_method.saleinvoice_set.exists %}
+                <div class="warning-text">
+                    <strong> تحذير مهم:</strong> هذه الطريقة مستخدمة في {{ payment_method.saleinvoice_set.count }} فاتورة.
+                    حذفها سيؤثر على هذه الفواتير.
+                    <button type="button" id="show-invoices" class="btn btn-link btn-sm" style="padding:0;margin-top:5px;">
+                        عرض الفواتير المرتبطة
+                    </button>
+                    <div id="invoices-list" style="display:none; margin-top:10px; max-height:200px; overflow-y:auto;">
+                        <ul style="margin:0; padding-right:20px;">
+                            {% for invoice in payment_method.saleinvoice_set.all|slice:":10" %}
+                            <li>فاتورة رقم: {{ invoice.invoice_number }} - {{ invoice.created_at|date:"Y-m-d" }}</li>
+                            {% endfor %}
+                            {% if payment_method.saleinvoice_set.count > 10 %}
+                            <li>... و {{ payment_method.saleinvoice_set.count|add:"-10" }} فواتير أخرى</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post" style="margin-top: 25px;">
+                    {% csrf_token %}
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button type="submit" class="btn btn-danger">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 6px;">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            نعم، أحذف
+                        </button>
+                        <a href="{% url 'payment_methods_list' %}" class="btn btn-outline-secondary">
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#show-invoices').on('click', function() {
+        $('#invoices-list').toggle();
+        if ($('#invoices-list').is(':visible')) {
+            $(this).text('إخفاء الفواتير');
+        } else {
+            $(this).text('عرض الفواتير المرتبطة');
+        }
+    });
+});
+</script>
+{% endblock %}

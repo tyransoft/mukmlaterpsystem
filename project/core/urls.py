@@ -82,6 +82,13 @@ urlpatterns = [
     path('purchases/<int:pk>/confirm/', purchase_invoice_confirm, name='purchase_invoice_confirm'),
     path('purchases/<int:pk>/print/', purchase_invoice_print, name='purchase_invoice_print'),
     path('api/products-stock/', api_products_stock, name='api_products_stock'),
+
+    path('payment-methods/', payment_methods_list, name='payment_methods_list'),
+    path('payment-methods/create/', payment_method_create, name='payment_method_create'),
+    path('payment-methods/<int:pk>/edit/', payment_method_edit, name='payment_method_edit'),
+    path('payment-methods/<int:pk>/delete/', payment_method_delete, name='payment_method_delete'),
+    path('payment-methods/<int:pk>/toggle-status/', payment_method_toggle_status, name='payment_method_toggle_status'),
+
 ]
 
 

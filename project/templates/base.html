@@ -490,6 +490,24 @@
         </a>
       </div>
       {% endif %}
+      {% if user.can_see_all_data or user.is_accountant %}
+<div class="nav-section">مراقبة الصلاحية</div>
+<div class="nav-item">
+  <a href="{% url 'product_expiry_dashboard' %}" class="nav-link {% block nav_expiry_dashboard %}{% endblock %}">
+    لوحة تحكم الصلاحية
+  </a>
+</div>
+<div class="nav-item">
+  <a href="{% url 'product_expiry_list' %}" class="nav-link {% block nav_expiry_list %}{% endblock %}">
+    قائمة المنتجات المراقبة
+  </a>
+</div>
+<div class="nav-item">
+  <a href="{% url 'product_expiry_create' %}" class="nav-link {% block nav_expiry_create %}{ endblock %}">
+    إضافة مراقبة صلاحية
+  </a>
+</div>
+{% endif %}
     </nav>
 
     <div class="sidebar-footer">

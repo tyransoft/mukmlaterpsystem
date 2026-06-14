@@ -2413,7 +2413,7 @@ def branch_adjust_points(request, pk):
     
     if not request.user.can_see_all_data():
         messages.error(request, 'غير مصرح لك بتعديل نقاط الولاء')
-        return redirect('branch_detail', pk=pk)
+        return redirect('branches_detail', pk=pk)
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -2424,7 +2424,7 @@ def branch_adjust_points(request, pk):
             points = int(points)
             if points <= 0:
                 messages.error(request, 'عدد النقاط يجب أن يكون أكبر من صفر')
-                return redirect('branch_detail', pk=pk)
+                return redirect('branches_detail', pk=pk)
             
             if action == 'add':
                 branch.loyalty_points_inventory += points
@@ -2443,7 +2443,7 @@ def branch_adjust_points(request, pk):
             elif action == 'deduct':
                 if points > branch.loyalty_points_inventory:
                     messages.error(request, f'لا يوجد نقاط كافية. المتوفر: {branch.loyalty_points_inventory}')
-                    return redirect('branch_detail', pk=pk)
+                    return redirect('branches_detail', pk=pk)
                 
                 branch.loyalty_points_inventory -= points
                 branch.save()
@@ -2464,7 +2464,7 @@ def branch_adjust_points(request, pk):
         except Exception as e:
             messages.error(request, f'حدث خطأ: {str(e)}')
     
-    return redirect('branch_detail', pk=pk) 
+    return redirect('branches_detail', pk=pk) 
 
 
 @login_required

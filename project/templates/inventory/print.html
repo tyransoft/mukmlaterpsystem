@@ -1,0 +1,180 @@
+
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}طباعة المخزون - {{ branch.name }}{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .print-container {
+            margin: 0;
+            padding: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    }
+    .print-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+    .print-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .print-header h2 {
+        margin: 0;
+        font-size: 22px;
+    }
+    .print-header p {
+        margin: 5px 0;
+        font-size: 14px;
+        color: #555;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    th, td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: right;
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    .footer {
+        margin-top: 30px;
+        text-align: center;
+        font-size: 12px;
+    }
+</style>
+
+<div class="print-container">
+    <div class="print-header">
+        <h2>تقرير مخزون {{ branch.name }}</h2>
+        <p>تاريخ الطباعة: {{ now|date:"Y-m-d H:i" }}</p>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>المنتج</th>
+                <th>الباركود</th>
+                <th>الكمية</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.product.barcode|default:"-" }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align:center;">لا توجد منتجات في المخزون</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        <p>هذا التقرير يوضح المخزون الحالي للفرع</p>
+    </div>
+</div>
+
+<div class="no-print" style="text-align:center; margin-top:20px;">
+    <button onclick="window.print();" class="btn btn-primary">طباعة</button>
+    <a href="{% url 'inventory_list' %}" class="btn btn-outline">رجوع</a>
+</div>
+{% endblock %}
+
+
+# templates/inventory/stocktake.html
+
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}جرد المخزون - {{ branch.name }}{% endblock %}
+{% block page_title %}جرد المخزون - {{ branch.name }}{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">جرد المخزون</span>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="erp-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>المنتج</th>
+                            <th>الباركود</th>
+                            <th>الكمية الحالية</th>
+                            <th>الكمية بعد الجرد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory_items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <div class="fw-600">{{ item.product.name }}</div>
+                            </td>
+                            <td>{{ item.product.barcode|default:"-" }}</td>
+                            <td class="fw-bold">{{ item.quantity }}</td>
+                            <td>
+                                <input type="number" name="quantity_{{ item.pk }}" 
+                                       class="form-control" 
+                                       value="{{ item.quantity }}"
+                                       style="width:120px;" 
+                                       min="0">
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding:40px;">
+                                لا توجد منتجات في مخزون هذا الفرع
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn btn-primary">حفظ الجرد</button>
+                <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

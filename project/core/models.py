@@ -130,9 +130,11 @@ class CustomUser(AbstractUser):
 
 
 class Customer(models.Model):
-    full_name = models.CharField(max_length=200, verbose_name='الاسم الكامل')
+    customer_id=models.CharField(max_length=20, verbose_name="رقم العضوية",null=True,blank=True)
+    full_name = models.CharField(max_length=20, verbose_name='الاسم الكامل')
     phone = models.CharField(max_length=20, unique=True, verbose_name='رقم الهاتف')
     address = models.TextField(blank=True, verbose_name='العنوان')
+
     loyalty_points = models.IntegerField(default=0, verbose_name='نقاط الولاء')
     debt_balance = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
@@ -383,6 +385,7 @@ class InventoryMovement(models.Model):
 
 class Supplier(models.Model):
     name = models.CharField(max_length=200, verbose_name='اسم المورد')
+    debt_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='رصيد الدين')
     is_active = models.BooleanField(default=True, verbose_name='نشط')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -395,14 +398,23 @@ class Supplier(models.Model):
     def __str__(self):
         return self.name
     
+    
     def get_total_purchases(self):
-        from django.db.models import Sum
         result = PurchaseInvoice.objects.filter(
             supplier=self,
             status='confirmed'
         ).aggregate(total=Sum('total'))
         return result['total'] or 0
-
+    
+    def get_total_paid(self):
+        result = self.payments.aggregate(total=Sum('amount'))['total'] or 0
+        return result
+    
+    def update_debt_balance(self):
+        total_purchases = self.get_total_purchases()
+        total_paid = self.get_total_paid()
+        self.debt_balance = total_purchases - total_paid
+        self.save(update_fields=['debt_balance'])
 
 class PurchaseInvoice(models.Model):
     STATUS_CHOICES = [
@@ -413,15 +425,16 @@ class PurchaseInvoice(models.Model):
     
     invoice_number = models.CharField(max_length=50, unique=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='purchase_invoices')
-    
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
-
-    
     source_sale_invoice = models.ForeignKey('core.SaleInvoice', on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_purchases')
     
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='المبلغ المدفوع')
+    debt_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='المبلغ المتبقي')
+    
+    total_loyalty_points = models.IntegerField(default=0, verbose_name='إجمالي نقاط الولاء')
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     notes = models.TextField(blank=True)
@@ -443,7 +456,10 @@ class PurchaseInvoice(models.Model):
     def save(self, *args, **kwargs):
         if not self.invoice_number and not self.is_auto_generated:
             self.invoice_number = self._generate_invoice_number()
+        self.debt_amount = self.total - self.paid_amount
         super().save(*args, **kwargs)
+        if self.supplier and self.status == 'confirmed':
+            self.supplier.update_debt_balance()
     
     def _generate_invoice_number(self):
         date_str = timezone.now().strftime('%Y%m%d')
@@ -451,55 +467,80 @@ class PurchaseInvoice(models.Model):
             created_at__date=timezone.now().date(),
             is_auto_generated=False
         ).count() + 1
-        return f"{date_str}{count:04d}"
+        return f"P{date_str}{count:04d}"
+    
+    def update_loyalty_points(self):
+        from django.db.models import Sum
+        result = self.items.aggregate(total=Sum('loyalty_points'))['total'] or 0
+        self.total_loyalty_points = result
+        self.save(update_fields=['total_loyalty_points'])
     
     def confirm(self):
-        if self.status == 'draft' and not self.is_auto_generated:
+        if self.status == 'draft':
             self.status = 'confirmed'
             self.save()
             self._process_inventory()
+            
+            if not self.is_auto_generated:
+                self._add_loyalty_points_to_main_branch()
+            
             return True
         return False
 
     def _process_inventory(self):
-      if self.is_auto_generated:
-        return False
+        if self.is_auto_generated:
+            return False
+        
+        for item in self.items.all():
+            product = item.product
+            product.update_cost_price(item.unit_price, item.quantity, self.branch)
+            
+            inventory, created = BranchInventory.objects.get_or_create(
+                branch=self.branch,
+                product=item.product,
+                defaults={'quantity': 0, 'min_quantity': 5}
+            )
+            
+            old_quantity = inventory.quantity
+            inventory.quantity += item.quantity
+            inventory.save()
+            
+            InventoryMovement.objects.create(
+                branch=self.branch,
+                product=item.product,
+                movement_type='purchase',
+                quantity=item.quantity,
+                quantity_before=old_quantity,
+                quantity_after=inventory.quantity,
+                purchase_invoice=self,
+                employee=self.employee,
+                notes=f"شراء من {self.supplier.name if self.supplier else 'مورد'}"
+            )
+        return True
     
-      for item in self.items.all():
-        product = item.product
-        
-        product.update_cost_price(item.unit_price, item.quantity, self.branch)
-        
-        inventory, created = BranchInventory.objects.get_or_create(
-            branch=self.branch,
-            product=item.product,
-            defaults={'quantity': 0, 'min_quantity': 5}
-        )
-        
-        old_quantity = inventory.quantity
-        inventory.quantity += item.quantity
-        inventory.save()
-        
-        InventoryMovement.objects.create(
-            branch=self.branch,
-            product=item.product,
-            movement_type='purchase',
-            quantity=item.quantity,
-            quantity_before=old_quantity,
-            quantity_after=inventory.quantity,
-            purchase_invoice=self,
-            employee=self.employee,
-            notes=f"شراء من {self.supplier.name if self.supplier else 'مورد'}"
-        )
-      return True
-       
-        
+    def _add_loyalty_points_to_main_branch(self):
+        main_branch = Branch.get_main_branch()
+        if main_branch and self.total_loyalty_points > 0:
+            main_branch.loyalty_points_inventory += self.total_loyalty_points
+            main_branch.save()
+            
+            LoyaltyTransaction.objects.create(
+                branch=main_branch,
+                customer=None,
+                sale_invoice=None,
+                purchase_invoice=self,
+                points=self.total_loyalty_points,
+                transaction_type='earn',
+                notes=f'نقاط ولاء من فاتورة مشتريات {self.invoice_number} - المورد: {self.supplier.name if self.supplier else ""}'
+            )
+
 class PurchaseInvoiceItem(models.Model):
     invoice = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    loyalty_points = models.IntegerField(default=0, verbose_name='نقاط الولاء')
     
     class Meta:
         verbose_name = 'بند فاتورة مشتريات'
@@ -507,9 +548,8 @@ class PurchaseInvoiceItem(models.Model):
     
     def save(self, *args, **kwargs):
         self.total_price = self.unit_price * self.quantity
+        self.loyalty_points = self.product.loyalty_points * self.quantity
         super().save(*args, **kwargs)
-
-
 
 class PaymentMethod(models.Model):
   
@@ -548,8 +588,6 @@ class PaymentMethod(models.Model):
         return default        
 
 
-
-
 class LoyaltyTransaction(models.Model):
     TRANSACTION_TYPES = [
         ('earn', 'كسب نقاط'),
@@ -560,7 +598,8 @@ class LoyaltyTransaction(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='loyalty_transactions')
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     sale_invoice = models.ForeignKey("core.SaleInvoice", on_delete=models.SET_NULL, null=True, blank=True)
-    points = models.IntegerField(help_text='العدد')
+    purchase_invoice = models.ForeignKey(PurchaseInvoice, on_delete=models.SET_NULL, null=True, blank=True)
+    points = models.IntegerField()
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -571,8 +610,7 @@ class LoyaltyTransaction(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.get_transaction_type_display()}: {self.points} نقطة - {self.created_at.date()}"
-
+        return f"{self.get_transaction_type_display()}: {self.points} نقطة"
 
 class SaleInvoice(models.Model):
     SALE_TYPE_CHOICES = [
@@ -890,9 +928,16 @@ class SaleInvoiceItem(models.Model):
         super().save(*args, **kwargs)
 
 class BranchSalesDelivery(models.Model):
+    PAYMENT_METHODS = (
+        ('cash', 'كاش'),
+        ('bank_transfer', 'تحويل بنكي'),
+    )
+    
+
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='sales_deliveries')
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='المبلغ المسلم')
     delivery_date = models.DateTimeField(default=timezone.now, verbose_name='تاريخ التسليم')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='cash', verbose_name='طريقة الدفع')
     notes = models.TextField(blank=True, verbose_name='ملاحظات')
     created_by = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True, verbose_name='تم بواسطة')
     receipt_number = models.CharField(max_length=50, blank=True, verbose_name='رقم الإيصال')
@@ -919,3 +964,84 @@ class BranchSalesDelivery(models.Model):
         ).count() + 1
         return f"{date_str}{count:04d}"
 
+class SupplierPayment(models.Model):
+    PAYMENT_METHODS = [
+        ('cash', 'نقدي'),
+        ('bank', 'تحويل بنكي'),
+        ('check', 'شيك'),
+        ('other', 'أخرى'),
+    ]
+    
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments')
+    purchase_invoice = models.ForeignKey('PurchaseInvoice', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='المبلغ')
+    payment_date = models.DateField(default=timezone.now, verbose_name='تاريخ السداد')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='cash', verbose_name='طريقة الدفع')
+    reference_number = models.CharField(max_length=100, blank=True, null=True, verbose_name='رقم المرجع')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    created_by = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True, verbose_name='تم بواسطة')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'سداد مورد'
+        verbose_name_plural = 'سدديات الموردين'
+        ordering = ['-payment_date']
+    
+    def __str__(self):
+        return f"{self.supplier.name} - {self.amount} - {self.payment_date}"
+
+class ProductExpiry(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='expiry_records')
+    branch = models.ForeignKey('Branch', on_delete=models.CASCADE, related_name='expiry_records')
+    quantity = models.IntegerField(verbose_name='الكمية المراقبة')
+    expiry_date = models.DateField(verbose_name='تاريخ انتهاء الصلاحية')
+    batch_number = models.CharField(max_length=100, blank=True, verbose_name='رقم الدفعة')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    is_expired = models.BooleanField(default=False, verbose_name='منتهي الصلاحية')
+    created_by = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True, verbose_name='تم بواسطة')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'مراقبة صلاحية منتج'
+        verbose_name_plural = 'مراقبة صلاحية المنتجات'
+        ordering = ['expiry_date']
+
+    def __str__(self):
+        return f"{self.product.name} - {self.expiry_date}"
+
+    @property
+    def days_remaining(self):
+        from django.utils import timezone
+        delta = self.expiry_date - timezone.now().date()
+        return delta.days
+
+    @property
+    def status(self):
+        if self.days_remaining < 0:
+            return 'expired'
+        elif self.days_remaining <= 90:
+            return 'warning'
+        else:
+            return 'good'
+
+
+class ProductExpiryMovement(models.Model):
+    expiry_record = models.ForeignKey(ProductExpiry, on_delete=models.CASCADE, related_name='movements')
+    movement_type = models.CharField(max_length=20, choices=[
+        ('create', 'إنشاء'),
+        ('update', 'تعديل'),
+        ('delete', 'حذف'),
+        ('consume', 'استهلاك'),
+        ('expire', 'انتهاء صلاحية'),
+    ])
+    quantity_before = models.IntegerField(default=0)
+    quantity_after = models.IntegerField(default=0)
+    notes = models.TextField(blank=True)
+    employee = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'حركة مراقبة صلاحية'
+        verbose_name_plural = 'حركات مراقبة الصلاحية'
+        ordering = ['-created_at']        

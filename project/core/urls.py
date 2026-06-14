@@ -23,6 +23,7 @@ urlpatterns = [
     path('branches/delivery-receipt/<int:pk>/', branch_delivery_receipt, name='branch_delivery_receipt'),
     path('branches/<int:pk>/deliveries-history/', branch_deliveries_history, name='branch_deliveries_history'),
     path('branches/<int:pk>/sales-report/', branch_sales_report, name='branch_sales_report'),
+    path('branch/adjust-points/<int:pk>/', branch_adjust_points, name='branch_adjust_points'),
 
     path('customers/', customer_list, name='customers_list'),
     path('customers/create/', customer_create, name='customers_create'),
@@ -40,12 +41,13 @@ urlpatterns = [
     path('dashboard/accountant/', accountant_dashboard, name='dashboard_accountant'),
 
     path('inventory/', inventory_list, name='inventory_list'),
-    path('inventory/<int:pk>/adjust/', inventory_adjust, name='inventory_adjust'),
     path('inventory/movements/', inventory_movements, name='inventory_movements'),
     path('inventory/low-stock/', low_stock_alerts, name='inventory_low_stock'),
     path('inventory/report/', inventory_report, name='inventory_report'),
     path('ajax/stock/', get_branch_stock_ajax, name='stock_ajax'),
-
+    path('inventory/print/<int:branch_id>/', inventory_print, name='inventory_print'),
+    path('inventory/stocktake/', inventory_stocktake, name='inventory_stocktake'),
+    path('inventory/damage/<int:pk>/', inventory_damage, name='inventory_damage'),
 
     path('loyalty/', pending_transfers, name='loyalty_pending'),
     path('loyalty/<int:pk>/mark-transferred/', mark_transferred, name='loyalty_mark_transferred'),
@@ -61,13 +63,24 @@ urlpatterns = [
     path('categories/create/', category_create, name='category_create'),
     path('products/search/', product_search_ajax, name='search_ajax'),
     path('products/bulk-price-update/', products_bulk_price_update, name='products_bulk_price_update'),
-    
+    path('products/expiry/', product_expiry_list, name='product_expiry_list'),
+    path('products/expiry/create/', product_expiry_create, name='product_expiry_create'),
+    path('products/expiry/edit/<int:pk>/', product_expiry_edit, name='product_expiry_edit'),
+    path('products/expiry/delete/<int:pk>/', product_expiry_delete, name='product_expiry_delete'),
+    path('products/expiry/consume/<int:pk>/', product_expiry_consume, name='product_expiry_consume'),
+    path('products/expiry/movements/<int:pk>/', product_expiry_movements, name='product_expiry_movements'),
+    path('products/expiry/dashboard/', product_expiry_dashboard, name='product_expiry_dashboard'),
+
     path('suppliers/', supplier_list, name='supplier_list'),
     path('suppliers/create/', supplier_create, name='supplier_create'),
     path('suppliers/<int:pk>/', supplier_detail, name='supplier_detail'),
     path('suppliers/<int:pk>/edit/', supplier_edit, name='supplier_edit'),
     path('suppliers/<int:pk>/delete/', supplier_delete, name='supplier_delete'),
     path('suppliers/search/ajax/', supplier_search_ajax, name='supplier_search_ajax'),
+    path('suppliers/<int:supplier_id>/payment/create/', supplier_payment_create, name='supplier_payment_create'),
+    path('suppliers/<int:supplier_id>/payments/', supplier_payment_list, name='supplier_payment_list'),
+    path('suppliers/payment/<int:payment_id>/delete/', supplier_payment_delete, name='supplier_payment_delete'),
+    path('suppliers/payment/<int:payment_id>/invoice/', supplier_payment_invoice, name='supplier_payment_invoice'),
     
     path('sales/', sale_invoices_list, name='sale_invoices_list'),
     path('sales/create/', sale_invoice_create, name='sale_invoice_create'),
@@ -75,7 +88,8 @@ urlpatterns = [
     path('sales/<int:pk>/confirm/', sale_invoice_confirm, name='sale_invoice_confirm'),
     path('sales/<int:pk>/cancel/', sale_invoice_cancel, name='sale_invoice_cancel'),
     path('sales/<int:pk>/print/', sale_invoice_print, name='sale_invoice_print'),
-    
+    path('invoices/return/<int:pk>/', sale_invoice_return, name='sale_invoice_return'),
+
     path('purchases/', purchase_invoices_list, name='purchase_invoices_list'),
     path('purchases/create/', purchase_invoice_create, name='purchase_invoice_create'),
     path('purchases/<int:pk>/', purchase_invoice_detail, name='purchase_invoice_detail'),

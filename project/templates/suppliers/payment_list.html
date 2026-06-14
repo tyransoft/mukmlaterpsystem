@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}سجل دفعات المورد{% endblock %}
+{% block page_title %}سجل دفعات: {{ supplier.name }}{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+  <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline btn-sm">رجوع للمورد</a>
+  <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة جديدة</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">إجمالي المدفوع: {{ total_paid|floatformat:2|intcomma }}</span>
+  </div>
+  <div class="card-body">
+    
+    <form method="get" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+      <input type="date" name="from_date" class="form-control" style="width:auto;" placeholder="من تاريخ" value="{{ from_date }}">
+      <input type="date" name="to_date" class="form-control" style="width:auto;" placeholder="إلى تاريخ" value="{{ to_date }}">
+      <button type="submit" class="btn btn-primary btn-sm">فلترة</button>
+      {% if from_date or to_date %}
+      <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-outline btn-sm">إلغاء</a>
+      {% endif %}
+    </form>
+    
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>التاريخ</th>
+          <th>المبلغ</th>
+          <th>طريقة الدفع</th>
+          <th>رقم المرجع</th>
+          <th>الفاتورة المرتبطة</th>
+          <th>ملاحظات</th>
+          <th>تم بواسطة</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in page_obj %}
+        <tr>
+          <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
+          <td class="text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
+          <td>{{ payment.get_payment_method_display }}</td>
+          <td>{{ payment.reference_number|default:"-" }}</td>
+          <td>
+            {% if payment.purchase_invoice %}
+            <a href="{% url 'purchase_invoice_detail' payment.purchase_invoice.pk %}">{{ payment.purchase_invoice.invoice_number }}</a>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>{{ payment.notes|default:"-"|truncatechars:30 }}</td>
+          <td>{{ payment.created_by.username|default:"-" }}</td>
+          <td>
+            <button onclick="deletePayment({{ payment.pk }})" class="btn btn-danger btn-sm">حذف</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center text-muted">لا توجد دفعات مسجلة</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+    {% if page_obj.has_other_pages %}
+    <div style="margin-top:20px; display:flex; justify-content:center; gap:5px;">
+      {% if page_obj.has_previous %}
+      <a href="?page=1{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">الأولى</a>
+      <a href="?page={{ page_obj.previous_page_number }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">السابقة</a>
+      {% endif %}
+      <span class="btn btn-sm btn-primary disabled">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">التالية</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">الأخيرة</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function deletePayment(paymentId) {
+  if (confirm('هل تريد حذف هذه الدفعة؟')) {
+    fetch(`/suppliers/payment/${paymentId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert(data.error || 'حدث خطأ');
+      }
+    });
+  }
+}
+</script>
+{% endblock %}

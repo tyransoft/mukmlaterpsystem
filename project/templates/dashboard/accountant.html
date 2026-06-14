@@ -23,7 +23,6 @@
   .profit-negative { color: #dc2626; }
 </style>
 
-<!-- فلترة التاريخ -->
 <div class="filter-bar">
   <form method="get" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:flex-end;">
     <div>
@@ -57,7 +56,7 @@
     <div class="stat-icon orange"></div>
     <div class="stat-info">
       <div class="stat-value">{{ cogs|floatformat:0|intcomma }}</div>
-      <div class="stat-label">تكلفة المبيعات </div>
+      <div class="stat-label">تكلفة المبيعات</div>
     </div>
   </div>
   <div class="stat-card">
@@ -109,12 +108,87 @@
   </div>
 </div>
 
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">تسليمات الفروع للمركز الرئيسي</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;">
+      <div style="background:#e0f2fe;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted">إجمالي التسليمات</div>
+        <div class="fw-bold" style="font-size:24px;color:#0284c7;">{{ total_branch_deliveries|floatformat:0|intcomma }} د.ل</div>
+      </div>
+      <div style="background:#dcfce7;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted">كاش</div>
+        <div class="fw-bold" style="font-size:24px;color:#16a34a;">{{ delivery_cash_amount|floatformat:0|intcomma }} د.ل</div>
+        <div class="text-muted" style="font-size:12px;">عدد العمليات: {{ delivery_cash_count }}</div>
+      </div>
+      <div style="background:#fef9c3;padding:15px;border-radius:12px;text-align:center;">
+        <div class="text-muted">تحويل بنكي</div>
+        <div class="fw-bold" style="font-size:24px;color:#ca8a04;">{{ delivery_bank_amount|floatformat:0|intcomma }} د.ل</div>
+        <div class="text-muted" style="font-size:12px;">عدد العمليات: {{ delivery_bank_count }}</div>
+      </div>
+    </div>
+    {% if delivery_cash_amount > 0 or delivery_bank_amount > 0 %}
+    <div style="margin-top:15px;">
+      <div class="text-muted" style="font-size:12px;">نسبة التوزيع</div>
+      <div style="display:flex;height:20px;border-radius:10px;overflow:hidden;">
+        <div style="width:{% widthratio delivery_cash_amount total_branch_deliveries 100 %}%;background:#16a34a;"></div>
+        <div style="width:{% widthratio delivery_bank_amount total_branch_deliveries 100 %}%;background:#ca8a04;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;">
+        <span style="color:#16a34a;">كاش {{ delivery_cash_amount|floatformat:0|intcomma }}</span>
+        <span style="color:#ca8a04;">تحويل بنكي {{ delivery_bank_amount|floatformat:0|intcomma }}</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">المبيعات حسب طريقة الدفع</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-responsive">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>طريقة الدفع</th>
+            <th>نسبة الزيادة</th>
+            <th>عدد الفواتير</th>
+            <th>إجمالي المبيعات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for method in sales_payment_methods_list %}
+          <tr>
+            <td>{{ method.name }}</td>
+            <td>{% if method.percentage > 0 %}+{{ method.percentage }}%{% else %}-{% endif %}</td>
+            <td>{{ method.count }}</td>
+            <td class="fw-bold text-success">{{ method.total|floatformat:0|intcomma }} د.ل</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted" style="padding:30px;">لا توجد مبيعات</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot style="background:#f8fafc;">
+          <tr>
+            <th colspan="3">الإجمالي</th>
+            <th class="fw-bold">{{ total_revenue|floatformat:0|intcomma }} د.ل</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
-  
-  <!-- ديون العملاء -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title"> ديون العملاء</span>
+      <span class="card-title">ديون العملاء</span>
       <a href="{% url 'customers_list' %}?has_debt=1" class="btn btn-outline btn-sm">عرض الكل</a>
     </div>
     <div class="card-body" style="padding:0;">
@@ -123,7 +197,9 @@
         <span class="fw-bold text-danger" style="font-size:20px;margin-right:10px;">{{ total_customer_debt|floatformat:0|intcomma }} د.ل</span>
       </div>
       <table class="erp-table">
-        <thead><tr><th>العميل</th><th>رقم الهاتف</th><th>الدين</th><th></th></tr></thead>
+        <thead>
+          <tr><th>العميل</th><th>رقم الهاتف</th><th>الدين</th><th></th></tr>
+        </thead>
         <tbody>
           {% for debt in customer_debt_details %}
           <tr>
@@ -133,7 +209,7 @@
             <td><a href="{% url 'customer_payment_create' debt.id %}" class="btn btn-success btn-sm">تسديد</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="text-center text-muted" style="padding:30px;"> لا توجد ديون مستحقة</td></tr>
+          <tr><td colspan="4" class="text-center text-muted" style="padding:30px;">لا توجد ديون مستحقة</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -142,7 +218,7 @@
   
   <div class="card">
     <div class="card-header">
-      <span class="card-title"> ديون الفروع (مستحقات الرئيسي)</span>
+      <span class="card-title">ديون الفروع (مستحقات الرئيسي)</span>
     </div>
     <div class="card-body" style="padding:0;">
       <div style="background:#fef3c7;padding:12px;text-align:center;border-bottom:1px solid var(--border-color);">
@@ -150,7 +226,9 @@
         <span class="fw-bold text-warning" style="font-size:20px;margin-right:10px;">{{ total_unpaid_commissions|floatformat:0|intcomma }} د.ل</span>
       </div>
       <table class="erp-table">
-        <thead><tr><th>الفرع</th><th>النسبة</th><th>المبيعات</th><th>العمولة</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th></th></tr></thead>
+        <thead>
+          <tr><th>الفرع</th><th>النسبة</th><th>المبيعات</th><th>العمولة</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th></th></tr>
+        </thead>
         <tbody>
           {% for branch in branch_debt_list %}
           <tr>
@@ -173,20 +251,21 @@
           <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">لا توجد فروع</td></tr>
           {% endfor %}
         </tbody>
-       </table>
+      </table>
     </div>
   </div>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-  
   <div class="card">
     <div class="card-header">
-      <span class="card-title"> الفواتير المتأخرة</span>
+      <span class="card-title">الفواتير المتأخرة</span>
     </div>
     <div class="card-body" style="padding:0;">
       <table class="erp-table">
-        <thead><tr><th>رقم الفاتورة</th><th>الفرع</th><th>العميل</th><th>المتبقي</th><th>تاريخ الاستحقاق</th></tr></thead>
+        <thead>
+          <tr><th>رقم الفاتورة</th><th>الفرع</th><th>العميل</th><th>المتبقي</th><th>تاريخ الاستحقاق</th></tr>
+        </thead>
         <tbody>
           {% for inv in overdue_invoices %}
           <tr>
@@ -197,10 +276,10 @@
             <td><span class="badge badge-danger">{{ inv.due_date }}</span></td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="text-center text-muted" style="padding:30px;"> لا توجد فواتير متأخرة</td></tr>
+          <tr><td colspan="5" class="text-center text-muted" style="padding:30px;">لا توجد فواتير متأخرة</td></tr>
           {% endfor %}
         </tbody>
-       </table>
+      </table>
     </div>
   </div>
   
@@ -214,7 +293,7 @@
         <span class="fw-bold text-success">{{ total_revenue|floatformat:2|intcomma }} د.ل</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
-        <span>(-) تكلفة المبيعات (COGS)</span>
+        <span>(-) تكلفة المبيعات</span>
         <span class="fw-bold text-danger">{{ cogs|floatformat:2|intcomma }} د.ل</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
@@ -231,7 +310,6 @@
           {{ net_profit|floatformat:2|intcomma }} د.ل
         </span>
       </div>
-      
       {% if total_revenue > 0 %}
       <div style="margin-top:15px;">
         <div class="text-muted" style="font-size:12px;">نسبة الربحية</div>

@@ -1,0 +1,122 @@
+<!-- templates/products/expiry_dashboard.html -->
+
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}لوحة تحكم صلاحية المنتجات{% endblock %}
+{% block page_title %}لوحة تحكم صلاحية المنتجات{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">فلترة الفروع</span>
+  </div>
+  <div class="card-body">
+    <form method="get" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      {% if user.can_see_all_data %}
+      <select name="branch" class="form-select">
+        <option value="">كل الفروع</option>
+        {% for b in branches %}
+        <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">عرض</button>
+      <a href="{% url 'product_expiry_dashboard' %}" class="btn btn-outline">إعادة تعيين</a>
+    </form>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:20px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">المنتجات منتهية الصلاحية</span>
+    </div>
+    <div class="card-body" style="text-align:center;">
+      <div style="font-size:48px;font-weight:bold;color:#dc2626;">{{ expired_count }}</div>
+      <div class="text-muted">منتج</div>
+      <div style="font-size:24px;font-weight:bold;margin-top:10px;">{{ expired_quantity|floatformat:0|intcomma }}</div>
+      <div class="text-muted">وحدة منتهية الصلاحية</div>
+      <a href="{% url 'product_expiry_list' %}?status=expired" class="btn btn-outline btn-sm" style="margin-top:15px;">عرض التفاصيل</a>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">منتجات تنتهي خلال 3 شهور</span>
+    </div>
+    <div class="card-body" style="text-align:center;">
+      <div style="font-size:48px;font-weight:bold;color:#f59e0b;">{{ warning_count }}</div>
+      <div class="text-muted">منتج</div>
+      <div style="font-size:24px;font-weight:bold;margin-top:10px;">{{ warning_quantity|floatformat:0|intcomma }}</div>
+      <div class="text-muted">وحدة تنتهي قريباً</div>
+      <a href="{% url 'product_expiry_list' %}?status=warning" class="btn btn-outline btn-sm" style="margin-top:15px;">عرض التفاصيل</a>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">توزيع المنتجات حسب الأشهر المتبقية</span>
+    </div>
+    <div class="card-body">
+      <div style="margin-bottom:15px;">
+        <div class="text-muted">الشهر الأول</div>
+        <div style="background:#e5e7eb;border-radius:10px;height:30px;overflow:hidden;">
+          <div style="width:{% widthratio warning_by_month.0.quantity warning_quantity 100 %}%;background:#ef4444;height:30px;text-align:center;color:white;line-height:30px;">
+            {{ warning_by_month.0.quantity }} منتج
+          </div>
+        </div>
+        <div class="text-muted">الكمية: {{ warning_by_month.0.quantity|floatformat:0|intcomma }}</div>
+      </div>
+      
+      <div style="margin-bottom:15px;">
+        <div class="text-muted">الشهر الثاني</div>
+        <div style="background:#e5e7eb;border-radius:10px;height:30px;overflow:hidden;">
+          <div style="width:{% widthratio warning_by_month.1.quantity warning_quantity 100 %}%;background:#f59e0b;height:30px;text-align:center;color:white;line-height:30px;">
+            {{ warning_by_month.1.quantity }} منتج
+          </div>
+        </div>
+        <div class="text-muted">الكمية: {{ warning_by_month.1.quantity|floatformat:0|intcomma }}</div>
+      </div>
+      
+      <div style="margin-bottom:15px;">
+        <div class="text-muted">الشهر الثالث</div>
+        <div style="background:#e5e7eb;border-radius:10px;height:30px;overflow:hidden;">
+          <div style="width:{% widthratio warning_by_month.2.quantity warning_quantity 100 %}%;background:#eab308;height:30px;text-align:center;color:white;line-height:30px;">
+            {{ warning_by_month.2.quantity }} منتج
+          </div>
+        </div>
+        <div class="text-muted">الكمية: {{ warning_by_month.2.quantity|floatformat:0|intcomma }}</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">أقرب تاريخ انتهاء صلاحية</span>
+    </div>
+    <div class="card-body">
+      {% if nearest_expiry %}
+      <div style="text-align:center;padding:20px;">
+        <div class="fw-bold" style="font-size:20px;">{{ nearest_expiry.product.name }}</div>
+        <div class="text-muted">{{ nearest_expiry.branch.name }}</div>
+        <div style="margin-top:15px;">
+          <div>تاريخ الانتهاء: <strong>{{ nearest_expiry.expiry_date|date:"Y-m-d" }}</strong></div>
+          <div class="text-danger" style="font-size:18px;margin-top:10px;">
+            متبقي {{ nearest_expiry.days_remaining }} يوم
+          </div>
+          <div class="text-muted">الكمية: {{ nearest_expiry.quantity }} وحدة</div>
+        </div>
+        <a href="{% url 'product_expiry_list' %}" class="btn btn-primary btn-sm" style="margin-top:15px;">عرض الكل</a>
+      </div>
+      {% else %}
+      <div class="text-center text-muted" style="padding:40px;">
+        لا توجد منتجات تحت المراقبة
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

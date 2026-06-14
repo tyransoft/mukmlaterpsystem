@@ -4,15 +4,341 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}{{ COMPANY_NAME }} - نظام ERP{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #f3f4f6;
+      overflow-x: hidden;
+    }
+    
+    .erp-wrapper {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      color: #e2e8f0;
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100%;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      transform: translateX(0);
+    }
+    
+    .sidebar.closed {
+      transform: translateX(100%);
+    }
+    
+    .sidebar-brand {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: #3b82f6;
+      border-radius: 10px;
+    }
+    
+    .brand-text h6 {
+      color: white;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    
+    .brand-text small {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    .sidebar-user {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .user-avatar {
+      width: 45px;
+      height: 45px;
+      background: #3b82f6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .user-info {
+      flex: 1;
+    }
+    
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .user-role {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    .sidebar-nav {
+      padding: 16px 0;
+    }
+    
+    .nav-section {
+      padding: 12px 20px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: rgba(59,130,246,0.2);
+      color: white;
+    }
+    
+    .nav-link.active {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      margin-top: 20px;
+    }
+    
+    .sidebar-footer a {
+      display: block;
+      padding: 8px 0;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    
+    .main-content {
+      flex: 1;
+      margin-right: 280px;
+      min-height: 100vh;
+      transition: margin-right 0.3s ease;
+    }
+    
+    .topbar {
+      background: white;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+    
+    .topbar-left {
+      flex: 1;
+    }
+    
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0;
+    }
+    
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .menu-toggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1001;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 24px;
+    }
+    
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+    
+    .page-content {
+      padding: 24px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .badge-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .alert {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .alert-success {
+      background: #dcfce7;
+      color: #166534;
+      border-right: 4px solid #22c55e;
+    }
+    
+    .alert-danger {
+      background: #fee2e2;
+      color: #991b1b;
+      border-right: 4px solid #ef4444;
+    }
+    
+    .alert-warning {
+      background: #fef3c7;
+      color: #92400e;
+      border-right: 4px solid #f59e0b;
+    }
+    
+    .alert-info {
+      background: #dbeafe;
+      color: #1e40af;
+      border-right: 4px solid #3b82f6;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 280px;
+        transform: translateX(100%);
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-right: 0;
+      }
+      
+      .menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .overlay.show {
+        display: block;
+      }
+      
+      .topbar {
+        padding: 12px 16px;
+      }
+      
+      .page-title {
+        font-size: 18px;
+      }
+      
+      .page-content {
+        padding: 16px;
+      }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .sidebar {
+        width: 260px;
+      }
+      
+      .main-content {
+        margin-right: 260px;
+      }
+    }
+    
+    @media print {
+      .sidebar, .topbar, .menu-toggle, .overlay {
+        display: none !important;
+      }
+      
+      .main-content {
+        margin-right: 0 !important;
+      }
+      
+      .page-content {
+        padding: 0 !important;
+      }
+    }
+  </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
 <div class="erp-wrapper">
 
-  <!-- SIDEBAR -->
+  <button class="menu-toggle" id="menuToggle">☰</button>
+  <div class="overlay" id="overlay"></div>
+
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon"></div>
@@ -32,16 +358,19 @@
     </div>
 
     <nav class="sidebar-nav">
-      <!-- Dashboard -->
       <div class="nav-section">الرئيسية</div>
       <div class="nav-item">
         <a href="{% url 'dashboard_home' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
-           لوحة التحكم
+          لوحة التحكم
         </a>
+        {% if user.branch %}
+        <a href="{% url 'branches_detail' user.branch.pk %}" class="nav-link {% block nav_branch %}{% endblock %}">
+          الفرع
+        </a>
+        {% endif %}
       </div>
 
       {% if user.can_see_all_data %}
-      <!-- Admin only -->
       <div class="nav-section">الإدارة</div>
       <div class="nav-item">
         <a href="{% url 'branches_list' %}" class="nav-link {% block nav_branches %}{% endblock %}">
@@ -50,11 +379,10 @@
       </div>
       <div class="nav-item">
         <a href="{% url 'users_list' %}" class="nav-link {% block nav_users %}{% endblock %}">
-         المستخدمون
+          المستخدمون
         </a>
       </div>
 
-      <!-- Products -->
       <div class="nav-section">المنتجات</div>
       <div class="nav-item">
         <a href="{% url 'products_list' %}" class="nav-link {% block nav_products %}{% endblock %}">
@@ -68,7 +396,6 @@
       </div>
       {% endif %}
 
-      <!-- Inventory -->
       <div class="nav-section">المخزون</div>
       <div class="nav-item">
         <a href="{% url 'inventory_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_inventory %}{% endblock %}">
@@ -86,33 +413,29 @@
         </a>
       </div>
 
- <div class="nav-section">المبيعات</div>
-<div class="nav-item">
-  <a href="{% url 'sale_invoices_list' %}" class="nav-link {% block nav_sale_invoices %}{% endblock %}">
-   
-    فواتير المبيعات
-  </a>
-</div>
-<div class="nav-item">
-  <a href="{% url 'sale_invoice_create' %}" class="nav-link {% block nav_sale_invoice_create %}{% endblock %}">
-   
-    فاتورة مبيعات جديدة
-  </a>
-</div>
+      <div class="nav-section">المبيعات</div>
+      <div class="nav-item">
+        <a href="{% url 'sale_invoices_list' %}" class="nav-link {% block nav_sale_invoices %}{% endblock %}">
+          فواتير المبيعات
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'sale_invoice_create' %}" class="nav-link {% block nav_sale_invoice_create %}{% endblock %}">
+          فاتورة مبيعات جديدة
+        </a>
+      </div>
 
-<!-- Purchases Section -->
-<div class="nav-section">المشتريات</div>
-<div class="nav-item">
-  <a href="{% url 'purchase_invoices_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_purchase_invoices %}{% endblock %}">   
-    فواتير المشتريات
-  </a>
-</div>
-<div class="nav-item">
-  <a href="{% url 'purchase_invoice_create' %}" class="nav-link {% block nav_purchase_invoice_create %}{% endblock %}">
- 
-    فاتورة مشتريات جديدة
-  </a>
-</div>
+      <div class="nav-section">المشتريات</div>
+      <div class="nav-item">
+        <a href="{% url 'purchase_invoices_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_purchase_invoices %}{% endblock %}">
+          فواتير المشتريات
+        </a>
+      </div>
+      <div class="nav-item">
+        <a href="{% url 'purchase_invoice_create' %}" class="nav-link {% block nav_purchase_invoice_create %}{% endblock %}">
+          فاتورة مشتريات جديدة
+        </a>
+      </div>
 
       <div class="nav-section">العملاء</div>
       <div class="nav-item">
@@ -125,16 +448,16 @@
           عميل جديد
         </a>
       </div>
-      {% if user.can_see_all_data %}
 
-<div class="nav-section">الموردين</div>
-<div class="nav-item">
-  <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">
-  
-    إدارة الموردين
-  </a>
-</div>
-{% endif %}
+      {% if user.can_see_all_data %}
+      <div class="nav-section">الموردين</div>
+      <div class="nav-item">
+        <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">
+          إدارة الموردين
+        </a>
+      </div>
+      {% endif %}
+
       {% if user.is_loyalty_employee or user.can_see_all_data %}
       <div class="nav-section">النقاط</div>
       <div class="nav-item">
@@ -163,21 +486,15 @@
       </div>
       <div class="nav-item">
         <a href="{% url 'payment_methods_list' %}" class="nav-link {% block nav_payment %}{% endblock %}">
-          طرق الدفع 
+          طرق الدفع
         </a>
       </div>
       {% endif %}
-
-   
     </nav>
 
     <div class="sidebar-footer">
-      <a href="{% url 'profile' %}">
-         الملف الشخصي
-      </a>
-      <a href="{% url 'logout' %}">
-         تسجيل الخروج
-      </a>
+      <a href="{% url 'profile' %}">الملف الشخصي</a>
+      <a href="{% url 'logout' %}">تسجيل الخروج</a>
     </div>
     {% endif %}
   </aside>
@@ -201,8 +518,7 @@
       {% if messages %}
       <div style="margin-bottom:16px;">
         {% for message in messages %}
-        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" data-auto-dismiss>
-          <span>{% if message.tags == 'success' %}{% elif message.tags == 'error' %}{% else %}ℹ{% endif %}</span>
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}" data-auto-dismiss>
           <span>{{ message }}</span>
         </div>
         {% endfor %}
@@ -214,42 +530,91 @@
   </div>
 </div>
 
-<script src="{% static 'js/main.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('form').forEach(function(form) {
-        form.addEventListener('submit', function() {
-            var buttons = this.querySelectorAll('button[type="submit"], input[type="submit"]');
-            buttons.forEach(function(btn) {
-                btn.disabled = true;
-                var originalText = btn.innerHTML;
-                btn.innerHTML = ' جاري...';
-                setTimeout(function() {
-                    if (btn.disabled) {
-                        btn.innerHTML = originalText;
-                    }
-                }, 3000);
-            });
-            return true;
-        });
+(function() {
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  
+  function openSidebar() {
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('show');
+  }
+  
+  if (menuToggle) {
+    menuToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (sidebar.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
     });
-    
-    document.querySelectorAll('.btn-delete, .btn-danger').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            if (this.disabled) {
-                e.preventDefault();
-                return false;
-            }
-            var confirmMsg = this.getAttribute('data-confirm') || 'هل أنت متأكد؟';
-            if (!confirm(confirmMsg)) {
-                e.preventDefault();
-                return false;
-            }
-            this.disabled = true;
-            this.innerHTML = ' جاري...';
-        });
+  }
+  
+  if (overlay) {
+    overlay.addEventListener('click', closeSidebar);
+  }
+  
+  document.querySelectorAll('.nav-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
     });
-});
+  });
+  
+  document.querySelectorAll('form').forEach(function(form) {
+    form.addEventListener('submit', function() {
+      var buttons = this.querySelectorAll('button[type="submit"], input[type="submit"]');
+      buttons.forEach(function(btn) {
+        if (!btn.disabled) {
+          btn.disabled = true;
+          var originalText = btn.innerHTML;
+          btn.innerHTML = 'جاري...';
+          setTimeout(function() {
+            if (btn.disabled) {
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+            }
+          }, 5000);
+        }
+      });
+    });
+  });
+  
+  document.querySelectorAll('.btn-delete, .btn-danger, [data-confirm]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      if (this.disabled) {
+        e.preventDefault();
+        return false;
+      }
+      var confirmMsg = this.getAttribute('data-confirm') || 'هل أنت متأكد من تنفيذ هذا الإجراء؟';
+      if (!confirm(confirmMsg)) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  });
+  
+  var alerts = document.querySelectorAll('[data-auto-dismiss]');
+  alerts.forEach(function(alert) {
+    setTimeout(function() {
+      alert.style.opacity = '0';
+      alert.style.transition = 'opacity 0.5s';
+      setTimeout(function() {
+        if (alert && alert.parentNode) {
+          alert.parentNode.removeChild(alert);
+        }
+      }, 500);
+    }, 5000);
+  });
+})();
 </script>
 
 <style>
@@ -259,6 +624,43 @@ input:disabled,
     opacity: 0.6;
     cursor: not-allowed !important;
     pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .page-content {
+    padding-bottom: 80px;
+  }
+  
+  .menu-toggle {
+    display: flex;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .card {
+    margin-bottom: 16px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+  
+  form > div[style*="display:grid"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .stat-card, .summary-box {
+    padding: 12px;
+  }
+  
+  .stat-value, .summary-box h4 {
+    font-size: 20px !important;
+  }
 }
 </style>
 {% block extra_js %}{% endblock %}

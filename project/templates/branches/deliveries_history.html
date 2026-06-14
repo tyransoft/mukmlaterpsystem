@@ -7,14 +7,13 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <span class="card-title">📋 سجل تسليم المبيعات للفرع الرئيسي</span>
+    <span class="card-title"> سجل تسليم المبيعات للفرع الرئيسي</span>
     <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success btn-sm">
-      💰 تسليم جديد
+       تسليم جديد
     </a>
   </div>
   <div class="card-body">
     
-    <!-- فلترة التاريخ -->
     <form method="get" style="margin-bottom:20px;">
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:flex-end;">
         <div>
@@ -55,7 +54,6 @@
       </div>
     </div>
     
-    <!-- جدول التسليمات -->
     <div class="table-responsive">
       <table class="erp-table">
         <thead>
@@ -63,7 +61,7 @@
             <th>رقم الإيصال</th>
             <th>تاريخ التسليم</th>
             <th>المبلغ</th>
-            <th>الفترة</th>
+            <th>طريقة الدفع</th>
             <th>ملاحظات</th>
             <th>تم بواسطة</th>
             <th></th>
@@ -75,7 +73,13 @@
             <td class="fw-600">{{ delivery.receipt_number }}</td>
             <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
             <td class="text-success fw-bold">{{ delivery.amount|floatformat:2|intcomma }} د.ل</td>
-            
+            <td>
+              {% if delivery.payment_method == 'cash' %}
+                 كاش
+              {% else %}
+                 تحويل بنكي
+              {% endif %}
+            </td>
             <td>{{ delivery.notes|truncatechars:30|default:"-" }}</td>
             <td>{{ delivery.created_by.get_full_name|default:delivery.created_by.username }}</td>
             <td>
@@ -101,7 +105,6 @@
       </table>
     </div>
     
-    <!-- Pagination -->
     {% if deliveries.has_other_pages %}
     <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;">
       {% if deliveries.has_previous %}

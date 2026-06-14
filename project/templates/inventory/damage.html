@@ -1,0 +1,41 @@
+
+{% extends 'base.html' %}
+
+{% block title %}تلف منتج - {{ inv.product.name }}{% endblock %}
+{% block page_title %}تلف منتج{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:500px;">
+    <div class="card-header">
+        <span class="card-title">تلف منتج</span>
+    </div>
+    <div class="card-body">
+        <div style="background:#fee2e2;padding:14px;border-radius:8px;margin-bottom:20px;">
+            <div class="fw-600">{{ inv.product.name }}</div>
+            <div class="text-muted" style="font-size:12px;">
+                {{ inv.branch.name }} | الكمية المتوفرة: <strong class="text-danger">{{ inv.quantity }}</strong>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">الكمية التالفة *</label>
+                <input type="number" name="quantity" class="form-control" min="1" max="{{ inv.quantity }}" required>
+                <small class="text-muted">أقصى كمية: {{ inv.quantity }}</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">سبب التلف</label>
+                <textarea name="notes" class="form-control" rows="3" placeholder="مثال: تلف بسبب سوء التخزين"></textarea>
+            </div>
+            
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn btn-danger">تسجيل التلف</button>
+                <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

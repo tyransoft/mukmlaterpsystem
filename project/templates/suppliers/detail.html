@@ -1,4 +1,3 @@
-<!-- templates/suppliers/detail.html -->
 {% extends 'base.html' %}
 {% load humanize %}
 
@@ -7,28 +6,19 @@
 {% block nav_suppliers %}active{% endblock %}
 
 {% block content %}
-<div style="margin-bottom:20px;">
-  <a href="{% url 'supplier_list' %}" class="btn btn-outline btn-sm">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-    رجوع
-  </a>
-  <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-      <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
-      <path d="M4 20h16"></path>
-    </svg>
-    تعديل
-  </a>
+
+<div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+  <a href="{% url 'supplier_list' %}" class="btn btn-outline btn-sm">رجوع</a>
+  <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">تعديل</a>
+  <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة</a>
+  <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-info btn-sm">سجل الدفعات</a>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
   
-  <!-- معلومات المورد -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">📋 معلومات المورد</span>
+      <span class="card-title">معلومات المورد</span>
     </div>
     <div class="card-body">
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;">
@@ -38,7 +28,7 @@
         </div>
         <div>
           <div class="text-muted" style="font-size:11px;">رقم الهاتف</div>
-          <div dir="ltr">{{ supplier.phone }}</div>
+          <div dir="ltr">{{ supplier.phone|default:"-" }}</div>
         </div>
         <div>
           <div class="text-muted" style="font-size:11px;">البريد الإلكتروني</div>
@@ -64,15 +54,11 @@
           <div class="text-muted" style="font-size:11px;">الحالة</div>
           <div>
             {% if supplier.is_active %}
-              <span class="badge badge-success">نشط</span>
+            <span class="badge badge-success">نشط</span>
             {% else %}
-              <span class="badge badge-danger">غير نشط</span>
+            <span class="badge badge-danger">غير نشط</span>
             {% endif %}
           </div>
-        </div>
-        <div>
-          <div class="text-muted" style="font-size:11px;">تاريخ الإضافة</div>
-          <div>{{ supplier.created_at|date:"Y-m-d H:i" }}</div>
         </div>
       </div>
       
@@ -85,62 +71,132 @@
     </div>
   </div>
   
-  <!-- إحصائيات المشتريات -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">💰 إحصائيات المشتريات</span>
+      <span class="card-title">الحساب المالي</span>
     </div>
     <div class="card-body">
-      <div style="text-align:center;padding:20px;">
-        <div class="text-muted">إجمالي المشتريات</div>
-        <div class="fw-bold text-primary" style="font-size:28px;">{{ total_purchases|floatformat:0|intcomma }} د.ل</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;text-align:center;">
+        <div>
+          <div class="text-muted" style="font-size:11px;">إجمالي المشتريات</div>
+          <div class="fw-bold text-primary" style="font-size:20px;">{{ total_purchases|floatformat:2|intcomma }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">إجمالي المدفوع</div>
+          <div class="fw-bold text-success" style="font-size:20px;">{{ total_paid|floatformat:2|intcomma }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:11px;">المتبقي (دين)</div>
+          <div class="fw-bold text-danger" style="font-size:20px;">{{ supplier.debt_balance|floatformat:2|intcomma }}</div>
+        </div>
       </div>
     </div>
   </div>
   
-  <!-- آخر الفواتير -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">آخر الدفعات</span>
+      <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-outline btn-sm">عرض الكل</a>
+    </div>
+    <div class="card-body">
+      {% if recent_payments %}
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المبلغ</th>
+            <th>الطريقة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in recent_payments %}
+          <tr>
+            <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
+            <td class="text-success">{{ payment.amount|floatformat:2|intcomma }}</td>
+            <td>{{ payment.get_payment_method_display }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center text-muted" style="padding:20px;">لا توجد دفعات مسجلة</div>
+      {% endif %}
+    </div>
+  </div>
+  
   <div class="card" style="grid-column:span 2;">
     <div class="card-header">
-      <span class="card-title">📄 آخر فواتير المشتريات</span>
+      <span class="card-title">فواتير المشتريات غير المسددة</span>
+    </div>
+    <div class="card-body">
+      {% with unpaid=supplier.purchaseinvoice_set.filter|slice:":10" %}
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>التاريخ</th>
+            <th>الإجمالي</th>
+            <th>المدفوع</th>
+            <th>المتبقي</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in supplier.purchaseinvoice_set.all %}
+          {% if invoice.status == 'confirmed' and invoice.debt_amount > 0 %}
+          <tr>
+            <td>{{ invoice.invoice_number }}</td>
+            <td>{{ invoice.created_at|date:"Y-m-d" }}</td>
+            <td>{{ invoice.total|floatformat:2|intcomma }}</td>
+            <td>{{ invoice.paid_amount|floatformat:2|intcomma }}</td>
+            <td class="text-danger">{{ invoice.debt_amount|floatformat:2|intcomma }}</td>
+            <td>
+              <a href="{% url 'supplier_payment_create' supplier.pk %}?invoice={{ invoice.pk }}" class="btn btn-sm btn-success">تسديد</a>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endwith %}
+    </div>
+  </div>
+  
+  <div class="card" style="grid-column:span 2;">
+    <div class="card-header">
+      <span class="card-title">آخر فواتير المشتريات</span>
       <a href="{% url 'purchase_invoices_list' %}?supplier={{ supplier.pk }}" class="btn btn-outline btn-sm">عرض الكل</a>
     </div>
     <div class="card-body">
       {% if purchases %}
-      <div class="table-responsive">
-        <table class="erp-table">
-          <thead>
-            <tr>
-              <th>رقم الفاتورة</th>
-              <th>التاريخ</th>
-              <th>الفرع</th>
-              <th>الإجمالي</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for purchase in purchases %}
-            <tr>
-              <td class="fw-600">{{ purchase.invoice_number }}</td>
-              <td>{{ purchase.created_at|date:"Y-m-d" }}</td>
-              <td>{{ purchase.branch.name }}</td>
-              <td class="fw-bold">{{ purchase.total|floatformat:2|intcomma }}</td>
-              <td>
-                <a href="{% url 'purchase_invoice_detail' purchase.pk %}" class="btn btn-outline btn-icon btn-sm">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>التاريخ</th>
+            <th>الفرع</th>
+            <th>الإجمالي</th>
+            <th>المتبقي</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for purchase in purchases %}
+          <tr>
+            <td class="fw-600">{{ purchase.invoice_number }}</td>
+            <td>{{ purchase.created_at|date:"Y-m-d" }}</td>
+            <td>{{ purchase.branch.name }}</td>
+            <td>{{ purchase.total|floatformat:2|intcomma }}</td>
+            <td class="{% if purchase.debt_amount > 0 %}text-danger{% endif %}">{{ purchase.debt_amount|floatformat:2|intcomma }}</td>
+            <td>
+              <a href="{% url 'purchase_invoice_detail' purchase.pk %}" class="btn btn-outline btn-sm">عرض</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+       </table>
       {% else %}
-      <div class="text-center text-muted" style="padding:40px;">
-        لا توجد فواتير مشتريات لهذا المورد
-      </div>
+      <div class="text-center text-muted" style="padding:40px;">لا توجد فواتير مشتريات</div>
       {% endif %}
     </div>
   </div>

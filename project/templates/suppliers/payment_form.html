@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}تسديد دفعة للمورد{% endblock %}
+{% block page_title %}تسديد دفعة للمورد: {{ supplier.name }}{% endblock %}
+
+{% block content %}
+
+<form method="post" id="payment-form">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-body">
+      
+      <div style="background:#eff6ff; padding:15px; border-radius:8px; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:15px;">
+          <div>
+            <div class="text-muted">رصيد الدين الحالي</div>
+            <div class="fw-bold text-danger" style="font-size:20px;">{{ supplier.debt_balance|floatformat:2 }}</div>
+          </div>
+          <div>
+            <div class="text-muted">إجمالي المشتريات</div>
+            <div>{{ supplier.get_total_purchases|floatformat:2|intcomma }}</div>
+          </div>
+          <div>
+            <div class="text-muted">إجمالي المدفوع</div>
+            <div class="text-success">{{ supplier.get_total_paid|floatformat:2|intcomma }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">المبلغ المراد تسديده</label>
+        <input type="number" name="amount" class="form-control" step="0.01" max="{{ supplier.debt_balance }}" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">تاريخ السداد</label>
+        <input type="date" name="payment_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">طريقة الدفع</label>
+        <select name="payment_method" class="form-select" required>
+          <option value="cash">نقدي</option>
+          <option value="bank">تحويل بنكي</option>
+          <option value="check">شيك</option>
+          <option value="other">أخرى</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">رقم المرجع (رقم الشيك أو الإيصال)</label>
+        <input type="text" name="reference_number" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">ربط بفاتورة محددة (اختياري)</label>
+        <select name="purchase_invoice_id" class="form-select">
+          <option value="">-- بدون ربط --</option>
+          {% for invoice in unpaid_invoices %}
+          <option value="{{ invoice.id }}" {% if request.GET.invoice == invoice.id|stringformat:"s" %}selected{% endif %}>
+            {{ invoice.invoice_number }} - المتبقي: {{ invoice.debt_amount|floatformat:2 }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <textarea name="notes" class="form-control" rows="3"></textarea>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button type="submit" class="btn btn-success">تسجيل الدفعة</button>
+        <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+document.getElementById('payment-form').addEventListener('submit', function(e) {
+  let amount = parseFloat(document.querySelector('[name="amount"]').value);
+  let debt = parseFloat('{{ supplier.debt_balance }}');
+  
+  if (amount > debt) {
+    e.preventDefault();
+    alert('المبلغ المدخل يتجاوز رصيد الدين');
+    return false;
+  }
+  
+  if (amount <= 0) {
+    e.preventDefault();
+    alert('المبلغ يجب أن يكون أكبر من صفر');
+    return false;
+  }
+  
+  return true;
+});
+</script>
+{% endblock %}

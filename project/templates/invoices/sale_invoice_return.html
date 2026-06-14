@@ -1,0 +1,120 @@
+
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}مرتجع فاتورة - {{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}مرتجع فاتورة مبيعات{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">مرتجع فاتورة رقم: {{ invoice.invoice_number }}</span>
+    </div>
+    <div class="card-body">
+        <div style="background:#fef3c7;padding:15px;border-radius:12px;margin-bottom:20px;">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;">
+                <div>
+                    <div class="text-muted">الفرع</div>
+                    <div class="fw-bold">{{ invoice.branch.name }}</div>
+                </div>
+                <div>
+                    <div class="text-muted">التاريخ</div>
+                    <div class="fw-bold">{{ invoice.created_at|date:"Y-m-d" }}</div>
+                </div>
+                <div>
+                    <div class="text-muted">إجمالي الفاتورة</div>
+                    <div class="fw-bold text-success">{{ invoice.total|floatformat:2|intcomma }} د.ل</div>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label">نوع المرتجع</label>
+                <select name="return_type" id="returnType" class="form-control" required onchange="toggleItemsSelection()">
+                    <option value="full">مرتجع كامل (كل المنتجات)</option>
+                    <option value="partial">مرتجع جزئي (تحديد منتجات معينة)</option>
+                </select>
+            </div>
+            
+            <div id="itemsSelection" style="display:none;">
+                <div class="table-responsive" style="margin-top:20px;">
+                    <table class="erp-table">
+                        <thead>
+                            <tr>
+                                <th>اختيار</th>
+                                <th>المنتج</th>
+                                <th>الكمية المشتراة</th>
+                                <th>سعر الوحدة</th>
+                                <th>الإجمالي</th>
+                                <th>كمية المرتجع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="items" value="{{ item.pk }}" class="item-checkbox" onchange="toggleQuantityInput(this, {{ item.pk }})">
+                                </td>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.unit_price|floatformat:2|intcomma }}</td>
+                                <td>{{ item.total_price|floatformat:2|intcomma }}</td>
+                                <td>
+                                    <input type="number" name="quantity_{{ item.pk }}" id="qty_{{ item.pk }}" class="form-control" style="width:120px;" min="0" max="{{ item.quantity }}" value="0" disabled>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top:20px;">
+                <label class="form-label">ملاحظات</label>
+                <textarea name="notes" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn btn-warning">تأكيد المرتجع</button>
+                <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleItemsSelection() {
+        var returnType = document.getElementById('returnType').value;
+        var itemsDiv = document.getElementById('itemsSelection');
+        
+        if (returnType === 'partial') {
+            itemsDiv.style.display = 'block';
+        } else {
+            itemsDiv.style.display = 'none';
+            var checkboxes = document.querySelectorAll('.item-checkbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = false;
+                var qtyInput = document.getElementById('qty_' + checkbox.value);
+                if(qtyInput) {
+                    qtyInput.disabled = true;
+                    qtyInput.value = 0;
+                }
+            });
+        }
+    }
+    
+    function toggleQuantityInput(checkbox, itemId) {
+        var qtyInput = document.getElementById('qty_' + itemId);
+        if(checkbox.checked) {
+            qtyInput.disabled = false;
+            qtyInput.value = 1;
+        } else {
+            qtyInput.disabled = true;
+            qtyInput.value = 0;
+        }
+    }
+</script>
+{% endblock %}

@@ -99,7 +99,16 @@
       <div class="value">{{ delivery.amount|floatformat:2|intcomma }} د.ل</div>
       <div class="label" style="margin-top:8px;">(مبيعات - عمولة الفرع)</div>
     </div>
-    
+    <div class="info-row">
+    <span class="info-label">طريقة الدفع</span>
+    <span class="info-value">
+        {% if delivery.payment_method == 'cash' %}
+             كاش
+        {% else %}
+             تحويل بنكي
+        {% endif %}
+    </span>
+    </div>
     {% if delivery.notes %}
     <div class="info-row">
       <span class="info-label"> ملاحظات</span>

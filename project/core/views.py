@@ -6,10 +6,14 @@ from django.http import JsonResponse
 from .models import *
 from .forms import *
 from django.db import transaction
-from django.db.models import Q , Sum ,F
+from django.db.models import Q , Sum ,F,Count
 from decimal import Decimal
 from django.core.paginator import Paginator
+from .utils import *
 
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
 
 
 @login_required
@@ -253,7 +257,40 @@ def accountant_dashboard(request):
             'remaining': branch['amount_due'] - paid,
         })
     
-  
+    branch_deliveries_query = BranchSalesDelivery.objects.filter(**date_filter)
+    total_branch_deliveries = branch_deliveries_query.aggregate(total=Sum('amount'))['total'] or 0
+    
+    branch_deliveries_by_method = branch_deliveries_query.values('payment_method').annotate(
+        total=Sum('amount'),
+        count=Count('id')
+    )
+    
+    delivery_cash_amount = 0
+    delivery_cash_count = 0
+    delivery_bank_amount = 0
+    delivery_bank_count = 0
+    
+    for method in branch_deliveries_by_method:
+        if method['payment_method'] == 'cash':
+            delivery_cash_amount = method['total'] or 0
+            delivery_cash_count = method['count'] or 0
+        elif method['payment_method'] == 'bank_transfer':
+            delivery_bank_amount = method['total'] or 0
+            delivery_bank_count = method['count'] or 0
+    
+    sales_by_payment_method = sales_query.values('payment_method__name', 'payment_method__increase_percentage').annotate(
+        total=Sum('total'),
+        count=Count('id')
+    )
+    
+    sales_payment_methods_list = []
+    for method in sales_by_payment_method:
+        sales_payment_methods_list.append({
+            'name': method['payment_method__name'] or 'غير محدد',
+            'total': method['total'] or 0,
+            'count': method['count'] or 0,
+            'percentage': method['payment_method__increase_percentage'] or 0,
+        })
     
     active_customers = Customer.objects.filter(is_active=True).count()
     
@@ -294,6 +331,12 @@ def accountant_dashboard(request):
         'month_sales': month_sales,
         'active_customers': active_customers,
         'low_stock_count': low_stock_count,
+        'total_branch_deliveries': total_branch_deliveries,
+        'delivery_cash_amount': delivery_cash_amount,
+        'delivery_cash_count': delivery_cash_count,
+        'delivery_bank_amount': delivery_bank_amount,
+        'delivery_bank_count': delivery_bank_count,
+        'sales_payment_methods_list': sales_payment_methods_list,
         'overdue_invoices': SaleInvoice.objects.filter(
             sale_type='customer',
             status='confirmed',
@@ -678,27 +721,43 @@ def sale_invoice_create(request):
     return render(request, 'invoices/sale_invoice_create.html', context)
 
 
+
 @login_required
 def purchase_invoice_create(request):
-    if not request.user.is_main_admin():
-        messages.error(request, 'غير مصرح لك بإنشاء فواتير مشتريات')
-        return redirect('dashboard')
-    
-    main_branch = Branch.get_main_branch()
+    if not request.user.branch:
+        main_branch = Branch.get_main_branch()
+        if main_branch:
+            request.user.branch = main_branch
+            request.user.save()
     
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                invoice = PurchaseInvoice.objects.create(
-                    branch=main_branch,  
-                    supplier_id=request.POST.get('supplier') or None,
-                    discount=Decimal(request.POST.get('discount', 0)),
-                    notes=request.POST.get('notes', ''),
+                supplier_id = request.POST.get('supplier')
+                discount = Decimal(request.POST.get('discount', 0))
+                paid_amount = Decimal(request.POST.get('paid_amount', 0))
+                notes = request.POST.get('notes', '')
+                
+                if not supplier_id:
+                    raise ValidationErr('الرجاء اختيار مورد')
+                
+                invoice = PurchaseInvoice(
+                    branch=request.user.branch,
+                    supplier_id=supplier_id,
+                    discount=discount,
+                    paid_amount=paid_amount,
+                    notes=notes,
                     employee=request.user,
-                    status='draft'
+                    status='draft',
+                    subtotal=0,
+                    total=0,
+                    is_auto_generated=False
                 )
+                invoice.save()
                 
                 subtotal = Decimal(0)
+                items_added = False
+                
                 for key, value in request.POST.items():
                     if key.endswith('_id'):
                         product_id = value
@@ -707,6 +766,7 @@ def purchase_invoice_create(request):
                         unit_price = Decimal(request.POST.get(f'{prefix}_price', 0))
                         
                         if quantity > 0:
+                            items_added = True
                             product = Product.objects.get(id=product_id)
                             total_price = unit_price * quantity
                             subtotal += total_price
@@ -719,22 +779,40 @@ def purchase_invoice_create(request):
                                 total_price=total_price
                             )
                 
+                if not items_added:
+                    raise ValidationErr('الرجاء إضافة منتجات للفاتورة')
+                
                 invoice.subtotal = subtotal
-                invoice.total = subtotal - invoice.discount
+                invoice.total = subtotal - discount
+                invoice.debt_amount = invoice.total - paid_amount
                 invoice.save()
                 
-                messages.success(request, f'تم إنشاء فاتورة المشتريات رقم {invoice.invoice_number} بنجاح')
+                invoice.update_loyalty_points()
+                
+                messages.success(request, f'تم إنشاء الفاتورة رقم {invoice.invoice_number} بنجاح')
+                
+                if request.POST.get('confirm') == 'yes':
+                    invoice.confirm()
+                    messages.info(request, 'تم تأكيد الفاتورة وإضافة نقاط الولاء للفرع الرئيسي')
+                
                 return redirect('purchase_invoice_detail', pk=invoice.pk)
                 
+        except ValidationErr as e:
+            messages.error(request, str(e))
         except Exception as e:
             messages.error(request, f'حدث خطأ: {str(e)}')
-            return redirect('purchase_invoice_create')
+    
+    products = Product.objects.filter(is_active=True)
+    suppliers = Supplier.objects.filter(is_active=True)
     
     context = {
-        'suppliers': Supplier.objects.filter(is_active=True),
-        'main_branch': main_branch,
+        'products': products,
+        'suppliers': suppliers,
+        'user_branch': request.user.branch,
     }
-    return render(request, 'invoices/purchase_invoice_create.html', context)
+    return render(request, 'purchases/purchase_invoice_create.html', context)
+
+
 
 @login_required
 def sale_invoice_detail(request, pk):
@@ -911,6 +989,7 @@ def customer_search_ajax(request):
     data = [{'id': c.pk, 'full_name': c.full_name, 'phone': c.phone, 'loyalty_points': c.loyalty_points, 'debt_balance': float(c.debt_balance)} for c in customers]
     return JsonResponse({'customers': data})
 
+
 @login_required
 def inventory_list(request):
     user = request.user
@@ -929,7 +1008,7 @@ def inventory_list(request):
         if user.branch:
             branches = Branch.objects.filter(pk=user.branch.pk)
             inventory = BranchInventory.objects.select_related('branch', 'product', 'product__category').filter(branch=user.branch)
-            branch_id = str(user.branch.pk)  
+            branch_id = str(user.branch.pk)
         else:
             branches = Branch.objects.none()
             inventory = BranchInventory.objects.none()
@@ -960,35 +1039,117 @@ def inventory_list(request):
     })
 
 @login_required
-def inventory_adjust(request, pk):
+def inventory_print(request, branch_id):
+    user = request.user
+    
+    if user.can_see_all_data():
+        branch = get_object_or_404(Branch, pk=branch_id)
+    else:
+        if not user.branch:
+            messages.error(request, 'لا يوجد فرع مرتبط بحسابك')
+            return redirect('dashboard_home')
+        branch = user.branch
+        if branch.pk != branch_id:
+            messages.error(request, 'غير مصرح لك بطباعة مخزون فروع أخرى')
+            return redirect('inventory_list')
+    
+    inventory = BranchInventory.objects.select_related('product').filter(branch=branch).order_by('product__name')
+    
+    return render(request, 'inventory/print.html', {
+        'inventory': inventory,
+        'branch': branch,
+        'now': timezone.now(),
+    })
+
+
+@login_required
+def inventory_stocktake(request):
+    user = request.user
+    
+    if not user.branch:
+        messages.error(request, 'لا يوجد فرع مرتبط بحسابك لإجراء الجرد')
+        return redirect('dashboard_home')
+    
+    branch = user.branch
+    
+    inventory_items = BranchInventory.objects.select_related('product').filter(branch=branch)
+    
+    if request.method == 'POST':
+        for item in inventory_items:
+            new_quantity = request.POST.get(f'quantity_{item.pk}')
+            if new_quantity is not None:
+                try:
+                    new_quantity = int(new_quantity)
+                    old_quantity = item.quantity
+                    if new_quantity != old_quantity:
+                        InventoryMovement.objects.create(
+                            branch=item.branch,
+                            product=item.product,
+                            movement_type='stocktake',
+                            quantity=new_quantity - old_quantity,
+                            quantity_before=old_quantity,
+                            quantity_after=new_quantity,
+                            notes=f'جرد دوري - تعديل من {old_quantity} إلى {new_quantity}',
+                            employee=user,
+                        )
+                        item.quantity = new_quantity
+                        item.save()
+                except (ValueError, TypeError):
+                    pass
+        
+        messages.success(request, 'تم حفظ الجرد بنجاح')
+        return redirect('inventory_list')
+    
+    return render(request, 'inventory/stocktake.html', {
+        'inventory_items': inventory_items,
+        'branch': branch,
+    })
+
+
+@login_required
+def inventory_damage(request, pk):
     inv = get_object_or_404(BranchInventory, pk=pk)
+    
     if not request.user.can_see_all_data():
         if not request.user.branch or request.user.branch != inv.branch:
-            messages.error(request, 'ليس لديك صلاحية لتعديل هذا المخزون')
+            messages.error(request, 'ليس لديك صلاحية لتلف هذا المخزون')
             return redirect('inventory_list')
+    
     if request.method == 'POST':
-        form = InventoryAdjustForm(request.POST)
-        if form.is_valid():
-            old_qty = inv.quantity
-            new_qty = form.cleaned_data['quantity']
-            notes = form.cleaned_data.get('notes', '')
-            InventoryMovement.objects.create(
-                branch=inv.branch,
-                product=inv.product,
-                movement_type='adjustment',
-                quantity=new_qty - old_qty,
-                quantity_before=old_qty,
-                quantity_after=new_qty,
-                notes=notes,
-                employee=request.user,
-            )
-            inv.quantity = new_qty
-            inv.save()
-            messages.success(request, 'تم تحديث المخزون بنجاح')
-            return redirect('inventory_list')
-    else:
-        form = InventoryAdjustForm(initial={'quantity': inv.quantity})
-    return render(request, 'inventory/adjust.html', {'form': form, 'inv': inv})
+        try:
+            quantity = int(request.POST.get('quantity', 0))
+            notes = request.POST.get('notes', '')
+            
+            if quantity <= 0:
+                messages.error(request, 'الكمية يجب أن تكون أكبر من صفر')
+            elif quantity > inv.quantity:
+                messages.error(request, f'الكمية المدخلة أكبر من المتوفر ({inv.quantity})')
+            else:
+                old_quantity = inv.quantity
+                new_quantity = old_quantity - quantity
+                
+                InventoryMovement.objects.create(
+                    branch=inv.branch,
+                    product=inv.product,
+                    movement_type='damage',
+                    quantity=-quantity,
+                    quantity_before=old_quantity,
+                    quantity_after=new_quantity,
+                    notes=f'تلف - {notes}' if notes else 'تلف',
+                    employee=request.user,
+                )
+                
+                inv.quantity = new_quantity
+                inv.save()
+                
+                messages.success(request, f'تم تسجيل تلف {quantity} وحدة من {inv.product.name}')
+                return redirect('inventory_list')
+        except ValueError:
+            messages.error(request, 'الكمية المدخلة غير صحيحة')
+    
+    return render(request, 'inventory/damage.html', {
+        'inv': inv,
+    })
 
 
 @login_required
@@ -1079,7 +1240,6 @@ def loyalty_required(view_func):
 
 @login_required
 def pending_transfers(request):
-    """نقاط الولاء المعلقة (معدل)"""
     if not (request.user.is_loyalty_employee() or request.user.can_see_all_data()):
         messages.error(request, 'هذه الصفحة مخصصة لموظفي نقاط الولاء فقط')
         return redirect('dashboard_home')
@@ -1109,35 +1269,54 @@ def pending_transfers(request):
         'customers_summary': customers_summary,
     })
 
+
+
 @login_required
 @loyalty_required
 def mark_transferred(request, pk):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST مطلوب'}, status=405)
+    
     transfer = get_object_or_404(LoyaltyTransfer, pk=pk, status='pending')
     transfer.mark_as_transferred(request.user)
- 
-    return JsonResponse({'success': True, 'message': f'تم تحويل {transfer.points} نقطة بنجاح'})
-
+    
+    wb = generate_loyalty_transfer_excel([transfer], 'single')
+    filename = f"نقاط_تحويل_{transfer.customer.customer_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    return create_excel_response(wb, filename)
 
 @login_required
 @loyalty_required
 def mark_all_transferred(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST مطلوب'}, status=405)
+    
     customer_id = request.POST.get('customer_id')
     branch_id = request.POST.get('branch_id')
+    
     transfers = LoyaltyTransfer.objects.filter(status='pending')
+    
     if customer_id:
         transfers = transfers.filter(customer_id=customer_id)
     if branch_id:
         transfers = transfers.filter(branch_id=branch_id)
+    
+    transferred_transfers = []
     count = 0
+    
     for transfer in transfers:
         transfer.mark_as_transferred(request.user)
+        transferred_transfers.append(transfer)
         count += 1
-
-    return JsonResponse({'success': True, 'count': count, 'message': f'تم تحويل {count} عملية بنجاح'})
+    
+    if count == 0:
+        return JsonResponse({'success': False, 'message': 'لا توجد عمليات تحويل معلقة'}, status=400)
+    
+    wb = generate_loyalty_transfer_excel(transferred_transfers, 'multiple')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{count}_{timestamp}.xlsx"
+    
+    return create_excel_response(wb, filename)
 
 
 @login_required
@@ -1336,13 +1515,16 @@ def supplier_detail(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     purchases = PurchaseInvoice.objects.filter(supplier=supplier, status='confirmed').order_by('-created_at')[:20]
     total_purchases = supplier.get_total_purchases()
+    total_paid = supplier.get_total_paid()
+    recent_payments = supplier.payments.all().order_by('-payment_date')[:10]
     
     return render(request, 'suppliers/detail.html', {
         'supplier': supplier,
         'purchases': purchases,
         'total_purchases': total_purchases,
+        'total_paid': total_paid,
+        'recent_payments': recent_payments,
     })
-
 
 @login_required
 def supplier_delete(request, pk):
@@ -1371,6 +1553,129 @@ def supplier_search_ajax(request):
 
 
 
+@login_required
+def supplier_payment_create(request, supplier_id):
+    supplier = get_object_or_404(Supplier, pk=supplier_id)
+    
+    if not request.user.is_main_admin():
+        messages.error(request, 'غير مصرح لك بهذه العملية')
+        return redirect('supplier_detail', pk=supplier_id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                amount = Decimal(request.POST.get('amount', 0))
+                payment_date = request.POST.get('payment_date')
+                payment_method = request.POST.get('payment_method')
+                reference_number = request.POST.get('reference_number', '')
+                notes = request.POST.get('notes', '')
+                purchase_invoice_id = request.POST.get('purchase_invoice_id')
+                
+                if amount <= 0:
+                    raise ValueError('المبلغ يجب أن يكون أكبر من صفر')
+                
+                if amount > supplier.debt_balance:
+                    raise ValueError(f'المبلغ المدخل ({amount}) يتجاوز رصيد الدين ({supplier.debt_balance})')
+                
+                payment = SupplierPayment.objects.create(
+                    supplier=supplier,
+                    purchase_invoice_id=purchase_invoice_id or None,
+                    amount=amount,
+                    payment_date=payment_date,
+                    payment_method=payment_method,
+                    reference_number=reference_number,
+                    notes=notes,
+                    created_by=request.user
+                )
+                
+                if purchase_invoice_id:
+                    invoice = PurchaseInvoice.objects.get(id=purchase_invoice_id)
+                    invoice.paid_amount += amount
+                    invoice.save()
+                
+                supplier.update_debt_balance()
+                
+                messages.success(request, f'تم تسجيل مبلغ {amount} كسداد للمورد {supplier.name}')
+                return redirect('supplier_payment_list', supplier_id=supplier.id)
+                
+        except ValueError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+    
+    unpaid_invoices = PurchaseInvoice.objects.filter(
+        supplier=supplier,
+        status='confirmed',
+        paid_amount__lt=models.F('total')
+    ).order_by('created_at')
+    
+    context = {
+        'supplier': supplier,
+        'unpaid_invoices': unpaid_invoices,
+    }
+    return render(request, 'suppliers/payment_form.html', context)
+
+
+@login_required
+def supplier_payment_list(request, supplier_id):
+    supplier = get_object_or_404(Supplier, pk=supplier_id)
+    
+    if not request.user.is_main_admin():
+        messages.error(request, 'غير مصرح لك بالوصول')
+        return redirect('dashboard_home')
+    
+    payments = supplier.payments.all().order_by('-payment_date')
+    
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+    
+    if from_date:
+        payments = payments.filter(payment_date__gte=from_date)
+    if to_date:
+        payments = payments.filter(payment_date__lte=to_date)
+    
+    paginator = Paginator(payments, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'supplier': supplier,
+        'page_obj': page_obj,
+        'from_date': from_date,
+        'to_date': to_date,
+        'total_paid': supplier.get_total_paid(),
+    }
+    return render(request, 'suppliers/payment_list.html', context)
+
+
+@login_required
+def supplier_payment_delete(request, payment_id):
+    if not request.user.is_main_admin():
+        return JsonResponse({'error': 'غير مصرح'}, status=403)
+    
+    payment = get_object_or_404(SupplierPayment, pk=payment_id)
+    supplier = payment.supplier
+    
+    with transaction.atomic():
+        if payment.purchase_invoice:
+            payment.purchase_invoice.paid_amount -= payment.amount
+            payment.purchase_invoice.save()
+        
+        payment.delete()
+        supplier.update_debt_balance()
+    
+    return JsonResponse({'success': True})
+
+
+@login_required
+def supplier_payment_invoice(request, payment_id):
+    payment = get_object_or_404(SupplierPayment, pk=payment_id)
+    
+    if not request.user.is_main_admin():
+        messages.error(request, 'غير مصرح')
+        return redirect('dashboard_home')
+    
+    return render(request, 'suppliers/payment_invoice.html', {'payment': payment})
 
 @login_required
 def sale_invoices_list(request):
@@ -1514,7 +1819,6 @@ def sale_invoice_cancel(request, pk):
 
 @login_required
 def branch_deliveries_history(request, pk):
-    """سجل تسليمات المبيعات للفرع مع فلترة وتصفح"""
     branch = get_object_or_404(Branch, pk=pk)
     
     if not request.user.can_see_all_data():
@@ -1556,7 +1860,6 @@ def branch_deliveries_history(request, pk):
 
 @login_required
 def branch_sales_delivery(request, pk):
-    """صفحة تسليم مبيعات الفرع للفرع الرئيسي"""
     if not request.user.is_main_admin():
         messages.error(request, 'غير مصرح لك بهذه العملية')
         return redirect('dashboard_home')
@@ -1581,7 +1884,7 @@ def branch_sales_delivery(request, pk):
     if request.method == 'POST':
         amount = Decimal(request.POST.get('amount', 0))
         delivery_date = request.POST.get('delivery_date')
-        
+        payment_method = request.POST.get('payment_method', 'cash')
         notes = request.POST.get('notes', '')
         
         if amount <= 0:
@@ -1592,6 +1895,7 @@ def branch_sales_delivery(request, pk):
             delivery = BranchSalesDelivery.objects.create(
                 branch=branch,
                 amount=amount,
+                payment_method=payment_method,
                 delivery_date=delivery_date or timezone.now(),
                 notes=notes,
                 created_by=request.user
@@ -1918,3 +2222,592 @@ def payment_method_toggle_status(request, pk):
     status = 'مفعلة' if payment_method.is_active else 'غير مفعلة'
     messages.success(request, f'تم {status} طريقة الدفع "{payment_method.name}"')
     return redirect('payment_methods_list')
+
+
+
+@login_required
+def sale_invoice_return(request, pk):
+    invoice = get_object_or_404(SaleInvoice, pk=pk)
+    user = request.user
+    
+    if not user.can_see_all_data():
+        if user.branch != invoice.branch:
+            messages.error(request, 'غير مصرح لك بعمل مرتجع لهذه الفاتورة')
+            return redirect('sale_invoices_list')
+    
+    if invoice.status != 'confirmed':
+        messages.error(request, 'لا يمكن عمل مرتجع إلا للفواتير المؤكدة')
+        return redirect('sale_invoices_list')
+    
+    if request.method == 'POST':
+        return_type = request.POST.get('return_type')
+        selected_items = request.POST.getlist('items')
+        
+        if not selected_items and return_type != 'full':
+            messages.error(request, 'الرجاء اختيار المنتجات التي سيتم إرجاعها')
+            return redirect('sale_invoice_return', pk=pk)
+        
+        try:
+            total_return_amount = 0
+            
+            if return_type == 'full':
+                for item in invoice.items.all():
+                    inventory, created = BranchInventory.objects.get_or_create(
+                        branch=invoice.branch,
+                        product=item.product,
+                        defaults={'quantity': 0, 'min_quantity': 5}
+                    )
+                    
+                    old_quantity = inventory.quantity
+                    inventory.quantity += item.quantity
+                    inventory.save()
+                    
+                    InventoryMovement.objects.create(
+                        branch=invoice.branch,
+                        product=item.product,
+                        movement_type='return',
+                        quantity=item.quantity,
+                        quantity_before=old_quantity,
+                        quantity_after=inventory.quantity,
+                        sale_invoice=invoice,
+                        employee=user,
+                        notes=f'مرتجع كامل للفاتورة {invoice.invoice_number}'
+                    )
+                    
+                    total_return_amount += item.total_price
+                
+                invoice.status = 'cancelled'
+                invoice.save()
+                
+                if invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
+                    debt_reduction = min(invoice.debt_amount, total_return_amount)
+                    invoice.customer.debt_balance -= debt_reduction
+                    invoice.customer.save()
+                
+                if invoice.total_loyalty_points > 0 and invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
+                    invoice.branch.loyalty_points_inventory += invoice.total_loyalty_points
+                    invoice.branch.save()
+                    
+                    LoyaltyTransaction.objects.create(
+                        branch=invoice.branch,
+                        customer=invoice.customer,
+                        sale_invoice=invoice,
+                        points=invoice.total_loyalty_points,
+                        transaction_type='refund',
+                        notes=f'استرجاع نقاط من مرتجع فاتورة {invoice.invoice_number}'
+                    )
+                    
+                    pending_transfer = LoyaltyTransfer.objects.filter(
+                        sale_invoice=invoice,
+                        status='pending'
+                    ).first()
+                    if pending_transfer:
+                        pending_transfer.status = 'cancelled'
+                        pending_transfer.save()
+            
+            else:
+                for item_id in selected_items:
+                    original_item = invoice.items.get(pk=item_id)
+                    return_quantity = int(request.POST.get(f'quantity_{item_id}', 0))
+                    
+                    if return_quantity <= 0:
+                        continue
+                    
+                    if return_quantity > original_item.quantity:
+                        messages.error(request, f'الكمية المرتجعة للمنتج {original_item.product.name} أكبر من الكمية الأصلية')
+                        return redirect('sale_invoice_return', pk=pk)
+                    
+                    return_amount = original_item.unit_price * return_quantity
+                    total_return_amount += return_amount
+                    
+                    inventory, created = BranchInventory.objects.get_or_create(
+                        branch=invoice.branch,
+                        product=original_item.product,
+                        defaults={'quantity': 0, 'min_quantity': 5}
+                    )
+                    
+                    old_quantity = inventory.quantity
+                    inventory.quantity += return_quantity
+                    inventory.save()
+                    
+                    InventoryMovement.objects.create(
+                        branch=invoice.branch,
+                        product=original_item.product,
+                        movement_type='return',
+                        quantity=return_quantity,
+                        quantity_before=old_quantity,
+                        quantity_after=inventory.quantity,
+                        sale_invoice=invoice,
+                        employee=user,
+                        notes=f'مرتجع جزئي للفاتورة {invoice.invoice_number}'
+                    )
+                    
+                    original_item.quantity -= return_quantity
+                    original_item.total_price = original_item.unit_price * original_item.quantity
+                    original_item.save()
+                
+                invoice.subtotal -= total_return_amount
+                invoice.total -= total_return_amount
+                
+                if invoice.sale_type == 'customer' and not invoice.branch.is_main:
+                    from decimal import Decimal
+                    commission_rate = invoice.branch.commission_percentage / Decimal('100')
+                    invoice.branch_commission = invoice.total * commission_rate
+                
+                if invoice.paid_amount > invoice.total:
+                    invoice.paid_amount = invoice.total
+                
+                invoice.debt_amount = invoice.total - invoice.paid_amount
+                invoice.save()
+                
+                if invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
+                    from django.db.models import Sum
+                    total_debt = SaleInvoice.objects.filter(
+                        customer=invoice.customer,
+                        sale_type='customer',
+                        status='confirmed'
+                    ).aggregate(total=Sum('debt_amount'))['total'] or 0
+                    invoice.customer.debt_balance = total_debt
+                    invoice.customer.save()
+                
+                if invoice.total_loyalty_points > 0 and invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
+                    returned_points = 0
+                    for item_id in selected_items:
+                        original_item = invoice.items.get(pk=item_id)
+                        return_quantity = int(request.POST.get(f'quantity_{item_id}', 0))
+                        returned_points += original_item.product.loyalty_points * return_quantity
+                    
+                    if returned_points > 0:
+                        invoice.branch.loyalty_points_inventory += returned_points
+                        invoice.branch.save()
+                        
+                        LoyaltyTransaction.objects.create(
+                            branch=invoice.branch,
+                            customer=invoice.customer,
+                            sale_invoice=invoice,
+                            points=returned_points,
+                            transaction_type='refund',
+                            notes=f'استرجاع نقاط من مرتجع جزئي للفاتورة {invoice.invoice_number}'
+                        )
+                        
+                        invoice.total_loyalty_points -= returned_points
+                        invoice.save()
+            
+            messages.success(request, f'تم عمل مرتجع بنجاح بقيمة {total_return_amount:,.2f}')
+            return redirect('sale_invoices_list')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+            return redirect('sale_invoice_return', pk=pk)
+    
+    context = {
+        'invoice': invoice,
+        'items': invoice.items.all(),
+    }
+    return render(request, 'invoices/sale_invoice_return.html', context)  
+
+
+@login_required
+def branch_adjust_points(request, pk):
+    branch = get_object_or_404(Branch, pk=pk)
+    
+    if not request.user.can_see_all_data():
+        messages.error(request, 'غير مصرح لك بتعديل نقاط الولاء')
+        return redirect('branch_detail', pk=pk)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        points = request.POST.get('points')
+        reason = request.POST.get('reason', '')
+        
+        try:
+            points = int(points)
+            if points <= 0:
+                messages.error(request, 'عدد النقاط يجب أن يكون أكبر من صفر')
+                return redirect('branch_detail', pk=pk)
+            
+            if action == 'add':
+                branch.loyalty_points_inventory += points
+                branch.save()
+                
+                LoyaltyTransaction.objects.create(
+                    branch=branch,
+                    customer=None,
+                    sale_invoice=None,
+                    points=points,
+                    transaction_type='manual_add',
+                    notes=f'إضافة يدوية من قبل {request.user.get_full_name()} - {reason}'
+                )
+                messages.success(request, f'تم إضافة {points} نقطة ولاء للفرع {branch.name}')
+                
+            elif action == 'deduct':
+                if points > branch.loyalty_points_inventory:
+                    messages.error(request, f'لا يوجد نقاط كافية. المتوفر: {branch.loyalty_points_inventory}')
+                    return redirect('branch_detail', pk=pk)
+                
+                branch.loyalty_points_inventory -= points
+                branch.save()
+                
+                LoyaltyTransaction.objects.create(
+                    branch=branch,
+                    customer=None,
+                    sale_invoice=None,
+                    points=-points,
+                    transaction_type='manual_deduct',
+                    notes=f'خصم يدوي من قبل {request.user.get_full_name()} - {reason}'
+                )
+                messages.success(request, f'تم خصم {points} نقطة ولاء من الفرع {branch.name}')
+            
+            else:
+                messages.error(request, 'إجراء غير صالح')
+                
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+    
+    return redirect('branch_detail', pk=pk) 
+
+
+@login_required
+def product_expiry_list(request):
+    user = request.user
+    
+    if user.can_see_all_data():
+        branch_id = request.GET.get('branch', '')
+        if branch_id:
+            expiry_records = ProductExpiry.objects.filter(branch_id=branch_id).select_related('product', 'branch')
+        else:
+            expiry_records = ProductExpiry.objects.all().select_related('product', 'branch')
+        branches = Branch.objects.filter(is_active=True)
+    else:
+        if user.branch:
+            expiry_records = ProductExpiry.objects.filter(branch=user.branch).select_related('product')
+            branches = Branch.objects.filter(pk=user.branch.pk)
+        else:
+            expiry_records = ProductExpiry.objects.none()
+            branches = Branch.objects.none()
+    
+    status_filter = request.GET.get('status', '')
+    today = timezone.now().date()
+    three_months_later = today + timedelta(days=90)
+    
+    if status_filter == 'expired':
+        expiry_records = expiry_records.filter(expiry_date__lt=today)
+    elif status_filter == 'warning':
+        expiry_records = expiry_records.filter(expiry_date__gte=today, expiry_date__lte=three_months_later)
+    elif status_filter == 'good':
+        expiry_records = expiry_records.filter(expiry_date__gt=three_months_later)
+    
+    product_query = request.GET.get('product', '')
+    if product_query:
+        expiry_records = expiry_records.filter(
+            Q(product__name__icontains=product_query) |
+            Q(product__barcode__icontains=product_query)
+        )
+    
+    expiry_records = expiry_records.order_by('expiry_date')
+    
+    expired_count = expiry_records.filter(expiry_date__lt=today).count()
+    warning_count = expiry_records.filter(expiry_date__gte=today, expiry_date__lte=three_months_later).count()
+    good_count = expiry_records.filter(expiry_date__gt=three_months_later).count()
+    
+    total_quantity = expiry_records.aggregate(total=Sum('quantity'))['total'] or 0
+    
+    context = {
+        'expiry_records': expiry_records,
+        'branches': branches,
+        'selected_branch': branch_id if user.can_see_all_data() else '',
+        'status_filter': status_filter,
+        'product_query': product_query,
+        'expired_count': expired_count,
+        'warning_count': warning_count,
+        'good_count': good_count,
+        'total_quantity': total_quantity,
+    }
+    return render(request, 'products/expiry_list.html', context)
+
+
+@login_required
+def product_expiry_create(request):
+    user = request.user
+    
+    if not user.can_see_all_data() and not user.branch:
+        messages.error(request, 'لا يمكنك إضافة مراقبة صلاحية')
+        return redirect('product_expiry_list')
+    
+    products = Product.objects.filter(is_active=True)
+    
+    if user.can_see_all_data():
+        branches = Branch.objects.filter(is_active=True)
+        selected_branch = request.GET.get('branch', '')
+    else:
+        branches = Branch.objects.filter(pk=user.branch.pk)
+        selected_branch = user.branch.pk if user.branch else ''
+    
+    if request.method == 'POST':
+        product_id = request.POST.get('product')
+        branch_id = request.POST.get('branch')
+        quantity = request.POST.get('quantity')
+        expiry_date = request.POST.get('expiry_date')
+        batch_number = request.POST.get('batch_number', '')
+        notes = request.POST.get('notes', '')
+        
+        if not product_id or not branch_id or not quantity or not expiry_date:
+            messages.error(request, 'الرجاء ملء جميع الحقول المطلوبة')
+            return redirect('product_expiry_create')
+        
+        try:
+            quantity = int(quantity)
+            if quantity <= 0:
+                messages.error(request, 'الكمية يجب أن تكون أكبر من صفر')
+                return redirect('product_expiry_create')
+            
+            product = get_object_or_404(Product, pk=product_id)
+            branch = get_object_or_404(Branch, pk=branch_id)
+            
+            expiry_record = ProductExpiry.objects.create(
+                product=product,
+                branch=branch,
+                quantity=quantity,
+                expiry_date=expiry_date,
+                batch_number=batch_number,
+                notes=notes,
+                created_by=user
+            )
+            
+            ProductExpiryMovement.objects.create(
+                expiry_record=expiry_record,
+                movement_type='create',
+                quantity_before=0,
+                quantity_after=quantity,
+                notes=f'تم إنشاء مراقبة صلاحية بكمية {quantity}',
+                employee=user
+            )
+            
+            messages.success(request, f'تم إضافة مراقبة صلاحية للمنتج {product.name}')
+            return redirect('product_expiry_list')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+    
+    context = {
+        'products': products,
+        'branches': branches,
+        'selected_branch': selected_branch,
+    }
+    return render(request, 'products/expiry_create.html', context)
+
+
+@login_required
+def product_expiry_edit(request, pk):
+    expiry = get_object_or_404(ProductExpiry, pk=pk)
+    user = request.user
+    
+    if not user.can_see_all_data():
+        if user.branch != expiry.branch:
+            messages.error(request, 'غير مصرح لك بتعديل هذه المراقبة')
+            return redirect('product_expiry_list')
+    
+    products = Product.objects.filter(is_active=True)
+    
+    if request.method == 'POST':
+        product_id = request.POST.get('product')
+        quantity = request.POST.get('quantity')
+        expiry_date = request.POST.get('expiry_date')
+        batch_number = request.POST.get('batch_number', '')
+        notes = request.POST.get('notes', '')
+        
+        if not product_id or not quantity or not expiry_date:
+            messages.error(request, 'الرجاء ملء جميع الحقول المطلوبة')
+            return redirect('product_expiry_edit', pk=pk)
+        
+        try:
+            quantity = int(quantity)
+            if quantity <= 0:
+                messages.error(request, 'الكمية يجب أن تكون أكبر من صفر')
+                return redirect('product_expiry_edit', pk=pk)
+            
+            old_quantity = expiry.quantity
+            
+            expiry.product_id = product_id
+            expiry.quantity = quantity
+            expiry.expiry_date = expiry_date
+            expiry.batch_number = batch_number
+            expiry.notes = notes
+            expiry.save()
+            
+            ProductExpiryMovement.objects.create(
+                expiry_record=expiry,
+                movement_type='update',
+                quantity_before=old_quantity,
+                quantity_after=quantity,
+                notes=f'تم تعديل الكمية من {old_quantity} إلى {quantity}',
+                employee=user
+            )
+            
+            messages.success(request, 'تم تحديث مراقبة الصلاحية بنجاح')
+            return redirect('product_expiry_list')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+    
+    context = {
+        'expiry': expiry,
+        'products': products,
+    }
+    return render(request, 'products/expiry_edit.html', context)
+
+
+@login_required
+def product_expiry_delete(request, pk):
+    expiry = get_object_or_404(ProductExpiry, pk=pk)
+    user = request.user
+    
+    if not user.can_see_all_data():
+        if user.branch != expiry.branch:
+            messages.error(request, 'غير مصرح لك بحذف هذه المراقبة')
+            return redirect('product_expiry_list')
+    
+    if request.method == 'POST':
+        try:
+            ProductExpiryMovement.objects.create(
+                expiry_record=expiry,
+                movement_type='delete',
+                quantity_before=expiry.quantity,
+                quantity_after=0,
+                notes='تم حذف مراقبة الصلاحية',
+                employee=user
+            )
+            
+            expiry.delete()
+            messages.success(request, 'تم حذف مراقبة الصلاحية بنجاح')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+        
+        return redirect('product_expiry_list')
+    
+    context = {'expiry': expiry}
+    return render(request, 'products/expiry_confirm_delete.html', context)
+
+
+@login_required
+def product_expiry_consume(request, pk):
+    expiry = get_object_or_404(ProductExpiry, pk=pk)
+    user = request.user
+    
+    if not user.can_see_all_data():
+        if user.branch != expiry.branch:
+            messages.error(request, 'غير مصرح لك بتعديل هذه المراقبة')
+            return redirect('product_expiry_list')
+    
+    if request.method == 'POST':
+        consume_quantity = request.POST.get('consume_quantity')
+        
+        try:
+            consume_quantity = int(consume_quantity)
+            if consume_quantity <= 0:
+                messages.error(request, 'الكمية المستهلكة يجب أن تكون أكبر من صفر')
+                return redirect('product_expiry_consume', pk=pk)
+            
+            if consume_quantity > expiry.quantity:
+                messages.error(request, f'الكمية المستهلكة أكبر من المتوفر ({expiry.quantity})')
+                return redirect('product_expiry_consume', pk=pk)
+            
+            old_quantity = expiry.quantity
+            expiry.quantity -= consume_quantity
+            expiry.save()
+            
+            ProductExpiryMovement.objects.create(
+                expiry_record=expiry,
+                movement_type='consume',
+                quantity_before=old_quantity,
+                quantity_after=expiry.quantity,
+                notes=f'تم استهلاك {consume_quantity} وحدة',
+                employee=user
+            )
+            
+            if expiry.quantity == 0:
+                expiry.delete()
+                messages.success(request, 'تم استهلاك الكمية بالكامل وتم حذف المراقبة')
+            else:
+                messages.success(request, f'تم استهلاك {consume_quantity} وحدة من المنتج')
+                
+        except Exception as e:
+            messages.error(request, f'حدث خطأ: {str(e)}')
+        
+        return redirect('product_expiry_list')
+    
+    context = {'expiry': expiry}
+    return render(request, 'products/expiry_consume.html', context)
+
+
+@login_required
+def product_expiry_movements(request, pk):
+    expiry = get_object_or_404(ProductExpiry, pk=pk)
+    user = request.user
+    
+    if not user.can_see_all_data():
+        if user.branch != expiry.branch:
+            messages.error(request, 'غير مصرح لك بعرض هذه الحركات')
+            return redirect('product_expiry_list')
+    
+    movements = expiry.movements.all().order_by('-created_at')
+    
+    context = {
+        'expiry': expiry,
+        'movements': movements,
+    }
+    return render(request, 'products/expiry_movements.html', context)
+
+
+@login_required
+def product_expiry_dashboard(request):
+    user = request.user
+    today = timezone.now().date()
+    three_months_later = today + timedelta(days=90)
+    
+    if user.can_see_all_data():
+        branch_id = request.GET.get('branch', '')
+        if branch_id:
+            expiry_records = ProductExpiry.objects.filter(branch_id=branch_id)
+        else:
+            expiry_records = ProductExpiry.objects.all()
+        branches = Branch.objects.filter(is_active=True)
+    else:
+        if user.branch:
+            expiry_records = ProductExpiry.objects.filter(branch=user.branch)
+            branches = Branch.objects.filter(pk=user.branch.pk)
+        else:
+            expiry_records = ProductExpiry.objects.none()
+            branches = Branch.objects.none()
+    
+    expired_records = expiry_records.filter(expiry_date__lt=today)
+    warning_records = expiry_records.filter(expiry_date__gte=today, expiry_date__lte=three_months_later)
+    
+    expired_total_quantity = expired_records.aggregate(total=Sum('quantity'))['total'] or 0
+    warning_total_quantity = warning_records.aggregate(total=Sum('quantity'))['total'] or 0
+    
+    warning_by_month = []
+    for i in range(1, 4):
+        month_start = today + timedelta(days=(i-1)*30)
+        month_end = today + timedelta(days=i*30)
+        month_records = expiry_records.filter(expiry_date__gte=month_start, expiry_date__lte=month_end)
+        warning_by_month.append({
+            'month': i,
+            'count': month_records.count(),
+            'quantity': month_records.aggregate(total=Sum('quantity'))['total'] or 0,
+        })
+    
+    nearest_expiry = expiry_records.filter(expiry_date__gte=today).order_by('expiry_date').first()
+    
+    context = {
+        'expired_count': expired_records.count(),
+        'expired_quantity': expired_total_quantity,
+        'warning_count': warning_records.count(),
+        'warning_quantity': warning_total_quantity,
+        'warning_by_month': warning_by_month,
+        'nearest_expiry': nearest_expiry,
+        'branches': branches,
+        'selected_branch': branch_id if user.can_see_all_data() else '',
+    }
+    return render(request, 'products/expiry_dashboard.html', context)          

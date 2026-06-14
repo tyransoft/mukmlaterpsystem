@@ -113,14 +113,16 @@ class BranchForm(forms.ModelForm):
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['full_name', 'phone', 'address', 'is_active']
+        fields = ['customer_id','full_name', 'phone', 'address', 'is_active']
         widgets = {
+            'customer_id': forms.TextInput(attrs={'class': 'form-control'}),
             'full_name': forms.TextInput(attrs={'class': 'form-control'}),
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
+            'customer_id':'رقم العضوية',
             'full_name': 'الاسم الكامل',
             'phone': 'رقم الهاتف',
             'address': 'العنوان',

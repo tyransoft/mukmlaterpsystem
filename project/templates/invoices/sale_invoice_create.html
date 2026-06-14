@@ -91,6 +91,13 @@
     color: #6b7280;
     margin-top: 4px;
   }
+  .barcode-input-container {
+    margin-bottom: 15px;
+  }
+  .barcode-input-container input {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
   .quantity-input {
     width: 65px;
     text-align: center;
@@ -131,6 +138,20 @@
     width: 100%;
     margin-bottom: 10px;
   }
+  .alert-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    padding: 10px 20px;
+    border-radius: 8px;
+    animation: fadeOut 2s ease-in-out forwards;
+  }
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+  }
 </style>
 
 <form method="post" id="sale-invoice-form">
@@ -142,6 +163,13 @@
         <span class="card-title">إضافة منتجات</span>
       </div>
       <div class="card-body">
+        
+        <div class="barcode-input-container">
+          <label class="form-label">قارئ الباركود</label>
+          <input type="text" id="barcode-input" class="form-control" 
+                 placeholder="امسح الباركود هنا (سيتم البحث تلقائياً)" autofocus>
+          <small class="text-muted">ضع المؤشر في هذا الحقل وامسح الباركود باستخدام جهاز المسح</small>
+        </div>
         
         <div class="product-select-container">
           <select id="product-select" class="form-select">
@@ -336,10 +364,97 @@
 $(document).ready(function() {
     let selectedProducts = [];
     let searchTimeout;
+    let barcodeTimeout;
+    let lastBarcodeValue = '';
+    let lastBarcodeTime = 0;
+    
+    let barcodeInput = $('#barcode-input');
+    
+    function showToast(message, type) {
+        let bgColor = type === 'success' ? '#22c55e' : '#ef4444';
+        let toast = $('<div>')
+            .addClass('alert-toast')
+            .css({
+                'background': bgColor,
+                'color': 'white',
+                'position': 'fixed',
+                'top': '20px',
+                'right': '20px',
+                'zIndex': '9999',
+                'padding': '10px 20px',
+                'borderRadius': '8px',
+                'fontSize': '14px',
+                'boxShadow': '0 4px 12px rgba(0,0,0,0.15)'
+            })
+            .text(message);
+        $('body').append(toast);
+        setTimeout(function() {
+            toast.fadeOut(function() { $(this).remove(); });
+        }, 2500);
+    }
+    
+    barcodeInput.on('input', function() {
+        let currentValue = $(this).val();
+        let currentTime = Date.now();
+        
+        clearTimeout(barcodeTimeout);
+        
+        if (currentValue.length > 3 && (currentTime - lastBarcodeTime) < 200) {
+            barcodeTimeout = setTimeout(function() {
+                processBarcode(currentValue);
+            }, 50);
+        } else if (currentValue.length > 5) {
+            barcodeTimeout = setTimeout(function() {
+                processBarcode(currentValue);
+            }, 100);
+        }
+        
+        lastBarcodeValue = currentValue;
+        lastBarcodeTime = currentTime;
+    });
+    
+    barcodeInput.on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let value = $(this).val();
+            if (value.length > 0) {
+                processBarcode(value);
+            }
+        }
+    });
+    
+    function processBarcode(barcode) {
+        if (!barcode || barcode.length < 3) return;
+        
+        barcodeInput.val('');
+        
+        $.ajax({
+            url: '/api/products-by-barcode/' + encodeURIComponent(barcode) + '/',
+            method: 'GET',
+            success: function(data) {
+                if (data.success && data.product) {
+                    let productId = data.product.id;
+                    let productName = data.product.name;
+                    let productPrice = parseFloat(data.product.selling_price);
+                    let productPoints = parseInt(data.product.loyalty_points || 0);
+                    let productStock = parseInt(data.product.stock || 0);
+                    
+                    addProductToTable(productId, productName, productPrice, productPoints, productStock);
+                    showToast('تم إضافة المنتج: ' + productName, 'success');
+                } else {
+                    showToast('المنتج غير موجود بالباركود: ' + barcode, 'error');
+                    $('#product-search').val(barcode).trigger('input');
+                }
+            },
+            error: function() {
+                showToast('حدث خطأ في البحث عن الباركود: ' + barcode, 'error');
+            }
+        });
+    }
     
     function addProductToTable(productId, productName, productPrice, productPoints, productStock) {
         if (productStock <= 0) {
-            alert('هذا المنتج غير متوفر حاليا');
+            showToast('هذا المنتج غير متوفر حاليا', 'error');
             return false;
         }
         
@@ -356,7 +471,7 @@ $(document).ready(function() {
             let newQuantity = existingProduct.quantity + 1;
             
             if (newQuantity > existingProduct.maxStock) {
-                alert('لا يمكن إضافة كمية أكبر من المخزون المتوفر. المتوفر: ' + existingProduct.maxStock);
+                showToast('لا يمكن إضافة كمية أكبر من المخزون المتوفر. المتوفر: ' + existingProduct.maxStock, 'error');
                 return false;
             }
             
@@ -379,6 +494,7 @@ $(document).ready(function() {
         }
         
         updateTotals();
+        barcodeInput.focus();
         return true;
     }
     
@@ -403,8 +519,7 @@ $(document).ready(function() {
                         $('#search-results').hide();
                     }
                 },
-                error: function(xhr, status, error) {
-                    console.log('خطأ في جلب المنتجات: ' + error);
+                error: function() {
                     $('#search-results').hide();
                 }
             });
@@ -429,10 +544,10 @@ $(document).ready(function() {
             
             if (product.stock > 0) {
                 stockText = 'المخزون: ' + product.stock;
-                stockColor = 'color:#4b5563';
+                stockColor = '#4b5563';
             } else {
                 stockText = 'غير متوفر';
-                stockColor = 'color:#dc2626';
+                stockColor = '#dc2626';
             }
             
             let resultItem = $('<div>')
@@ -449,7 +564,7 @@ $(document).ready(function() {
             
             let detailsDiv = $('<div>')
                 .addClass('product-details')
-                .html('السعر: ' + product.price + ' د.ل | النقاط: ' + product.points + ' | <span style="' + stockColor + '">' + stockText + '</span>');
+                .html('السعر: ' + product.price + ' د.ل | النقاط: ' + product.points + ' | <span style="color:' + stockColor + '">' + stockText + '</span>');
             
             resultItem.append(nameDiv);
             resultItem.append(detailsDiv);
@@ -489,13 +604,6 @@ $(document).ready(function() {
         addProductToTable(productId, productName, productPrice, productPoints, productStock);
     });
     
-    $('#product-select').on('keypress', function(e) {
-        if (e.which === 13) {
-            e.preventDefault();
-            $('#add-product-btn').click();
-        }
-    });
-    
     function addProductRowToTable(product) {
         let emptyRow = $('#empty-row');
         if (emptyRow.is(':visible')) {
@@ -523,10 +631,7 @@ $(document).ready(function() {
                 .attr('value', product.quantity)
                 .attr('min', '1')
                 .attr('max', product.maxStock)
-                .attr('data-id', product.id)
-                .css('width', '65px')
-                .css('text-align', 'center')
-                .css('margin', '0 5px');
+                .attr('data-id', product.id);
             
             let incButton = $('<button>')
                 .addClass('btn-sm inc-qty')
@@ -545,9 +650,7 @@ $(document).ready(function() {
                 .attr('type', 'number')
                 .attr('value', product.price)
                 .attr('step', '0.01')
-                .attr('data-id', product.id)
-                .css('width', '90px')
-                .css('text-align', 'center');
+                .attr('data-id', product.id);
             
             priceCell.append(priceInput);
             
@@ -612,14 +715,7 @@ $(document).ready(function() {
     
     $(document).on('click', '.inc-qty', function() {
         let productId = $(this).data('id');
-        let product = null;
-        
-        for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id === productId) {
-                product = selectedProducts[i];
-                break;
-            }
-        }
+        let product = selectedProducts.find(p => p.id === productId);
         
         if (product) {
             let newQuantity = product.quantity + 1;
@@ -629,57 +725,38 @@ $(document).ready(function() {
                 product.total = product.quantity * product.price;
                 updateProductRow(product);
                 updateTotals();
+                barcodeInput.focus();
             } else {
-                alert('الحد الأقصى المتوفر للمنتج ' + product.name + ' هو ' + product.maxStock);
+                showToast('الحد الأقصى المتوفر للمنتج ' + product.name + ' هو ' + product.maxStock, 'error');
             }
         }
     });
     
     $(document).on('click', '.dec-qty', function() {
         let productId = $(this).data('id');
-        let product = null;
+        let product = selectedProducts.find(p => p.id === productId);
         
-        for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id === productId) {
-                product = selectedProducts[i];
-                break;
-            }
-        }
-        
-        if (product) {
-            if (product.quantity > 1) {
-                product.quantity = product.quantity - 1;
-                product.total = product.quantity * product.price;
-                updateProductRow(product);
-                updateTotals();
-            }
+        if (product && product.quantity > 1) {
+            product.quantity = product.quantity - 1;
+            product.total = product.quantity * product.price;
+            updateProductRow(product);
+            updateTotals();
+            barcodeInput.focus();
         }
     });
     
     $(document).on('change', '.quantity-input', function() {
         let productId = $(this).data('id');
-        let product = null;
-        
-        for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id === productId) {
-                product = selectedProducts[i];
-                break;
-            }
-        }
+        let product = selectedProducts.find(p => p.id === productId);
         
         if (product) {
             let newQuantity = parseInt($(this).val());
             
-            if (isNaN(newQuantity)) {
-                newQuantity = 1;
-            }
-            
-            if (newQuantity < 1) {
-                newQuantity = 1;
-            }
+            if (isNaN(newQuantity)) newQuantity = 1;
+            if (newQuantity < 1) newQuantity = 1;
             
             if (newQuantity > product.maxStock) {
-                alert('الحد الأقصى المتوفر للمنتج ' + product.name + ' هو ' + product.maxStock);
+                showToast('الحد الأقصى المتوفر للمنتج ' + product.name + ' هو ' + product.maxStock, 'error');
                 $(this).val(product.quantity);
             } else {
                 product.quantity = newQuantity;
@@ -692,25 +769,12 @@ $(document).ready(function() {
     
     $(document).on('change', '.price-input', function() {
         let productId = $(this).data('id');
-        let product = null;
-        
-        for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id === productId) {
-                product = selectedProducts[i];
-                break;
-            }
-        }
+        let product = selectedProducts.find(p => p.id === productId);
         
         if (product) {
             let newPrice = parseFloat($(this).val());
-            
-            if (isNaN(newPrice)) {
-                newPrice = 0;
-            }
-            
-            if (newPrice < 0) {
-                newPrice = 0;
-            }
+            if (isNaN(newPrice)) newPrice = 0;
+            if (newPrice < 0) newPrice = 0;
             
             product.price = newPrice;
             product.total = product.quantity * product.price;
@@ -721,15 +785,8 @@ $(document).ready(function() {
     
     $(document).on('click', '.remove-btn', function() {
         let productId = $(this).data('id');
-        let newSelectedProducts = [];
         
-        for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id !== productId) {
-                newSelectedProducts.push(selectedProducts[i]);
-            }
-        }
-        
-        selectedProducts = newSelectedProducts;
+        selectedProducts = selectedProducts.filter(p => p.id !== productId);
         
         $('#product-row-' + productId).remove();
         $('input[name="product_' + productId + '_id"]').remove();
@@ -741,55 +798,23 @@ $(document).ready(function() {
         }
         
         updateTotals();
+        barcodeInput.focus();
     });
-    function setPaidAmountToTotal() {
-    let totalText = $('#total').text();
-    let total = parseFloat(totalText);
     
-    if (!isNaN(total)) {
-        $('#paid_amount').val(total.toFixed(2));
-        $('#paid_display').text(total.toFixed(2));
-        $('#remaining').text('0.00');
-    }
-}
-
     function updateTotals() {
-        let subtotal = 0;
-        
-        for (let i = 0; i < selectedProducts.length; i++) {
-            subtotal = subtotal + selectedProducts[i].total;
-        }
-        
-        let discount = parseFloat($('#discount').val());
-        
-        if (isNaN(discount)) {
-            discount = 0;
-        }
-        
+        let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
+        let discount = parseFloat($('#discount').val()) || 0;
         let total = subtotal - discount;
         
         let selectedPaymentMethod = $('#payment_method').find(':selected');
-        let increasePercent = parseFloat(selectedPaymentMethod.data('increase'));
-        
-        if (isNaN(increasePercent)) {
-            increasePercent = 0;
-        }
+        let increasePercent = parseFloat(selectedPaymentMethod.data('increase')) || 0;
         
         let fees = total * increasePercent / 100;
         let finalTotal = total + fees;
         
-        let points = 0;
+        let points = selectedProducts.reduce((s, p) => s + (p.points * p.quantity), 0);
         
-        for (let i = 0; i < selectedProducts.length; i++) {
-            points = points + (selectedProducts[i].points * selectedProducts[i].quantity);
-        }
-        
-        let paidAmount = parseFloat($('#paid_amount').val());
-        
-        if (isNaN(paidAmount)) {
-            paidAmount = 0;
-        }
-        
+        let paidAmount = parseFloat($('#paid_amount').val()) || 0;
         let remaining = finalTotal - paidAmount;
         
         $('#subtotal').text(subtotal.toFixed(2));
@@ -799,12 +824,16 @@ $(document).ready(function() {
         $('#points').text(points);
         $('#paid_display').text(paidAmount.toFixed(2));
         $('#remaining').text(remaining.toFixed(2));
-        setPaidAmountToTotal();
+        
+        if ($('#sale_type').val() === 'branch') {
+            $('#paid_amount').val(finalTotal.toFixed(2));
+            $('#paid_display').text(finalTotal.toFixed(2));
+            $('#remaining').text('0.00');
+        }
     }
     
     $(document).on('click', function(event) {
         let isClickInside = $(event.target).closest('.product-search-container').length > 0;
-        
         if (!isClickInside) {
             $('#search-results').hide();
         }
@@ -825,15 +854,9 @@ $(document).ready(function() {
             $('#target_branch_group').show();
             $('#customer_section').hide();
             $('#payment_group').hide();
-            
-            let currentTotal = parseFloat($('#total').text());
-            
-            if (!isNaN(currentTotal)) {
-                $('#paid_amount').val(currentTotal.toFixed(2));
-            }
-            
             updateTotals();
         }
+        barcodeInput.focus();
     });
     
     $('#is_cash_customer').on('change', function() {
@@ -846,6 +869,7 @@ $(document).ready(function() {
         } else {
             $('#registered_customer_fields').show();
         }
+        barcodeInput.focus();
     });
     
     $('#customer_select').on('change', function() {
@@ -853,16 +877,8 @@ $(document).ready(function() {
         let customerId = $(this).val();
         
         if (customerId) {
-            let points = selectedOption.data('points');
-            let debt = selectedOption.data('debt');
-            
-            if (points === undefined) {
-                points = 0;
-            }
-            
-            if (debt === undefined) {
-                debt = 0;
-            }
+            let points = selectedOption.data('points') || 0;
+            let debt = selectedOption.data('debt') || 0;
             
             $('#customer_details').show();
             $('#customer_points').text(points);
@@ -870,17 +886,10 @@ $(document).ready(function() {
         } else {
             $('#customer_details').hide();
         }
+        barcodeInput.focus();
     });
     
-    $('#discount').on('input', function() {
-        updateTotals();
-    });
-    
-    $('#paid_amount').on('input', function() {
-        updateTotals();
-    });
-    
-    $('#payment_method').on('change', function() {
+    $('#discount, #paid_amount, #payment_method').on('input change', function() {
         updateTotals();
     });
     
@@ -893,7 +902,6 @@ $(document).ready(function() {
         
         for (let i = 0; i < selectedProducts.length; i++) {
             let product = selectedProducts[i];
-            
             if (product.quantity > product.maxStock) {
                 event.preventDefault();
                 alert('المنتج ' + product.name + ': الكمية المطلوبة (' + product.quantity + ') تتجاوز المخزون المتوفر (' + product.maxStock + ')');
@@ -904,21 +912,17 @@ $(document).ready(function() {
         let saleType = $('#sale_type').val();
         let isCashCustomer = $('#is_cash_customer').is(':checked');
         
-        if (saleType === 'customer') {
-            if (!isCashCustomer) {
-                let customerId = $('#customer_select').val();
-                
-                if (!customerId) {
-                    event.preventDefault();
-                    alert('الرجاء اختيار عميل');
-                    return false;
-                }
+        if (saleType === 'customer' && !isCashCustomer) {
+            let customerId = $('#customer_select').val();
+            if (!customerId) {
+                event.preventDefault();
+                alert('الرجاء اختيار عميل');
+                return false;
             }
         }
         
         if (saleType === 'branch') {
             let targetBranch = $('#target_branch').val();
-            
             if (!targetBranch) {
                 event.preventDefault();
                 alert('الرجاء اختيار الفرع المستلم');

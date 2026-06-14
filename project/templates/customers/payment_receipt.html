@@ -58,9 +58,14 @@
       <span></span> تاريخ التسديد</span>
       <span>{{ payment.payment_date|date:"Y-m-d" }}</span>
     </div>
+
     <div class="info-row">
       <span>اسم العميل</span>
       <span class="fw-600">{{ payment.customer.full_name }}</span>
+    </div>
+    <div class="info-row">
+      <span> رقم العضوية</span>
+      <span dir="ltr">{{ payment.customer.customer_id }}</span>
     </div>
     <div class="info-row">
       <span> رقم الهاتف</span>

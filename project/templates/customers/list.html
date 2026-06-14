@@ -34,8 +34,8 @@
         <thead>
           <tr>
             <th>الاسم</th>
-            <th>الهاتف</th>
-            <th>نقاط الولاء</th>
+            <th>رقم العضوية</th>
+            <th>النقاط</th>
             <th>الدين</th>
             <th>تاريخ الإضافة</th>
             <th>الإجراءات</th>
@@ -47,7 +47,7 @@
             <td>
               <a href="{% url 'customers_detail' customer.pk %}" class="fw-600 text-primary">{{ customer.full_name }}</a>
             </td>
-            <td dir="ltr">{{ customer.phone }}</td>
+            <td dir="ltr">{{ customer.customer_id }}</td>
             <td> {{ customer.loyalty_points }}</td>
             <td>
               {% if customer.debt_balance > 0 %}

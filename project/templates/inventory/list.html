@@ -1,5 +1,7 @@
+
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}المخزون{% endblock %}
 {% block page_title %}إدارة المخزون{% endblock %}
 {% block nav_inventory %}active{% endblock %}
@@ -7,19 +9,27 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <span class="card-title">
-      
-      المخزون
-    </span>
+    <span class="card-title">المخزون</span>
     <div style="display:flex;gap:8px;">
-      <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline btn-sm"> المنخفض</a>
+      <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline btn-sm">المنخفض</a>
       <a href="{% url 'inventory_report' %}" class="btn btn-outline btn-sm">تقرير</a>
+      <a href="{% url 'inventory_stocktake' %}" class="btn btn-outline btn-sm">جرد</a>
+      {% if user.can_see_all_data %}
+      <select id="printBranchSelect" class="form-select form-select-sm" style="width:auto;">
+        <option value="">اختر فرع للطباعة</option>
+        {% for b in branches %}
+        <option value="{{ b.pk }}">{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      <button onclick="printBranch()" class="btn btn-outline btn-sm">طباعة</button>
+      {% else %}
+      <a href="{% url 'inventory_print' user.branch.pk %}" class="btn btn-outline btn-sm" target="_blank">طباعة</a>
+      {% endif %}
     </div>
   </div>
   
   <div class="card-body" style="padding:12px 16px;border-bottom:1px solid var(--border-color);">
     <form method="get" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
-      
       {% if user.can_see_all_data %}
       <select name="branch" class="form-select">
         <option value="">كل الفروع</option>
@@ -29,7 +39,6 @@
       </select>
       {% else %}
       <div class="form-control" style="background:#f3f4f6;">
-        
         الفرع: {{ user.branch.name }}
       </div>
       {% endif %}
@@ -44,7 +53,7 @@
       </select>
       
       <input type="text" name="product" class="form-control" 
-             placeholder=" بحث بالمنتج أو الباركود..." 
+             placeholder="بحث بالمنتج أو الباركود..." 
              value="{{ product_query }}">
       
       <select name="low_stock" class="form-select">
@@ -53,8 +62,8 @@
       </select>
       
       <div style="display:flex;gap:5px;">
-        <button type="submit" class="btn btn-primary" style="flex:1;"> بحث</button>
-        <a href="{% url 'inventory_list' %}" class="btn btn-outline" style="flex:1;"> إعادة تعيين</a>
+        <button type="submit" class="btn btn-primary" style="flex:1;">بحث</button>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline" style="flex:1;">إعادة تعيين</a>
       </div>
     </form>
   </div>
@@ -98,23 +107,19 @@
             <td class="text-primary fw-bold">{{ inv.stock_value|floatformat:2|intcomma }} د.ل</td>
             <td>
               {% if inv.is_low_stock %}
-              <span class="low-stock-badge"> منخفض</span>
+              <span class="low-stock-badge">منخفض</span>
               {% else %}
-              <span class="badge badge-success"> كافٍ</span>
+              <span class="badge badge-success">كافٍ</span>
               {% endif %}
-             </td>
+            </td>
             <td>
-              {% if user.can_see_all_data or user.branch == inv.branch %}
-              <a href="{% url 'inventory_adjust' inv.pk %}" class="btn btn-outline btn-sm">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
-                  <path d="M4 20h16"></path>
-                </svg>
-                تعديل
-              </a>
-              {% endif %}
-             </td>
-           </tr>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                {% if user.can_see_all_data or user.branch == inv.branch %}
+                <a href="{% url 'inventory_damage' inv.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">تلف</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
           {% empty %}
           <tr>
             <td colspan="{% if user.can_see_all_data %}9{% else %}8{% endif %}" class="text-center text-muted" style="padding:60px;">
@@ -129,9 +134,18 @@
       </table>
     </div>
   </div>
-  
-
 </div>
+
+<script>
+function printBranch() {
+    var branchId = document.getElementById('printBranchSelect').value;
+    if (branchId) {
+        window.open('/inventory/print/' + branchId + '/', '_blank');
+    } else {
+        alert('الرجاء اختيار فرع للطباعة');
+    }
+}
+</script>
 
 <style>
 .low-stock-badge {

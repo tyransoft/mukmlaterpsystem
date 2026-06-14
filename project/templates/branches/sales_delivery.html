@@ -49,7 +49,13 @@
                  placeholder="أدخل المبلغ">
           <small class="text-muted">أقصى مبلغ يمكن تسليمه: {{ remaining_to_deliver|floatformat:2|intcomma }} د.ل</small>
         </div>
-        
+        <div class="form-group">
+          <label class="form-label">طريقة الدفع *</label>
+          <select name="payment_method" class="form-control" required>
+            <option value="cash">كاش</option>
+            <option value="bank_transfer">تحويل بنكي</option>
+          </select>
+        </div>
         <div class="form-group">
           <label class="form-label">تاريخ التسليم</label>
           <input type="date" name="delivery_date" class="form-control" value="{{ today|date:'Y-m-d' }}">

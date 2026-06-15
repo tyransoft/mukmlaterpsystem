@@ -167,25 +167,27 @@
                  placeholder="ابحث عن منتج بالاسم أو امسح الباركود..." autocomplete="off" autofocus>
           <div id="product-results" class="search-results-dropdown"></div>
         </div>
+        
         <div class="form-group" style="margin-top:10px;">
-  <label class="form-label">أو اختر من القائمة</label>
-  <select id="product-select" class="form-select">
-    <option value="">-- اختر منتج --</option>
-    {% for product in products %}
-    <option value="{{ product.id }}" 
-            data-name="{{ product.name }}"
-            data-price="{{ product.selling_price }}"
-            data-points="{{ product.loyalty_points }}"
-            data-stock="{{ product.stock }}">
-      {{ product.name }} - السعر: {{ product.selling_price }} د.ل - المخزون: {{ product.stock }}
-    </option>
-    {% endfor %}
-  </select>
-</div>
+          <label class="form-label">أو اختر من القائمة</label>
+          <select id="product-select" class="form-select">
+            <option value="">-- اختر منتج --</option>
+            {% for product in products %}
+            <option value="{{ product.id }}" 
+                    data-name="{{ product.name }}"
+                    data-price="{{ product.selling_price }}"
+                    data-points="{{ product.loyalty_points }}"
+                    data-stock="{{ product.stock }}">
+              {{ product.name }} - السعر: {{ product.selling_price }} د.ل - المخزون: {{ product.stock }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
 
-<button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
-  إضافة المنتج المختار
-</button>
+        <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+          إضافة المنتج المختار
+        </button>
+        
         <div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">
           <table class="products-table">
             <thead>
@@ -200,7 +202,7 @@
             <tbody id="products-tbody">
               <tr id="empty-row">
                 <td colspan="5" style="text-align:center; padding:40px; color:#9ca3af;">
-                  ابحث عن منتج                                                                
+                  ابحث عن منتج أو اختر من القائمة
                 </td>
               </tr>
             </tbody>
@@ -257,31 +259,34 @@
             </div>
             
             <div id="registered_customer_fields">
+              <div class="form-group">
+                <label class="form-label">اختر عميل من القائمة</label>
+                <select name="customer_select" id="customer_select" class="form-select">
+                  <option value="">-- اختر عميل --</option>
+                  {% for customer in customers %}
+                  <option value="{{ customer.id }}" 
+                          data-name="{{ customer.full_name }}"
+                          data-membership="{{ customer.id }}"
+                          data-points="{{ customer.loyalty_points }}" 
+                          data-debt="{{ customer.debt_balance }}">
+                    {{ customer.full_name }} - {{ customer.phone }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
               <div class="search-container" style="margin-bottom:10px;">
-                <label class="form-label">بحث بالعميل</label>
+                <label class="form-label">أو ابحث بالاسم أو رقم العضوية</label>
                 <input type="text" id="customer-search" class="form-control" 
                        placeholder="ابحث باسم العميل أو رقم العضوية..." autocomplete="off">
                 <div id="customer-results" class="search-results-dropdown"></div>
               </div>
-  <div class="form-group">
-    <label class="form-label">اختر عميل من القائمة</label>
-    <select name="customer" id="customer_select" class="form-select">
-      <option value="">-- اختر عميل --</option>
-      {% for customer in customers %}
-      <option value="{{ customer.id }}" 
-              data-name="{{ customer.full_name }}"
-              data-membership="{{ customer.id }}"
-              data-points="{{ customer.loyalty_points }}" 
-              data-debt="{{ customer.debt_balance }}">
-        {{ customer.full_name }} - {{ customer.phone }}
-      </option>
-      {% endfor %}
-    </select>
-  </div>
+              
               <input type="hidden" name="customer" id="customer_id" value="">
               
               <div id="customer_details" class="customer-card" style="display:none;">
                 <div><strong id="customer_name"></strong></div>
+                <div>رقم العضوية: <strong id="customer_membership"></strong></div>
                 <div>نقاط: <strong id="customer_points">0</strong></div>
                 <div>الدين: <strong id="customer_debt">0.00 د.ل</strong></div>
               </div>
@@ -390,41 +395,47 @@ $(document).ready(function() {
         }, 2500);
     }
     
-    function setPaidAmountToTotal() {
+    function updatePaidAmountFromTotal() {
         let totalText = $('#total').text();
         let total = parseFloat(totalText);
         let isCashCustomer = $('#is_cash_customer').is(':checked');
         
-        if (!isNaN(total)) {
+        if (!isNaN(total) && isCashCustomer) {
             $('#paid_amount').val(total.toFixed(2));
             $('#paid_display').text(total.toFixed(2));
-            
-            if (isCashCustomer) {
+            $('#remaining').text('0.00');
+        } else if (!isNaN(total)) {
+            let paidAmount = parseFloat($('#paid_amount').val()) || 0;
+            if (paidAmount > total) {
+                $('#paid_amount').val(total.toFixed(2));
+                $('#paid_display').text(total.toFixed(2));
                 $('#remaining').text('0.00');
             } else {
-                let remaining = total - total;
+                let remaining = total - paidAmount;
                 $('#remaining').text(remaining.toFixed(2));
             }
         }
     }
+    
     $('#add-product-btn').on('click', function() {
-    let select = $('#product-select');
-    let selectedOption = select.find(':selected');
+        let select = $('#product-select');
+        let selectedOption = select.find(':selected');
+        
+        if (selectedOption.val() === '') {
+            alert('الرجاء اختيار منتج من القائمة');
+            return;
+        }
+        
+        let productId = parseInt(selectedOption.val());
+        let productName = selectedOption.data('name');
+        let productPrice = parseFloat(selectedOption.data('price'));
+        let productPoints = parseInt(selectedOption.data('points'));
+        let productStock = parseInt(selectedOption.data('stock'));
+        
+        addProductToTable(productId, productName, productPrice, productPoints, productStock);
+        select.val('');
+    });
     
-    if (selectedOption.val() === '') {
-        alert('الرجاء اختيار منتج من القائمة');
-        return;
-    }
-    
-    let productId = parseInt(selectedOption.val());
-    let productName = selectedOption.data('name');
-    let productPrice = parseFloat(selectedOption.data('price'));
-    let productPoints = parseInt(selectedOption.data('points'));
-    let productStock = parseInt(selectedOption.data('stock'));
-    
-    addProductToTable(productId, productName, productPrice, productPoints, productStock);
-    select.val('');
-});
     $('#product-search').on('input', function() {
         clearTimeout(productSearchTimeout);
         let query = $(this).val().trim();
@@ -514,6 +525,31 @@ $(document).ready(function() {
         }
     }
     
+    $('#customer_select').on('change', function() {
+        let selectedOption = $(this).find(':selected');
+        let customerId = $(this).val();
+        
+        if (customerId) {
+            let customerName = selectedOption.data('name');
+            let customerMembership = selectedOption.data('membership');
+            let customerPoints = selectedOption.data('points') || 0;
+            let customerDebt = selectedOption.data('debt') || 0;
+            
+            $('#customer_id').val(customerId);
+            $('#customer_name').text(customerName);
+            $('#customer_membership').text(customerMembership);
+            $('#customer_points').text(customerPoints);
+            $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
+            $('#customer_details').show();
+            $('#customer-search').val(customerName);
+            $('#customer-results').hide();
+        } else {
+            $('#customer_details').hide();
+            $('#customer_id').val('');
+            $('#customer-search').val('');
+        }
+    });
+    
     $('#customer-search').on('input', function() {
         clearTimeout(customerSearchTimeout);
         let query = $(this).val().trim();
@@ -525,7 +561,7 @@ $(document).ready(function() {
         
         customerSearchTimeout = setTimeout(function() {
             $.ajax({
-                url: '/customers/search/',
+                url: '/customers/search/ajax/',
                 method: 'GET',
                 data: { q: query },
                 success: function(data) {
@@ -541,83 +577,62 @@ $(document).ready(function() {
             });
         }, 300);
     });
-$('#customer_select').on('change', function() {
-    let selectedOption = $(this).find(':selected');
-    let customerId = $(this).val();
     
-    if (customerId) {
-        let customerName = selectedOption.data('name');
-        let customerMembership = selectedOption.data('customer_id');
-        let customerPoints = selectedOption.data('points') || 0;
-        let customerDebt = selectedOption.data('debt') || 0;
+    function displayCustomerResults(customers) {
+        let $results = $('#customer-results');
         
-        $('#customer_id').val(customerId);
-        $('#customer_name').text(customerName);
-        $('#customer_membership').text(customerMembership);
-        $('#customer_points').text(customerPoints);
-        $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
-        $('#customer_details').show();
-        $('#customer-search').val(customerName);
-    } else {
-        $('#customer_details').hide();
-        $('#customer_id').val('');
-        $('#customer-search').val('');
-    }
-});    
-function displayCustomerResults(customers) {
-    let $results = $('#customer-results');
-    
-    if (!customers || customers.length === 0) {
-        $results.hide();
-        return;
-    }
-    
-    $results.empty();
-    $results.show();
-    
-    for (let i = 0; i < customers.length; i++) {
-        let customer = customers[i];
+        if (!customers || customers.length === 0) {
+            $results.hide();
+            return;
+        }
         
-        let resultItem = $('<div>')
-            .addClass('search-result-item')
-            .attr('data-id', customer.id)
-            .attr('data-name', customer.full_name)
-            .attr('data-membership', customer.membership_number)
-            .attr('data-points', customer.loyalty_points)
-            .attr('data-debt', customer.debt_balance);
+        $results.empty();
+        $results.show();
         
-        let nameDiv = $('<div>')
-            .addClass('customer-name')
-            .text(customer.full_name);
-        
-        let detailsDiv = $('<div>')
-            .addClass('customer-details')
-            .html('رقم العضوية: ' + (customer.customer_id || '-') + ' | الهاتف: ' + (customer.phone || '-'));
-        
-        resultItem.append(nameDiv);
-        resultItem.append(detailsDiv);
-        
-        resultItem.on('click', function() {
-            let customerId = $(this).data('id');
-            let customerName = $(this).data('name');
-            let customerMembership = $(this).data('customer_id');
-            let customerPoints = $(this).data('points');
-            let customerDebt = $(this).data('debt');
+        for (let i = 0; i < customers.length; i++) {
+            let customer = customers[i];
             
-            $('#customer_id').val(customerId);
-            $('#customer_name').text(customerName);
-            $('#customer_membership').text(customerMembership);
-            $('#customer_points').text(customerPoints);
-            $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
-            $('#customer_details').show();
+            let resultItem = $('<div>')
+                .addClass('search-result-item')
+                .attr('data-id', customer.id)
+                .attr('data-name', customer.full_name)
+                .attr('data-membership', customer.id)
+                .attr('data-points', customer.loyalty_points)
+                .attr('data-debt', customer.debt_balance);
             
-            $('#customer-search').val(customerName);
-            $('#customer-results').hide();
-        });
-        
-        $results.append(resultItem);
+            let nameDiv = $('<div>')
+                .addClass('customer-name')
+                .text(customer.full_name);
+            
+            let detailsDiv = $('<div>')
+                .addClass('customer-details')
+                .html('رقم العضوية: ' + customer.id + ' | الهاتف: ' + (customer.phone || '-'));
+            
+            resultItem.append(nameDiv);
+            resultItem.append(detailsDiv);
+            
+            resultItem.on('click', function() {
+                let customerId = $(this).data('id');
+                let customerName = $(this).data('name');
+                let customerMembership = $(this).data('membership');
+                let customerPoints = $(this).data('points');
+                let customerDebt = $(this).data('debt');
+                
+                $('#customer_id').val(customerId);
+                $('#customer_name').text(customerName);
+                $('#customer_membership').text(customerMembership);
+                $('#customer_points').text(customerPoints);
+                $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
+                $('#customer_details').show();
+                $('#customer_select').val(customerId);
+                $('#customer-search').val(customerName);
+                $('#customer-results').hide();
+            });
+            
+            $results.append(resultItem);
+        }
     }
-}
+    
     function addProductToTable(productId, productName, productPrice, productPoints, productStock) {
         if (productStock <= 0) {
             showToast('هذا المنتج غير متوفر حاليا', 'error');
@@ -672,11 +687,11 @@ function displayCustomerResults(customers) {
         let rowId = 'product-row-' + product.id;
         
         if ($('#' + rowId).length === 0) {
-            let newRow = $('<tr>').attr('id', rowId);
+            let newRow = $('<td>').attr('id', rowId);
             
             let nameCell = $('<td>').attr('style', 'text-align:right;').text(product.name);
             
-            let quantityCell = $('<td>');
+            let quantityCell = $('<tr>');
             
             let decButton = $('<button>')
                 .addClass('btn-sm dec-qty')
@@ -870,23 +885,13 @@ function displayCustomerResults(customers) {
         
         let points = selectedProducts.reduce((s, p) => s + (p.points * p.quantity), 0);
         
-        let paidAmount = parseFloat($('#paid_amount').val()) || 0;
-        let isCashCustomer = $('#is_cash_customer').is(':checked');
-        
-        if (isCashCustomer) {
-            paidAmount = finalTotal;
-            $('#paid_amount').val(finalTotal.toFixed(2));
-        }
-        
-        let remaining = finalTotal - paidAmount;
-        
         $('#subtotal').text(subtotal.toFixed(2));
         $('#discount_display').text(discount.toFixed(2));
         $('#additional_fees').text(fees.toFixed(2));
         $('#total').text(finalTotal.toFixed(2));
         $('#points').text(points);
-        $('#paid_display').text(paidAmount.toFixed(2));
-        $('#remaining').text(remaining.toFixed(2));
+        
+        updatePaidAmountFromTotal();
         
         if ($('#sale_type').val() === 'branch') {
             $('#paid_amount').val(finalTotal.toFixed(2));
@@ -934,6 +939,7 @@ function displayCustomerResults(customers) {
             $('#customer_id').val('');
             $('#customer_details').hide();
             $('#customer-search').val('');
+            $('#customer_select').val('');
             updateTotals();
         } else {
             $('#registered_customer_fields').show();

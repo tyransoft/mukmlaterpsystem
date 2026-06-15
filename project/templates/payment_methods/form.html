@@ -69,11 +69,10 @@
                             {% if form.name.errors %}
                                 <div class="error-message">{{ form.name.errors.0 }}</div>
                             {% endif %}
-                            <div class="help-text">مثال: بطاقة ائتمان، تحويل بنكي، محفظة إلكترونية، إلخ.</div>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">نسبة الزيادة (%)</label>
+                            <label class="form-label">نسبة الزيادة </label>
                             <div class="percentage-input-group" style="position: relative;">
                                 {{ form.increase_percentage }}
                                 <span class="percentage-symbol" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%);">%</span>
@@ -81,11 +80,7 @@
                             {% if form.increase_percentage.errors %}
                                 <div class="error-message">{{ form.increase_percentage.errors.0 }}</div>
                             {% endif %}
-                            <div class="help-text">
-                                النسبة المئوية التي ستضاف على إجمالي الفاتورة عند استخدام هذه الطريقة.
-                                <br>
-                                <strong>مثال:</strong> إذا كانت النسبة 2.5%، فسيتم إضافة 2.5 دينار لكل 100 دينار.
-                            </div>
+                            
                         </div>
                     </div>
                     
@@ -95,7 +90,6 @@
                                 {{ form.is_active }}
                                 <span>طريقة دفع نشطة</span>
                             </label>
-                            <div class="help-text">إذا كانت غير نشطة، لن تظهر في قائمة طرق الدفع عند إنشاء الفواتير.</div>
                         </div>
                         
                         <div class="form-group">
@@ -103,7 +97,6 @@
                                 {{ form.is_default }}
                                 <span>جعل هذه الطريقة الافتراضية</span>
                             </label>
-                            <div class="help-text">الطريقة الافتراضية ستظهر مختارة تلقائياً عند إنشاء فواتير جديدة.</div>
                         </div>
                         
                         {% if form.instance.pk and form.instance.is_default %}

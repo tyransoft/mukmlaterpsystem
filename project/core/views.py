@@ -810,14 +810,12 @@ def purchase_invoice_create(request):
         'suppliers': suppliers,
         'user_branch': request.user.branch,
     }
-    return render(request, 'purchases/purchase_invoice_create.html', context)
+    return render(request, 'invoices/purchase_invoice_create.html', context)
 
 
 
 @login_required
 def sale_invoice_detail(request, pk):
-    """عرض تفاصيل فاتورة مبيعات"""
-    from .models import SaleInvoice
     
     invoice = get_object_or_404(SaleInvoice, pk=pk)
     
@@ -983,12 +981,18 @@ def customer_detail(request, pk):
 def customer_search_ajax(request):
     query = request.GET.get('q', '')
     customers = Customer.objects.filter(
-        Q(full_name__icontains=query) | Q(phone__icontains=query),
+        Q(full_name__icontains=query) | Q(phone__icontains=query) | Q(customer_id__icontains=query),
         is_active=True
     )[:10]
-    data = [{'id': c.pk, 'full_name': c.full_name, 'phone': c.phone, 'loyalty_points': c.loyalty_points, 'debt_balance': float(c.debt_balance)} for c in customers]
+    data = [{
+        'id': c.pk, 
+        'full_name': c.full_name, 
+        'phone': c.phone, 
+        'customer_id': c.customer_id,
+        'loyalty_points': c.loyalty_points, 
+        'debt_balance': float(c.debt_balance)
+    } for c in customers]
     return JsonResponse({'customers': data})
-
 
 @login_required
 def inventory_list(request):

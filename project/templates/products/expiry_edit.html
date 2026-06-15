@@ -1,16 +1,22 @@
+<!-- templates/products/expiry_edit.html -->
 
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}إضافة مراقبة صلاحية{% endblock %}
-{% block page_title %}إضافة مراقبة صلاحية جديدة{% endblock %}
+{% block title %}تعديل مراقبة صلاحية{% endblock %}
+{% block page_title %}تعديل مراقبة صلاحية{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width:600px;">
   <div class="card-header">
-    <span class="card-title">إضافة مراقبة صلاحية</span>
+    <span class="card-title">تعديل مراقبة صلاحية</span>
   </div>
   <div class="card-body">
+    <div style="background:#eff6ff;padding:15px;border-radius:12px;margin-bottom:20px;">
+      <div class="fw-bold">{{ expiry.product.name }}</div>
+      <div class="text-muted">{{ expiry.branch.name }}</div>
+    </div>
+    
     <form method="post">
       {% csrf_token %}
       
@@ -19,40 +25,32 @@
         <select name="product" class="form-select" required>
           <option value="">-- اختر منتج --</option>
           {% for product in products %}
-          <option value="{{ product.id }}">{{ product.name }} - {{ product.barcode|default:'بدون باركود' }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label class="form-label">الفرع *</label>
-        <select name="branch" class="form-select" required>
-          <option value="">-- اختر فرع --</option>
-          {% for branch in branches %}
-          <option value="{{ branch.id }}" {% if selected_branch == branch.id|stringformat:'s' %}selected{% endif %}>{{ branch.name }}</option>
+          <option value="{{ product.id }}" {% if expiry.product.id == product.id %}selected{% endif %}>
+            {{ product.name }} - {{ product.barcode|default:'بدون باركود' }}
+          </option>
           {% endfor %}
         </select>
       </div>
       
       <div class="form-group">
         <label class="form-label">الكمية المراقبة *</label>
-        <input type="number" name="quantity" class="form-control" min="1" required>
+        <input type="number" name="quantity" class="form-control" value="{{ expiry.quantity }}" min="1" required>
       </div>
       
       <div class="form-group">
         <label class="form-label">تاريخ انتهاء الصلاحية *</label>
-        <input type="date" name="expiry_date" class="form-control" required>
+        <input type="date" name="expiry_date" class="form-control" value="{{ expiry.expiry_date|date:'Y-m-d' }}" required>
       </div>
       
 
       
       <div class="form-group">
         <label class="form-label">ملاحظات</label>
-        <textarea name="notes" class="form-control" rows="3"></textarea>
+        <textarea name="notes" class="form-control" rows="3">{{ expiry.notes }}</textarea>
       </div>
       
       <div style="display:flex;gap:10px;margin-top:20px;">
-        <button type="submit" class="btn btn-primary">حفظ</button>
+        <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
         <a href="{% url 'product_expiry_list' %}" class="btn btn-outline">إلغاء</a>
       </div>
     </form>

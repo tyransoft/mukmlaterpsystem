@@ -404,24 +404,11 @@ $(document).ready(function() {
     function updatePaidAmountAndRemaining() {
         let totalText = $('#total').text();
         let total = parseFloat(totalText);
-        let isCashCustomer = $('#is_cash_customer').is(':checked');
         
         if (!isNaN(total)) {
-            if (isCashCustomer) {
-                $('#paid_amount').val(total.toFixed(2));
-                $('#paid_display').text(total.toFixed(2));
-                $('#remaining').text('0.00');
-            } else {
-                let paidAmount = parseFloat($('#paid_amount').val()) || 0;
-                if (paidAmount > total) {
-                    $('#paid_amount').val(total.toFixed(2));
-                    $('#paid_display').text(total.toFixed(2));
-                    $('#remaining').text('0.00');
-                } else {
-                    let remaining = total - paidAmount;
-                    $('#remaining').text(remaining.toFixed(2));
-                }
-            }
+            $('#paid_amount').val(total.toFixed(2));
+            $('#paid_display').text(total.toFixed(2));
+            $('#remaining').text('0.00');
         }
     }
     
@@ -569,7 +556,7 @@ $(document).ready(function() {
         
         customerSearchTimeout = setTimeout(function() {
             $.ajax({
-                url: '/customers/search/',
+                url: '/customers/search/ajax/',
                 method: 'GET',
                 data: { q: query },
                 success: function(data) {
@@ -740,7 +727,7 @@ $(document).ready(function() {
                 .addClass('total-' + product.id)
                 .text(product.total.toFixed(2));
             
-            let actionCell = $('<td>');
+            let actionCell = $('</table>');
             
             let removeButton = $('<button>')
                 .addClass('remove-btn')

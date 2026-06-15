@@ -263,7 +263,21 @@
                        placeholder="ابحث باسم العميل أو رقم العضوية..." autocomplete="off">
                 <div id="customer-results" class="search-results-dropdown"></div>
               </div>
-              
+  <div class="form-group">
+    <label class="form-label">اختر عميل من القائمة</label>
+    <select name="customer" id="customer_select" class="form-select">
+      <option value="">-- اختر عميل --</option>
+      {% for customer in customers %}
+      <option value="{{ customer.id }}" 
+              data-name="{{ customer.full_name }}"
+              data-membership="{{ customer.id }}"
+              data-points="{{ customer.loyalty_points }}" 
+              data-debt="{{ customer.debt_balance }}">
+        {{ customer.full_name }} - {{ customer.phone }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
               <input type="hidden" name="customer" id="customer_id" value="">
               
               <div id="customer_details" class="customer-card" style="display:none;">
@@ -512,7 +526,7 @@ $(document).ready(function() {
         
         customerSearchTimeout = setTimeout(function() {
             $.ajax({
-                url: '/customers/search/ajax/',
+                url: '/customers/search/',
                 method: 'GET',
                 data: { q: query },
                 success: function(data) {

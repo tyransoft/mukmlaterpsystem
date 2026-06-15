@@ -170,32 +170,7 @@ $(document).ready(function() {
         }
     });
     
-    $('#id_name').on('blur', function() {
-        const name = $(this).val();
-        const currentId = '{{ form.instance.pk|default:"" }}';
-        
-        if (name && name.length > 2) {
-            $.ajax({
-                url: '{% url "payment_method_check_duplicate" %}',
-                method: 'GET',
-                data: {
-                    name: name,
-                    exclude_id: currentId
-                },
-                success: function(data) {
-                    if (data.exists) {
-                        $('#id_name').addClass('is-invalid');
-                        if (!$('#name-error').length) {
-                            $('#id_name').after('<div id="name-error" class="error-message" style="color:#dc2626;margin-top:5px;">هذا الاسم مستخدم بالفعل</div>');
-                        }
-                    } else {
-                        $('#id_name').removeClass('is-invalid');
-                        $('#name-error').remove();
-                    }
-                }
-            });
-        }
-    });
+   
 });
 </script>
 {% endblock %}

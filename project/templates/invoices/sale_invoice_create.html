@@ -282,7 +282,6 @@
               
               <div id="customer_details" class="customer-card" style="display:none;">
                 <div><strong id="customer_name"></strong></div>
-                <div>رقم العضوية: <strong id="customer_membership"></strong></div>
                 <div>نقاط: <strong id="customer_points">0</strong></div>
                 <div>الدين: <strong id="customer_debt">0.00 د.ل</strong></div>
               </div>
@@ -542,7 +541,29 @@ $(document).ready(function() {
             });
         }, 300);
     });
+$('#customer_select').on('change', function() {
+    let selectedOption = $(this).find(':selected');
+    let customerId = $(this).val();
     
+    if (customerId) {
+        let customerName = selectedOption.data('name');
+        let customerMembership = selectedOption.data('customer_id');
+        let customerPoints = selectedOption.data('points') || 0;
+        let customerDebt = selectedOption.data('debt') || 0;
+        
+        $('#customer_id').val(customerId);
+        $('#customer_name').text(customerName);
+        $('#customer_membership').text(customerMembership);
+        $('#customer_points').text(customerPoints);
+        $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
+        $('#customer_details').show();
+        $('#customer-search').val(customerName);
+    } else {
+        $('#customer_details').hide();
+        $('#customer_id').val('');
+        $('#customer-search').val('');
+    }
+});    
 function displayCustomerResults(customers) {
     let $results = $('#customer-results');
     

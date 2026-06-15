@@ -584,10 +584,7 @@ def sale_invoice_create(request):
                 cash_customer_phone = None
                 
                 if is_cash_customer:
-                    cash_customer_name = request.POST.get('cash_customer_name', '').strip()
-                    cash_customer_phone = request.POST.get('cash_customer_phone', '').strip()
-                    if not cash_customer_name:
-                        raise ValidationErr('الرجاء إدخال اسم العميل النقدي')
+                    pass
                 else:
                     customer_id = request.POST.get('customer') or None
                     if not customer_id and sale_type == 'customer':
@@ -608,8 +605,7 @@ def sale_invoice_create(request):
                     total=0,
                     payment_method=payment_method,
                     is_cash_customer=is_cash_customer,
-                    cash_customer_name=cash_customer_name,
-                    cash_customer_phone=cash_customer_phone,
+                    
                 )
                 invoice.save()
                 

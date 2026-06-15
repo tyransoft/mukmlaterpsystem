@@ -150,6 +150,12 @@
     font-size: 16px;
     letter-spacing: 1px;
   }
+  .paid-amount-wrapper {
+    position: relative;
+  }
+  .paid-amount-wrapper input {
+    padding-left: 30px;
+  }
 </style>
 
 <form method="post" id="sale-invoice-form">
@@ -266,10 +272,10 @@
                   {% for customer in customers %}
                   <option value="{{ customer.id }}" 
                           data-name="{{ customer.full_name }}"
-                          data-membership="{{ customer.id }}"
+                          data-customer-id="{{ customer.customer_id }}"
                           data-points="{{ customer.loyalty_points }}" 
                           data-debt="{{ customer.debt_balance }}">
-                    {{ customer.full_name }} - {{ customer.phone }}
+                    {{ customer.full_name }} - رقم العضوية: {{ customer.customer_id|default:"-" }} - {{ customer.phone }}
                   </option>
                   {% endfor %}
                 </select>
@@ -395,24 +401,26 @@ $(document).ready(function() {
         }, 2500);
     }
     
-    function updatePaidAmountFromTotal() {
+    function updatePaidAmountAndRemaining() {
         let totalText = $('#total').text();
         let total = parseFloat(totalText);
         let isCashCustomer = $('#is_cash_customer').is(':checked');
         
-        if (!isNaN(total) && isCashCustomer) {
-            $('#paid_amount').val(total.toFixed(2));
-            $('#paid_display').text(total.toFixed(2));
-            $('#remaining').text('0.00');
-        } else if (!isNaN(total)) {
-            let paidAmount = parseFloat($('#paid_amount').val()) || 0;
-            if (paidAmount > total) {
+        if (!isNaN(total)) {
+            if (isCashCustomer) {
                 $('#paid_amount').val(total.toFixed(2));
                 $('#paid_display').text(total.toFixed(2));
                 $('#remaining').text('0.00');
             } else {
-                let remaining = total - paidAmount;
-                $('#remaining').text(remaining.toFixed(2));
+                let paidAmount = parseFloat($('#paid_amount').val()) || 0;
+                if (paidAmount > total) {
+                    $('#paid_amount').val(total.toFixed(2));
+                    $('#paid_display').text(total.toFixed(2));
+                    $('#remaining').text('0.00');
+                } else {
+                    let remaining = total - paidAmount;
+                    $('#remaining').text(remaining.toFixed(2));
+                }
             }
         }
     }
@@ -531,13 +539,13 @@ $(document).ready(function() {
         
         if (customerId) {
             let customerName = selectedOption.data('name');
-            let customerMembership = selectedOption.data('membership');
+            let customerMembership = selectedOption.data('customer-id');
             let customerPoints = selectedOption.data('points') || 0;
             let customerDebt = selectedOption.data('debt') || 0;
             
             $('#customer_id').val(customerId);
             $('#customer_name').text(customerName);
-            $('#customer_membership').text(customerMembership);
+            $('#customer_membership').text(customerMembership || '-');
             $('#customer_points').text(customerPoints);
             $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
             $('#customer_details').show();
@@ -561,7 +569,7 @@ $(document).ready(function() {
         
         customerSearchTimeout = setTimeout(function() {
             $.ajax({
-                url: '/customers/search/ajax/',
+                url: '/customers/search/',
                 method: 'GET',
                 data: { q: query },
                 success: function(data) {
@@ -596,7 +604,7 @@ $(document).ready(function() {
                 .addClass('search-result-item')
                 .attr('data-id', customer.id)
                 .attr('data-name', customer.full_name)
-                .attr('data-membership', customer.id)
+                .attr('data-customer-id', customer.customer_id)
                 .attr('data-points', customer.loyalty_points)
                 .attr('data-debt', customer.debt_balance);
             
@@ -606,7 +614,7 @@ $(document).ready(function() {
             
             let detailsDiv = $('<div>')
                 .addClass('customer-details')
-                .html('رقم العضوية: ' + customer.id + ' | الهاتف: ' + (customer.phone || '-'));
+                .html('رقم العضوية: ' + (customer.customer_id || '-') + ' | الهاتف: ' + (customer.phone || '-'));
             
             resultItem.append(nameDiv);
             resultItem.append(detailsDiv);
@@ -614,13 +622,13 @@ $(document).ready(function() {
             resultItem.on('click', function() {
                 let customerId = $(this).data('id');
                 let customerName = $(this).data('name');
-                let customerMembership = $(this).data('membership');
+                let customerMembership = $(this).data('customer-id');
                 let customerPoints = $(this).data('points');
                 let customerDebt = $(this).data('debt');
                 
                 $('#customer_id').val(customerId);
                 $('#customer_name').text(customerName);
-                $('#customer_membership').text(customerMembership);
+                $('#customer_membership').text(customerMembership || '-');
                 $('#customer_points').text(customerPoints);
                 $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
                 $('#customer_details').show();
@@ -687,9 +695,9 @@ $(document).ready(function() {
         let rowId = 'product-row-' + product.id;
         
         if ($('#' + rowId).length === 0) {
-            let newRow = $('<td>').attr('id', rowId);
+            let newRow = $('<tr>').attr('id', rowId);
             
-            let nameCell = $('<td>').attr('style', 'text-align:right;').text(product.name);
+            let nameCell = $('<td>').attr('style', 'text-align:right;').html('<strong>' + product.name + '</strong>');
             
             let quantityCell = $('<tr>');
             
@@ -891,7 +899,7 @@ $(document).ready(function() {
         $('#total').text(finalTotal.toFixed(2));
         $('#points').text(points);
         
-        updatePaidAmountFromTotal();
+        updatePaidAmountAndRemaining();
         
         if ($('#sale_type').val() === 'branch') {
             $('#paid_amount').val(finalTotal.toFixed(2));

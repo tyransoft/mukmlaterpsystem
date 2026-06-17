@@ -453,14 +453,20 @@ class PurchaseInvoice(models.Model):
     def __str__(self):
         return f"{self.invoice_number}"
     
+
     def save(self, *args, **kwargs):
-        if not self.invoice_number and not self.is_auto_generated:
-            self.invoice_number = self._generate_invoice_number()
-        self.debt_amount = self.total - self.paid_amount
-        super().save(*args, **kwargs)
-        if self.supplier and self.status == 'confirmed':
-            self.supplier.update_debt_balance()
+      if not self.invoice_number and not self.is_auto_generated:
+        self.invoice_number = self._generate_invoice_number()
     
+      self.debt_amount = self.total - self.paid_amount
+    
+      if self.debt_amount < 0:
+        self.debt_amount = 0
+    
+      super().save(*args, **kwargs)
+    
+      if self.supplier and self.status == 'confirmed':
+        self.supplier.update_debt_balance()
     def _generate_invoice_number(self):
         date_str = timezone.now().strftime('%Y%m%d')
         count = PurchaseInvoice.objects.filter(

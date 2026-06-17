@@ -780,7 +780,6 @@ def purchase_invoice_create(request):
                 
                 invoice.subtotal = subtotal
                 invoice.total = subtotal - discount
-                invoice.debt_amount = invoice.total - paid_amount
                 invoice.save()
                 
                 invoice.update_loyalty_points()

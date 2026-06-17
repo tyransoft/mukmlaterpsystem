@@ -72,6 +72,24 @@
     font-weight: 500;
   }
   
+  .product-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  
+  .product-badge {
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    color: #64748b;
+    font-family: monospace;
+    direction: ltr;
+  }
+  
   .quantity-controls {
     display: flex;
     align-items: center;
@@ -362,7 +380,7 @@
         </div>
 
         <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
-          إضافة المنتج 
+          إضافة المنتج المختار
         </button>
         
         <div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">
@@ -381,6 +399,7 @@
                 <td colspan="5">
                   <div class="empty-state">
                     <div class="empty-title">لا توجد منتجات</div>
+                    <div class="empty-sub">ابحث عن منتج أو امسح الباركود لإضافته للفاتورة</div>
                   </div>
                 </td>
               </tr>
@@ -433,6 +452,7 @@
             </label>
             <input type="number" name="paid_amount" id="paid_amount" 
                    class="paid-amount-input" step="0.01" value="0">
+            <small class="text-muted">يتم تعبئته تلقائياً بقيمة الإجمالي، ويمكنك تعديله يدوياً</small>
           </div>
           
           <div class="form-group">
@@ -709,7 +729,7 @@ $(document).ready(function() {
             
             let nameCell = $('<td>').css('text-align', 'right');
             nameCell.html(`
-                <div style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
+                <div class="product-name-cell">
                     <span>${escapeHtml(product.name)}</span>
                 </div>
             `);
@@ -718,9 +738,9 @@ $(document).ready(function() {
             let quantityCell = $('<td>');
             quantityCell.html(`
                 <div class="quantity-controls">
-                    <button class="btn-qty minus dec-qty" type="button" data-id="${product.id}">-</button>
+                    <button class="btn-qty minus dec-qty" data-id="${product.id}">-</button>
                     <input class="quantity-input" type="number" value="${product.quantity}" min="1" data-id="${product.id}">
-                    <button class="btn-qty plus inc-qty" type="button" data-id="${product.id}">+</button>
+                    <button class="btn-qty plus inc-qty" data-id="${product.id}">+</button>
                 </div>
             `);
             newRow.append(quantityCell);
@@ -739,7 +759,7 @@ $(document).ready(function() {
             
             let removeCell = $('<td>');
             removeCell.html(`
-                <button class="remove-btn" type="button" data-id="${product.id}">✕</button>
+                <button class="remove-btn" data-id="${product.id}">✕</button>
             `);
             newRow.append(removeCell);
             

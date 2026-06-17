@@ -400,22 +400,52 @@ class Supplier(models.Model):
     
     
     def get_total_purchases(self):
-        result = PurchaseInvoice.objects.filter(
-            supplier=self,
-            status='confirmed'
-        ).aggregate(total=Sum('total'))
-        return result['total'] or 0
-    
-    def get_total_paid(self):
-        result = self.payments.aggregate(total=Sum('amount'))['total'] or 0
-        return result
-    
-    def update_debt_balance(self):
-        total_purchases = self.get_total_purchases()
-        total_paid = self.get_total_paid()
-        self.debt_balance = total_purchases - total_paid
-        self.save(update_fields=['debt_balance'])
+      result = PurchaseInvoice.objects.filter(
+        supplier=self,
+        status='confirmed'
+      ).aggregate(total=Sum('total'))
+      return result['total'] or 0
 
+    def get_total_paid(self):
+      result = self.payments.aggregate(total=Sum('amount'))['total'] or 0
+      return result
+
+    def get_unpaid_invoices_total(self):
+      from .models import PurchaseInvoice
+      invoices = PurchaseInvoice.objects.filter(
+        supplier=self,
+        status='confirmed'
+       )
+    
+      total_debt = 0
+      for invoice in invoices:
+        remaining = invoice.total - invoice.paid_amount
+        if remaining > 0:
+            total_debt += remaining
+    
+      return total_debt
+
+    def get_total_paid_from_invoices(self):
+     from django.db.models import Sum
+    
+     result = PurchaseInvoice.objects.filter(
+        supplier=self,
+        status='confirmed'
+     ).aggregate(total=Sum('paid_amount'))['total'] or 0
+     return result
+
+    def update_debt_balance(self):
+      total_purchases = self.get_total_purchases()
+      total_paid_from_invoices = self.get_total_paid_from_invoices()
+    
+      self.debt_balance = total_purchases - total_paid_from_invoices
+
+      if self.debt_balance < 0:
+        self.debt_balance = 0
+    
+      self.save(update_fields=['debt_balance'])
+
+      
 class PurchaseInvoice(models.Model):
     STATUS_CHOICES = [
         ('draft', 'مسودة'),

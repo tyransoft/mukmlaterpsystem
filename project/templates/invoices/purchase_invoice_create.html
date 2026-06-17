@@ -72,24 +72,6 @@
     font-weight: 500;
   }
   
-  .product-name-cell {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: flex-end;
-  }
-  
-  .product-badge {
-    display: inline-block;
-    background: #f1f5f9;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    color: #64748b;
-    font-family: monospace;
-    direction: ltr;
-  }
-  
   .quantity-controls {
     display: flex;
     align-items: center;
@@ -317,11 +299,6 @@
     box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
   }
   
-  .paid-amount-input:disabled {
-    background: #f8fafc;
-    cursor: not-allowed;
-  }
-  
   .auto-fill-badge {
     display: inline-block;
     background: #dcfce7;
@@ -330,6 +307,27 @@
     border-radius: 12px;
     font-size: 11px;
     font-weight: 600;
+  }
+  
+  .search-input {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  
+  .alert-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    padding: 10px 20px;
+    border-radius: 8px;
+    animation: fadeOut 2.5s ease-in-out forwards;
+  }
+  
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; display: none; }
   }
 </style>
 
@@ -344,14 +342,28 @@
       <div class="card-body">
         
         <div class="search-container">
-          <label class="form-label">البحث عن منتج</label>
-          <input type="text" id="search-input" class="form-control" 
-                 placeholder="امسح الباركود أو اكتب اسم المنتج..." 
-                 autofocus
-                 style="font-size:16px; letter-spacing:0.5px;">
-          <small class="text-muted">امسح الباركود باستخدام القارئ أو اكتب اسم المنتج للبحث</small>
-          <div id="search-results" class="search-results-dropdown"></div>
+          <input type="text" id="product-search" class="form-control search-input" 
+                 placeholder="ابحث عن منتج بالاسم أو امسح الباركود..." autocomplete="off" autofocus>
+          <div id="product-results" class="search-results-dropdown"></div>
         </div>
+        
+        <div class="form-group" style="margin-top:10px;">
+          <select id="product-select" class="form-select">
+            <option value="">-- اختر منتج --</option>
+            {% for product in products %}
+            <option value="{{ product.id }}" 
+                    data-name="{{ product.name }}"
+                    data-price="{{ product.cost_price }}"
+                    data-barcode="{{ product.barcode|default:'' }}">
+              {{ product.name }} - سعر الشراء: {{ product.cost_price }} د.ل
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+          إضافة المنتج 
+        </button>
         
         <div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">
           <table class="products-table">
@@ -369,7 +381,6 @@
                 <td colspan="5">
                   <div class="empty-state">
                     <div class="empty-title">لا توجد منتجات</div>
-                    <div class="empty-sub">ابحث عن منتج أو امسح الباركود لإضافته للفاتورة</div>
                   </div>
                 </td>
               </tr>
@@ -422,11 +433,10 @@
             </label>
             <input type="number" name="paid_amount" id="paid_amount" 
                    class="paid-amount-input" step="0.01" value="0">
-            <small class="text-muted">يتم تعبئته تلقائياً بقيمة الإجمالي، ويمكنك تعديله يدوياً</small>
           </div>
           
           <div class="form-group">
-            <label class="form-label">الخصم</label>
+            <label class="form-label">الخصم (د.ل)</label>
             <input type="number" name="discount" id="discount" class="form-control" step="0.01" value="0">
           </div>
           
@@ -468,14 +478,43 @@
 <script>
 $(document).ready(function() {
     let selectedProducts = [];
-    let searchTimeout;
+    let productSearchTimeout;
     let supplierTimeout;
     let isUpdatingPaidAmount = false;
     
-    const searchInput = $('#search-input');
+    const searchInput = $('#product-search');
     let barcodeBuffer = '';
     let lastKeyTime = 0;
     let isBarcodeScanning = false;
+    
+    function showToast(message, type) {
+        let bgColor = type === 'success' ? '#22c55e' : '#ef4444';
+        let toast = $('<div>')
+            .addClass('alert-toast')
+            .css({
+                'background': bgColor,
+                'color': 'white',
+                'position': 'fixed',
+                'top': '20px',
+                'right': '20px',
+                'zIndex': '9999',
+                'padding': '10px 20px',
+                'borderRadius': '8px',
+                'fontSize': '14px',
+                'boxShadow': '0 4px 12px rgba(0,0,0,0.15)'
+            })
+            .text(message);
+        $('body').append(toast);
+        setTimeout(function() {
+            toast.fadeOut(function() { $(this).remove(); });
+        }, 2500);
+    }
+    
+    function highlightText(text, query) {
+        if (!query) return text;
+        let regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        return text.replace(regex, '<span class="search-highlight">$1</span>');
+    }
     
     searchInput.on('input', function() {
         let value = $(this).val();
@@ -487,19 +526,19 @@ $(document).ready(function() {
         
         lastKeyTime = currentTime;
         
-        clearTimeout(searchTimeout);
+        clearTimeout(productSearchTimeout);
         
         if (value.length < 1) {
-            $('#search-results').hide();
+            $('#product-results').hide();
             return;
         }
         
         if (/^\d+$/.test(value) && value.length >= 5) {
-            searchTimeout = setTimeout(function() {
+            productSearchTimeout = setTimeout(function() {
                 searchByBarcode(value);
             }, 200);
         } else if (value.length >= 2) {
-            searchTimeout = setTimeout(function() {
+            productSearchTimeout = setTimeout(function() {
                 searchProducts(value);
             }, 300);
         }
@@ -539,7 +578,7 @@ $(document).ready(function() {
     function searchByBarcode(barcode) {
         if (!barcode || barcode.length < 3) return;
         
-        $('#search-results').hide();
+        $('#product-results').hide();
         
         $.ajax({
             url: '/products/get-by-barcode/' + encodeURIComponent(barcode) + '/',
@@ -549,7 +588,7 @@ $(document).ready(function() {
                     let product = data.product;
                     addProductToTable(product.id, product.name, parseFloat(product.cost_price));
                     searchInput.val('');
-                    showMessage('تم إضافة المنتج: ' + product.name, 'success');
+                    showToast('تم إضافة المنتج: ' + product.name, 'success');
                 } else {
                     searchProducts(barcode);
                 }
@@ -562,7 +601,7 @@ $(document).ready(function() {
     
     function searchProducts(query) {
         if (query.length < 2) {
-            $('#search-results').hide();
+            $('#product-results').hide();
             return;
         }
         
@@ -572,19 +611,19 @@ $(document).ready(function() {
             data: { q: query },
             success: function(data) {
                 if (data.products && data.products.length > 0) {
-                    displaySearchResults(data.products, query);
+                    displayProductResults(data.products, query);
                 } else {
-                    $('#search-results').hide();
+                    $('#product-results').hide();
                 }
             },
             error: function() {
-                $('#search-results').hide();
+                $('#product-results').hide();
             }
         });
     }
     
-    function displaySearchResults(products, query) {
-        let $results = $('#search-results');
+    function displayProductResults(products, query) {
+        let $results = $('#product-results');
         $results.empty().show();
         
         for (let i = 0; i < products.length; i++) {
@@ -611,16 +650,27 @@ $(document).ready(function() {
             
             addProductToTable(productId, productName, productPrice);
             
-            $('#search-input').val('');
-            $('#search-results').hide();
+            $('#product-search').val('');
+            $('#product-results').hide();
         });
     }
     
-    function highlightText(text, query) {
-        if (!query) return text;
-        let regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-        return text.replace(regex, '<span class="search-highlight">$1</span>');
-    }
+    $('#add-product-btn').on('click', function() {
+        let select = $('#product-select');
+        let selectedOption = select.find(':selected');
+        
+        if (selectedOption.val() === '') {
+            alert('الرجاء اختيار منتج من القائمة');
+            return;
+        }
+        
+        let productId = parseInt(selectedOption.val());
+        let productName = selectedOption.data('name');
+        let productPrice = parseFloat(selectedOption.data('price'));
+        
+        addProductToTable(productId, productName, productPrice);
+        select.val('');
+    });
     
     function addProductToTable(productId, productName, productPrice) {
         let existing = null;
@@ -659,7 +709,7 @@ $(document).ready(function() {
             
             let nameCell = $('<td>').css('text-align', 'right');
             nameCell.html(`
-                <div class="product-name-cell">
+                <div style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
                     <span>${escapeHtml(product.name)}</span>
                 </div>
             `);
@@ -668,9 +718,9 @@ $(document).ready(function() {
             let quantityCell = $('<td>');
             quantityCell.html(`
                 <div class="quantity-controls">
-                    <button class="btn-qty minus dec-qty" data-id="${product.id}">-</button>
+                    <button class="btn-qty minus dec-qty" type="button" data-id="${product.id}">-</button>
                     <input class="quantity-input" type="number" value="${product.quantity}" min="1" data-id="${product.id}">
-                    <button class="btn-qty plus inc-qty" data-id="${product.id}">+</button>
+                    <button class="btn-qty plus inc-qty" type="button" data-id="${product.id}">+</button>
                 </div>
             `);
             newRow.append(quantityCell);
@@ -689,7 +739,7 @@ $(document).ready(function() {
             
             let removeCell = $('<td>');
             removeCell.html(`
-                <button class="remove-btn" data-id="${product.id}">✕</button>
+                <button class="remove-btn" type="button" data-id="${product.id}">✕</button>
             `);
             newRow.append(removeCell);
             
@@ -917,20 +967,6 @@ $(document).ready(function() {
         
         return true;
     });
-    
-    function showMessage(text, type) {
-        let msgDiv = $('<div>').addClass('alert alert-' + type).css({
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: '9999',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-        }).text(text);
-        $('body').append(msgDiv);
-        setTimeout(function() { msgDiv.fadeOut(function() { $(this).remove(); }); }, 2000);
-    }
     
     function escapeHtml(text) {
         if (!text) return '';

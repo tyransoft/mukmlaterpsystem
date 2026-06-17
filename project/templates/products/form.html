@@ -7,8 +7,9 @@
 <div class="card" style="max-width:700px;">
   <div class="card-header"><span class="card-title">{{ title }}</span></div>
   <div class="card-body">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="productForm">
       {% csrf_token %}
+      
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">{{ form.name.label }} <span style="color:red;">*</span></label>
@@ -40,16 +41,17 @@
           <label class="form-label">{{ form.loyalty_points.label }}</label>
           {{ form.loyalty_points }}
         </div>
-      </div>
-
-      <div class="form-group" style="margin-bottom:16px;">
-        <label class="form-label">{{ form.initial_quantity.label }}</label>
-        {{ form.initial_quantity }}
+        <div class="form-group">
+          <label class="form-label">{{ form.initial_quantity.label }}</label>
+          {{ form.initial_quantity }}
+          <small class="form-text text-muted">سيتم إضافة هذه الكمية لمخزون الفرع الرئيسي تلقائياً</small>
+        </div>
       </div>
 
       <div class="form-check" style="margin-bottom:16px;">
         {{ form.is_active }} <label class="form-label" style="display:inline;">{{ form.is_active.label }}</label>
       </div>
+      
       <div style="display:flex;gap:10px;">
         <button type="submit" class="btn btn-primary">حفظ المنتج</button>
         <a href="{% url 'products_list' %}" class="btn btn-outline">إلغاء</a>
@@ -57,4 +59,88 @@
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const barcodeField = document.getElementById('id_barcode');
+    let barcodeBuffer = '';
+    let lastKeyTime = 0;
+    let isProcessing = false;
+
+    if (barcodeField) {
+        barcodeField.addEventListener('change', function() {
+            const barcode = this.value.trim();
+            if (barcode && !isProcessing) {
+                checkProductExists(barcode);
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' && e.target.id !== 'id_barcode') {
+                barcodeBuffer = '';
+                return;
+            }
+
+            if (e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            const currentTime = new Date().getTime();
+            const timeDiff = currentTime - lastKeyTime;
+
+            if (timeDiff < 50 && timeDiff > 0) {
+                barcodeBuffer += e.key;
+            } else if (timeDiff >= 50 && timeDiff < 1000) {
+                if (barcodeBuffer.length > 0) {
+                    barcodeBuffer += e.key;
+                } else {
+                    barcodeBuffer = e.key;
+                }
+            } else if (timeDiff >= 1000 || barcodeBuffer.length === 0) {
+                barcodeBuffer = e.key;
+            }
+
+            lastKeyTime = currentTime;
+
+            if (e.key === 'Enter' && barcodeBuffer.length > 3) {
+                e.preventDefault();
+                
+                let barcode = barcodeBuffer.replace(/Enter$/, '').trim();
+                
+                barcode = barcode.replace(/[\r\n]/g, '').trim();
+                
+                if (barcode) {
+                    barcodeField.value = barcode;
+                    
+                    
+                }
+                
+                barcodeBuffer = '';
+            }
+
+            if (barcodeBuffer.length >= 12 && barcodeBuffer.length <= 14) {
+                if (!isNaN(barcodeBuffer[barcodeBuffer.length - 1])) {
+                    setTimeout(function() {
+                        if (barcodeBuffer.length >= 12) {
+                            let barcode = barcodeBuffer.trim();
+                            barcodeField.value = barcode;
+                            if (!isProcessing) {
+                                checkProductExists(barcode);
+                            }
+                            barcodeBuffer = '';
+                        }
+                    }, 200);
+                }
+            }
+        });
+
+       
+
+        barcodeField.addEventListener('focus', function() {
+            barcodeBuffer = '';
+            this.select();
+        });
+    }
+});
+</script>
 {% endblock %}

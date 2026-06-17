@@ -1354,22 +1354,56 @@ def product_list(request):
     })
 
 
+
 @login_required
 def product_create(request):
     if not request.user.can_modify_prices():
         messages.error(request, 'فقط الفرع الرئيسي يمكنه إضافة المنتجات وتعديل الأسعار')
         return redirect('products_list')
+    
     if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES)
+        form = ProductForm(request.POST)
         if form.is_valid():
             product = form.save()
-           
+            
+            initial_quantity = form.cleaned_data.get('initial_quantity', 0)
+            
+            if initial_quantity > 0:
+                try:
+                    main_branch = Branch.objects.get(is_main=True)
+                    
+                    branch_inventory, created = BranchInventory.objects.get_or_create(
+                        branch=main_branch,
+                        product=product,
+                        defaults={'quantity': initial_quantity}
+                    )
+                    
+                    if not created:
+                        branch_inventory.quantity += initial_quantity
+                        branch_inventory.save()
+                        
+                except Branch.DoesNotExist:
+                    messages.warning(request, 'لم يتم العثور على فرع رئيسي لإضافة المخزون الأولي')
+            else:
+                try:
+                    main_branch = Branch.objects.get(is_main=True)
+                    BranchInventory.objects.get_or_create(
+                        branch=main_branch,
+                        product=product,
+                        defaults={'quantity': 0}
+                    )
+                except Branch.DoesNotExist:
+                    pass
+            
             messages.success(request, f'تم إضافة المنتج "{product.name}" بنجاح')
+            if initial_quantity > 0:
+                messages.info(request, f'تم إضافة {initial_quantity} وحدة إلى مخزون الفرع الرئيسي')
+            
             return redirect('products_list')
     else:
         form = ProductForm()
+    
     return render(request, 'products/form.html', {'form': form, 'title': 'إضافة منتج جديد'})
-
 
 @login_required
 def product_edit(request, pk):

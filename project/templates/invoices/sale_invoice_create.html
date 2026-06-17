@@ -554,7 +554,7 @@ $(document).ready(function() {
         
         customerSearchTimeout = setTimeout(function() {
             $.ajax({
-                url: '/customers/search/ajax/',
+                url: '/customers/search/',
                 method: 'GET',
                 data: { q: query },
                 success: function(data) {

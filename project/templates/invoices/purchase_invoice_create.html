@@ -728,13 +728,7 @@ $(document).ready(function() {
         searchInput.focus();
     });
     
-    $('#submit-btn').on('click', function() {
-        if ($(this).data('clicked')) return false;
-        $(this).data('clicked', true);
-        $(this).html('جاري الحفظ...');
-        $(this).prop('disabled', true);
-        setTimeout(() => $(this).data('clicked', false), 5000);
-    });
+ 
     
     $('#purchase-invoice-form').on('submit', function(e) {
         if (selectedProducts.length === 0) {

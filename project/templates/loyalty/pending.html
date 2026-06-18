@@ -135,6 +135,67 @@
 </div>
 
 <script>
+function getCSRFToken() {
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+    return cookieValue ? cookieValue.split('=')[1] : '';
+}
+
+function showToast(message, type = 'success') {
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    
+    const existingToast = document.querySelector('.custom-toast');
+    if (existingToast) existingToast.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'custom-toast';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 99999;
+        background: ${colors[type] || colors.success};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+    `;
+    toast.textContent = message;
+    
+    if (!document.getElementById('toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes fadeOut {
+                0% { opacity: 1; }
+                70% { opacity: 1; }
+                100% { opacity: 0; display: none; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.5s ease forwards';
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+}
+
 function downloadBlob(blob, filename) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -154,6 +215,7 @@ function hideLoading() {
     document.getElementById('loadingOverlay').style.display = 'none';
 }
 
+
 async function markTransferred(pk) {
     if (!confirm('هل تم تحويل نقاط الولاء هذه إلى النظام الخارجي؟')) return;
     
@@ -166,17 +228,21 @@ async function markTransferred(pk) {
         const response = await fetch(`/loyalty/${pk}/mark-transferred/`, { 
             method: 'POST',
             headers: {
-                'X-CSRFToken': ERP.getCSRF(),
+                'X-CSRFToken': getCSRFToken(),
             }
         });
         
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'فشل التحويل');
+            let errorMsg = 'فشل التحويل';
+            try {
+                const error = await response.json();
+                errorMsg = error.error || error.message || errorMsg;
+            } catch(e) {}
+            throw new Error(errorMsg);
         }
         
         const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'نقاط_ولاء_تحويل.xlsx';
+        let filename = 'نقاط_تحويل.xlsx';
         if (contentDisposition) {
             const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
             if (match && match[1]) {
@@ -187,7 +253,7 @@ async function markTransferred(pk) {
         const blob = await response.blob();
         downloadBlob(blob, filename);
         
-        ERP.toast('تم التحويل بنجاح وتحميل الملف');
+        showToast('تم التحويل بنجاح وتحميل الملف');
         
         const row = document.getElementById(`loyalty-row-${pk}`);
         if (row) row.remove();
@@ -197,7 +263,7 @@ async function markTransferred(pk) {
         }, 1500);
         
     } catch (error) {
-        ERP.toast(error.message, 'error');
+        showToast(error.message, 'error');
         btn.disabled = false;
         btn.innerHTML = 'تم التحويل';
     } finally {
@@ -221,18 +287,22 @@ async function markAllTransferred(customerId, branchId) {
         const response = await fetch('/loyalty/mark-all/', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': ERP.getCSRF(),
+                'X-CSRFToken': getCSRFToken(),
             },
             body: formData
         });
         
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'فشل التحويل');
+            let errorMsg = 'فشل التحويل';
+            try {
+                const error = await response.json();
+                errorMsg = error.message || error.error || errorMsg;
+            } catch(e) {}
+            throw new Error(errorMsg);
         }
         
         const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'نقاط_ولاء_تحويل_جماعي.xlsx';
+        let filename = 'نقاط__تحويي.xlsx';
         if (contentDisposition) {
             const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
             if (match && match[1]) {
@@ -243,16 +313,25 @@ async function markAllTransferred(customerId, branchId) {
         const blob = await response.blob();
         downloadBlob(blob, filename);
         
-        ERP.toast('تم تحويل جميع النقاط وتحميل الملف');
+        showToast('تم تحويل جميع النقاط وتحميل الملف');
         
         setTimeout(() => {
             location.reload();
         }, 1500);
         
     } catch (error) {
-        ERP.toast(error.message, 'error');
+        showToast(error.message, 'error');
     } finally {
         hideLoading();
+    }
+}
+
+function updateStats() {
+    const rows = document.querySelectorAll('#transfers-tbody tr:not(:has(.empty-state))');
+    const count = rows.length;
+    const statElement = document.querySelector('.stat-value');
+    if (statElement) {
+       
     }
 }
 </script>

@@ -23,7 +23,7 @@
           </div>
           <div>
             <div class="text-muted">إجمالي المدفوع</div>
-            <div class="text-success">{{ supplier.get_total_paid|floatformat:2|intcomma }}</div>
+            <div class="text-success">{{ supplier.get_total_paid + supplier.get_total_paid_from_invoices |floatformat:2|intcomma }}</div>
           </div>
         </div>
       </div>
@@ -49,12 +49,12 @@
       </div>
       
       <div class="form-group">
-        <label class="form-label">رقم المرجع (رقم الشيك أو الإيصال)</label>
+        <label class="form-label">رقم المرجع </label>
         <input type="text" name="reference_number" class="form-control">
       </div>
       
       <div class="form-group">
-        <label class="form-label">ربط بفاتورة محددة (اختياري)</label>
+        <label class="form-label">ربط بفاتورة  </label>
         <select name="purchase_invoice_id" class="form-select">
           <option value="">-- بدون ربط --</option>
           {% for invoice in unpaid_invoices %}

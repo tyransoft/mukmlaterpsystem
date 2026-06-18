@@ -435,17 +435,26 @@ class Supplier(models.Model):
      return result
 
     def update_debt_balance(self):
-      total_purchases = self.get_total_purchases()
-      total_paid_from_invoices = self.get_total_paid_from_invoices()
+      from django.db.models import Sum, F, Case, When, Value, DecimalField
     
-      self.debt_balance = total_purchases - total_paid_from_invoices
-
-      if self.debt_balance < 0:
-        self.debt_balance = 0
+      result = PurchaseInvoice.objects.filter(
+        supplier=self,
+        status='confirmed'
+      ).annotate(
+        remaining=F('total') - F('paid_amount')
+      ).aggregate(
+        total_debt=Sum(
+            Case(
+                When(remaining__gt=0, then=F('remaining')),
+                default=Value(0),
+                output_field=DecimalField(max_digits=12, decimal_places=2)
+            )
+        )
+      )
     
-      self.save(update_fields=['debt_balance'])
+      self.debt_balance = result['total_debt'] or 0
+      self.save(update_fields=['debt_balance'])  
 
-      
 class PurchaseInvoice(models.Model):
     STATUS_CHOICES = [
         ('draft', 'مسودة'),
@@ -512,16 +521,21 @@ class PurchaseInvoice(models.Model):
         self.save(update_fields=['total_loyalty_points'])
     
     def confirm(self):
-        if self.status == 'draft':
-            self.status = 'confirmed'
-            self.save()
-            self._process_inventory()
-            
-            if not self.is_auto_generated:
-                self._add_loyalty_points_to_main_branch()
-            
-            return True
-        return False
+      if self.status == 'draft':
+        self.status = 'confirmed'
+        self.debt_amount = self.total - self.paid_amount
+        if self.debt_amount < 0:
+            self.debt_amount = 0
+        self.save()
+        self._process_inventory()
+        
+        if not self.is_auto_generated:
+            self._add_loyalty_points_to_main_branch()
+            if self.supplier:
+                self.supplier.update_debt_balance()
+        
+        return True
+      return False
 
     def _process_inventory(self):
         if self.is_auto_generated:

@@ -1584,8 +1584,6 @@ def supplier_search_ajax(request):
     } for s in suppliers]
     return JsonResponse({'suppliers': data})
 
-
-
 @login_required
 def supplier_payment_create(request, supplier_id):
     supplier = get_object_or_404(Supplier, pk=supplier_id)
@@ -1602,17 +1600,25 @@ def supplier_payment_create(request, supplier_id):
                 payment_method = request.POST.get('payment_method')
                 reference_number = request.POST.get('reference_number', '')
                 notes = request.POST.get('notes', '')
-                purchase_invoice_id = request.POST.get('purchase_invoice_id')
+                specific_invoice_id = request.POST.get('purchase_invoice_id')
                 
                 if amount <= 0:
                     raise ValueError('المبلغ يجب أن يكون أكبر من صفر')
                 
-                if amount > supplier.debt_balance:
-                    raise ValueError(f'المبلغ المدخل ({amount}) يتجاوز رصيد الدين ({supplier.debt_balance})')
+                unpaid_invoices = PurchaseInvoice.objects.filter(
+                    supplier=supplier,
+                    status='confirmed'
+                ).filter(
+                    paid_amount__lt=models.F('total')
+                ).order_by('created_at')  
+                
+                total_debt = sum([inv.total - inv.paid_amount for inv in unpaid_invoices])
+                
+                if amount > total_debt:
+                    raise ValueError(f'المبلغ المدخل ({amount}) يتجاوز إجمالي الدين ({total_debt})')
                 
                 payment = SupplierPayment.objects.create(
                     supplier=supplier,
-                    purchase_invoice_id=purchase_invoice_id or None,
                     amount=amount,
                     payment_date=payment_date,
                     payment_method=payment_method,
@@ -1621,14 +1627,40 @@ def supplier_payment_create(request, supplier_id):
                     created_by=request.user
                 )
                 
-                if purchase_invoice_id:
-                    invoice = PurchaseInvoice.objects.get(id=purchase_invoice_id)
-                    invoice.paid_amount += amount
+                remaining_amount = amount
+                paid_invoices = []  
+                
+                for invoice in unpaid_invoices:
+                    if remaining_amount <= 0:
+                        break
+                    
+                    invoice_remaining = invoice.total - invoice.paid_amount
+                    
+                    if invoice_remaining <= 0:
+                        continue
+                    
+                    if remaining_amount >= invoice_remaining:
+                        invoice.paid_amount = invoice.total
+                        invoice.debt_amount = 0
+                        remaining_amount -= invoice_remaining
+                    else:
+                        invoice.paid_amount += remaining_amount
+                        invoice.debt_amount = invoice.total - invoice.paid_amount
+                        remaining_amount = 0
+                    
                     invoice.save()
+                    paid_invoices.append(invoice)
+                    
+                
                 
                 supplier.update_debt_balance()
                 
-                messages.success(request, f'تم تسجيل مبلغ {amount} كسداد للمورد {supplier.name}')
+                invoice_details = ', '.join([f"{inv.invoice_number} ({inv.paid_amount}/{inv.total})" for inv in paid_invoices])
+                messages.success(
+                    request, 
+                    f'تم تسجيل مبلغ {amount} كسداد للمورد {supplier.name}\n'
+                    f'الفواتير المحدثة: {invoice_details}'
+                )
                 return redirect('supplier_payment_list', supplier_id=supplier.id)
                 
         except ValueError as e:
@@ -1638,13 +1670,17 @@ def supplier_payment_create(request, supplier_id):
     
     unpaid_invoices = PurchaseInvoice.objects.filter(
         supplier=supplier,
-        status='confirmed',
+        status='confirmed'
+    ).filter(
         paid_amount__lt=models.F('total')
     ).order_by('created_at')
+    
+    total_debt = sum([inv.total - inv.paid_amount for inv in unpaid_invoices])
     
     context = {
         'supplier': supplier,
         'unpaid_invoices': unpaid_invoices,
+        'total_debt': total_debt,
     }
     return render(request, 'suppliers/payment_form.html', context)
 

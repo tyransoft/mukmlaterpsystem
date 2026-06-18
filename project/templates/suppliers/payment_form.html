@@ -23,7 +23,7 @@
           </div>
           <div>
             <div class="text-muted">إجمالي المدفوع</div>
-            <div class="text-success">{{ supplier.get_total_paid + supplier.get_total_paid_from_invoices |floatformat:2|intcomma }}</div>
+            <div class="text-success">{{ total_paid|floatformat:2|intcomma }}</div>
           </div>
         </div>
       </div>

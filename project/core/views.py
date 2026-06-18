@@ -1681,6 +1681,7 @@ def supplier_payment_create(request, supplier_id):
         'supplier': supplier,
         'unpaid_invoices': unpaid_invoices,
         'total_debt': total_debt,
+        'total_paid':supplier.get_total_paid() + supplier.get_total_paid_from_invoices() ,
     }
     return render(request, 'suppliers/payment_form.html', context)
 

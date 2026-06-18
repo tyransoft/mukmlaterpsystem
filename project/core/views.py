@@ -1548,7 +1548,7 @@ def supplier_detail(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     purchases = PurchaseInvoice.objects.filter(supplier=supplier, status='confirmed').order_by('-created_at')[:20]
     total_purchases = supplier.get_total_purchases()
-    total_paid = supplier.get_total_paid() + supplier.get_total_paid_from_invoices()
+    total_paid =  supplier.get_total_paid_from_invoices()
     recent_payments = supplier.payments.all().order_by('-payment_date')[:10]
     
     return render(request, 'suppliers/detail.html', {
@@ -1681,7 +1681,7 @@ def supplier_payment_create(request, supplier_id):
         'supplier': supplier,
         'unpaid_invoices': unpaid_invoices,
         'total_debt': total_debt,
-        'total_paid':supplier.get_total_paid() + supplier.get_total_paid_from_invoices() ,
+        'total_paid':supplier.get_total_paid_from_invoices() ,
     }
     return render(request, 'suppliers/payment_form.html', context)
 

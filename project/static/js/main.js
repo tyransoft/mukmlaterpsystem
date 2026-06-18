@@ -260,33 +260,113 @@ const InvoiceManager = {
   }
 };
 
-// ============ LOYALTY ============
+function getCSRFToken() {
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+    return cookieValue ? cookieValue.split('=')[1] : '';
+}
+
+
+function showToast(message, type = 'success') {
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        background: ${colors[type] || colors.success};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: fadeOut 2.5s ease-in-out forwards;
+    `;
+    toast.textContent = message;
+    
+    // إضافة animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; display: none; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500);
+    }, 2500);
+}
+
 async function markTransferred(pk) {
-  if (!confirm('هل تم تحويل نقاط الولاء هذه إلى النظام الخارجي؟')) return;
-  const data = await ERP.fetch(`/loyalty/${pk}/mark-transferred/`, { method: 'POST' });
-  if (data.success) {
-    ERP.toast(data.message || 'تم التحويل بنجاح');
-    document.getElementById(`loyalty-row-${pk}`)?.remove();
-  } else {
-    ERP.toast(data.error || 'حدث خطأ', 'error');
-  }
+    if (!confirm('هل تم تحويل نقاط الولاء هذه إلى النظام الخارجي؟')) return;
+    
+    try {
+        const response = await fetch(`/loyalty/${pk}/mark-transferred/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message || 'تم التحويل بنجاح');
+            document.getElementById(`loyalty-row-${pk}`)?.remove();
+        } else {
+            showToast(data.error || 'حدث خطأ', 'error');
+        }
+    } catch (error) {
+        showToast('حدث خطأ في الاتصال', 'error');
+        console.error(error);
+    }
 }
 
 async function markAllTransferred(customerId, branchId) {
-  if (!confirm('هل تريد تحويل جميع النقاط المعلقة؟')) return;
-  const fd = new FormData();
-  if (customerId) fd.append('customer_id', customerId);
-  if (branchId) fd.append('branch_id', branchId);
-  const res = await fetch('/loyalty/mark-all/', {
-    method: 'POST',
-    headers: { 'X-CSRFToken': ERP.getCSRF() },
-    body: fd
-  });
-  const data = await res.json();
-  if (data.success) { ERP.toast(data.message); setTimeout(() => location.reload(), 1200); }
-  else ERP.toast(data.error, 'error');
+    if (!confirm('هل تريد تحويل جميع النقاط المعلقة؟')) return;
+    
+    try {
+        const fd = new FormData();
+        if (customerId) fd.append('customer_id', customerId);
+        if (branchId) fd.append('branch_id', branchId);
+        
+        const response = await fetch('/loyalty/mark-all/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: fd,
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message);
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            showToast(data.error || 'حدث خطأ', 'error');
+        }
+    } catch (error) {
+        showToast('حدث خطأ في الاتصال', 'error');
+        console.error(error);
+    }
 }
-
 // ============ CONFIRM INVOICE ============
 async function confirmInvoice(pk) {
   if (!confirm('هل تريد تأكيد هذه الفاتورة وتحديث المخزون؟')) return;

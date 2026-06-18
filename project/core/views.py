@@ -14,7 +14,7 @@ from .utils import *
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-
+import logging
 
 @login_required
 def home(request):
@@ -1222,17 +1222,6 @@ def get_branch_stock_ajax(request):
         return JsonResponse({'quantity': 0, 'min_quantity': 0})
 
 
-def loyalty_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            from django.contrib.auth.views import redirect_to_login
-            return redirect_to_login(request.get_full_path())
-        if not (request.user.is_loyalty_employee() or request.user.can_see_all_data()):
-            messages.error(request, 'هذه الصفحة مخصصة لموظفي نقاط الولاء فقط')
-            return redirect('dashboard_home')
-        return view_func(request, *args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 
 @login_required
@@ -1268,56 +1257,81 @@ def pending_transfers(request):
 
 
 
+
+logger = logging.getLogger(__name__)
+
 @login_required
-@loyalty_required
+@require_POST  # استخدم هذا بدلاً من التحقق اليدوي
 def mark_transferred(request, pk):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'POST مطلوب'}, status=405)
-    
-    transfer = get_object_or_404(LoyaltyTransfer, pk=pk, status='pending')
-    transfer.mark_as_transferred(request.user)
-    
-    wb = generate_loyalty_transfer_excel([transfer], 'single')
-    filename = f"نقاط_تحويل_{transfer.customer.customer_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    
-    return create_excel_response(wb, filename)
-
-@login_required
-@loyalty_required
-def mark_all_transferred(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'POST مطلوب'}, status=405)
-    
-    customer_id = request.POST.get('customer_id')
-    branch_id = request.POST.get('branch_id')
-    
-    transfers = LoyaltyTransfer.objects.filter(status='pending')
-    
-    if customer_id:
-        transfers = transfers.filter(customer_id=customer_id)
-    if branch_id:
-        transfers = transfers.filter(branch_id=branch_id)
-    
-    transferred_transfers = []
-    count = 0
-    
-    for transfer in transfers:
+    try:
+        logger.info(f"mark_transferred called: pk={pk}, user={request.user}")
+        
+        # جلب التحويل
+        transfer = get_object_or_404(LoyaltyTransfer, pk=pk, status='pending')
+        
+        # تحديث الحالة
         transfer.mark_as_transferred(request.user)
-        transferred_transfers.append(transfer)
-        count += 1
-    
-    if count == 0:
-        return JsonResponse({'success': False, 'message': 'لا توجد عمليات تحويل معلقة'}, status=400)
-    
-    wb = generate_loyalty_transfer_excel(transferred_transfers, 'multiple')
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{count}_{timestamp}.xlsx"
-    
-    return create_excel_response(wb, filename)
+        
+        # توليد ملف Excel
+        wb = generate_loyalty_transfer_excel([transfer], 'single')
+        filename = f"نقاط_تحويل_{transfer.customer.customer_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        return create_excel_response(wb, filename)
+        
+    except LoyaltyTransfer.DoesNotExist:
+        logger.error(f"Transfer not found: pk={pk}")
+        return JsonResponse({'error': 'عملية التحويل غير موجودة'}, status=404)
+        
+    except Exception as e:
+        logger.error(f"Error in mark_transferred: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
-@loyalty_required
+@require_POST  # استخدم هذا بدلاً من التحقق اليدوي
+def mark_all_transferred(request):
+    try:
+        logger.info(f"mark_all_transferred called: user={request.user}")
+        
+        customer_id = request.POST.get('customer_id')
+        branch_id = request.POST.get('branch_id')
+        
+        logger.info(f"customer_id={customer_id}, branch_id={branch_id}")
+        
+        # جلب التحويلات المعلقة
+        transfers = LoyaltyTransfer.objects.filter(status='pending')
+        
+        if customer_id:
+            transfers = transfers.filter(customer_id=customer_id)
+        if branch_id:
+            transfers = transfers.filter(branch_id=branch_id)
+        
+        logger.info(f"Found {transfers.count()} transfers")
+        
+        if not transfers.exists():
+            return JsonResponse({'success': False, 'message': 'لا توجد عمليات تحويل معلقة'}, status=400)
+        
+        transferred_transfers = []
+        
+        for transfer in transfers:
+            transfer.mark_as_transferred(request.user)
+            transferred_transfers.append(transfer)
+        
+        # توليد ملف Excel
+        wb = generate_loyalty_transfer_excel(transferred_transfers, 'multiple')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{len(transferred_transfers)}_{timestamp}.xlsx"
+        
+        return create_excel_response(wb, filename)
+        
+    except Exception as e:
+        logger.error(f"Error in mark_all_transferred: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
 def transfer_history(request):
     branch_id = request.GET.get('branch', '')
     transfers = LoyaltyTransfer.objects.filter(status='transferred').select_related(

@@ -481,9 +481,7 @@ def branch_edit(request, pk):
 
 @login_required
 def branch_detail(request, pk):
-    if not request.user.can_see_all_data():
-        messages.error(request, 'ليس لديك صلاحية للوصول لهذه الصفحة')
-        return redirect('dashboard_home')
+
     
     branch = get_object_or_404(Branch, pk=pk)
     employees = branch.employees.filter(is_active=True)

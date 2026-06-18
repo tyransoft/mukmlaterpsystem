@@ -1,4 +1,3 @@
-<!-- templates/invoices/sale_invoice_detail.html -->
 {% extends 'base.html' %}
 {% load humanize %}
 
@@ -29,10 +28,9 @@
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 350px;gap:20px;">
-  <!-- معلومات الفاتورة -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">📄 معلومات الفاتورة</span>
+      <span class="card-title"> معلومات الفاتورة</span>
     </div>
     <div class="card-body">
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
@@ -54,9 +52,9 @@
           <div class="text-muted" style="font-size:12px;">نوع البيع</div>
           <div>
             {% if invoice.sale_type == 'customer' %}
-              👤 بيع لعميل
+               بيع لعميل
             {% else %}
-              🏪 توريد لفرع
+               توريد لفرع
             {% endif %}
           </div>
         </div>
@@ -84,7 +82,6 @@
         {% endif %}
       </div>
       
-      <!-- جدول المنتجات -->
       <table class="erp-table">
         <thead>
           <tr>
@@ -108,7 +105,6 @@
         </tbody>
       </table>
       
-      <!-- ملاحظات -->
       {% if invoice.notes %}
       <div style="margin-top:15px;padding:10px;background:#f8fafc;border-radius:8px;">
         <div class="text-muted" style="font-size:12px;">ملاحظات</div>
@@ -118,10 +114,9 @@
     </div>
   </div>
   
-  <!-- الإجماليات -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">💰 الإجماليات</span>
+      <span class="card-title"> الإجماليات</span>
     </div>
     <div class="card-body">
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;">
@@ -162,12 +157,10 @@
       {% if invoice.total_loyalty_points > 0 %}
       <div style="margin-top:15px;padding:10px;background:#fef3c7;border-radius:8px;">
         <div style="display:flex;justify-content:space-between;">
-          <span> نقاط الولاء المكتسبة</span>
+          <span> نقاط  </span>
           <span class="fw-bold text-warning">{{ invoice.total_loyalty_points }}</span>
         </div>
-        <div class="text-muted" style="font-size:11px;margin-top:5px;">
-          سيتم إضافتها كنقاط معلقة بعد التأكيد
-        </div>
+        
       </div>
       {% endif %}
     </div>

@@ -14,7 +14,7 @@ from .utils import *
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
-import logging
+import logging ,  traceback
 
 @login_required
 def home(request):
@@ -1261,18 +1261,14 @@ def pending_transfers(request):
 logger = logging.getLogger(__name__)
 
 @login_required
-@require_POST  # استخدم هذا بدلاً من التحقق اليدوي
 def mark_transferred(request, pk):
     try:
         logger.info(f"mark_transferred called: pk={pk}, user={request.user}")
         
-        # جلب التحويل
         transfer = get_object_or_404(LoyaltyTransfer, pk=pk, status='pending')
         
-        # تحديث الحالة
         transfer.mark_as_transferred(request.user)
         
-        # توليد ملف Excel
         wb = generate_loyalty_transfer_excel([transfer], 'single')
         filename = f"نقاط_تحويل_{transfer.customer.customer_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         
@@ -1289,7 +1285,6 @@ def mark_transferred(request, pk):
 
 
 @login_required
-@require_POST  # استخدم هذا بدلاً من التحقق اليدوي
 def mark_all_transferred(request):
     try:
         logger.info(f"mark_all_transferred called: user={request.user}")
@@ -1299,7 +1294,6 @@ def mark_all_transferred(request):
         
         logger.info(f"customer_id={customer_id}, branch_id={branch_id}")
         
-        # جلب التحويلات المعلقة
         transfers = LoyaltyTransfer.objects.filter(status='pending')
         
         if customer_id:
@@ -1318,7 +1312,6 @@ def mark_all_transferred(request):
             transfer.mark_as_transferred(request.user)
             transferred_transfers.append(transfer)
         
-        # توليد ملف Excel
         wb = generate_loyalty_transfer_excel(transferred_transfers, 'multiple')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"{len(transferred_transfers)}_{timestamp}.xlsx"

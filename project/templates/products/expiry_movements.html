@@ -1,29 +1,69 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}سجل حركات المراقبة{% endblock %}
 {% block page_title %}سجل حركات مراقبة الصلاحية{% endblock %}
 
 {% block content %}
 <style>
-*{box-sizing:border-box;}
-.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.table-wrap .erp-table{min-width:560px;width:100%;}
-.erp-table th{white-space:nowrap;font-size:13px;padding:10px 8px;}
-.erp-table td{font-size:13px;padding:10px 8px;}
-.notes-cell{max-width:180px;white-space:normal;word-break:break-word;}
-.emp-cell{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-@media(max-width:768px){
-  .card-header{flex-direction:column;align-items:stretch;}
-  .btn-sm{min-height:40px;padding:8px 12px;}
-}
+  *{box-sizing:border-box;}
+  
+  .table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .table-wrap .erp-table{min-width:560px;width:100%;}
+  .erp-table th{white-space:nowrap;font-size:13px;padding:10px 8px;}
+  .erp-table td{font-size:13px;padding:10px 8px;}
+  .notes-cell{max-width:180px;white-space:normal;word-break:break-word;}
+  .emp-cell{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:14px 16px;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;white-space:nowrap;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 14px;font-size:12px;min-height:34px;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge-success{background:#dcfce7;color:#16a34a;}
+  .badge-primary{background:#fef3ed;color:#E8793A;}
+  .badge-danger{background:#fee2e2;color:#dc2626;}
+  .badge-warning{background:#fef3c7;color:#d97706;}
+  .badge-secondary{background:#f1f3f5;color:#6b7280;}
+  .text-muted{color:#6b7280;}
+  .text-center{text-align:center;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  
+  .mobile-movement-card{display:none;padding:12px;border-bottom:1px solid #f1f3f5;}
+  .mobile-movement-card:last-child{border-bottom:none;}
+  .mobile-movement-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-movement-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-movement-value{font-size:13px;color:#1a2236;}
+  .mobile-movement-value .badge{font-size:12px;padding:4px 12px;}
+  
+  @media(max-width:768px){
+    .card-header{flex-direction:column;align-items:stretch;}
+    .btn-sm{min-height:40px;padding:8px 12px;}
+    .erp-table{min-width:400px;font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+  }
+  
+  @media(max-width:576px){
+    .desktop-table{display:none !important;}
+    .mobile-movement-card{display:block !important;}
+    .badge{font-size:12px;padding:4px 12px;}
+    .btn-sm{min-height:44px;padding:10px 16px;font-size:13px;width:100%;justify-content:center;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.btn{display:none;}}
 </style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">سجل حركات: {{ expiry.product.name }}</span>
     <a href="{% url 'product_expiry_list' %}" class="btn btn-outline btn-sm">رجوع</a>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
+    
+    <div class="table-wrap desktop-table">
       <table class="erp-table">
         <thead>
           <tr>
@@ -34,10 +74,7 @@
         <tbody>
           {% for movement in movements %}
           <tr>
-            <td style="white-space:nowrap;">
-              <span class="desktop-date">{{ movement.created_at|date:"Y-m-d H:i" }}</span>
-              <span class="mobile-date" style="display:none;">{{ movement.created_at|date:"d/m/y" }}</span>
-            </td>
+            <td style="white-space:nowrap;">{{ movement.created_at|date:"Y-m-d H:i" }}</td>
             <td>
               {% if movement.movement_type == 'create' %}<span class="badge badge-success">إنشاء</span>
               {% elif movement.movement_type == 'update' %}<span class="badge badge-primary">تعديل</span>
@@ -59,12 +96,43 @@
         </tbody>
       </table>
     </div>
+    
+    <div class="mobile-movements">
+      {% for movement in movements %}
+      <div class="mobile-movement-card">
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">التاريخ</span>
+          <span class="mobile-movement-value">{{ movement.created_at|date:"d/m/y H:i" }}</span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">نوع الحركة</span>
+          <span class="mobile-movement-value">
+            {% if movement.movement_type == 'create' %}<span class="badge badge-success">إنشاء</span>
+            {% elif movement.movement_type == 'update' %}<span class="badge badge-primary">تعديل</span>
+            {% elif movement.movement_type == 'delete' %}<span class="badge badge-danger">حذف</span>
+            {% elif movement.movement_type == 'consume' %}<span class="badge badge-warning">استهلاك</span>
+            {% elif movement.movement_type == 'expire' %}<span class="badge badge-secondary">انتهاء</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">الكمية</span>
+          <span class="mobile-movement-value">{{ movement.quantity_before }} → {{ movement.quantity_after }}</span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">الملاحظات</span>
+          <span class="mobile-movement-value">{{ movement.notes|default:"-" }}</span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">تم بواسطة</span>
+          <span class="mobile-movement-value">{{ movement.employee.get_full_name|default:movement.employee.username }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center text-muted" style="padding:40px;">لا توجد حركات مسجلة</div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
-<style>
-@media(max-width:576px){
-  .desktop-date{display:none!important;}
-  .mobile-date{display:inline!important;}
-}
-</style>
 {% endblock %}

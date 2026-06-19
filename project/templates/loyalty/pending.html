@@ -1,10 +1,104 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}التحويلات المعلقة{% endblock %}
 {% block page_title %}نقاط الولاء المعلقة{% endblock %}
 {% block nav_loyalty %}active{% endblock %}
 
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;justify-content:center;align-items:center;flex-direction:column;}
+  .loading-spinner{width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #2563eb;border-radius:50%;animation:spin 1s linear infinite;}
+  .loading-text{color:white;margin-top:12px;font-size:15px;}
+  @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+  
+  .custom-toast{position:fixed;top:16px;left:16px;right:16px;z-index:99999;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:400px;margin:0 auto;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+  
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+  .stat-box{padding:16px;border-radius:12px;text-align:center;}
+  .stat-orange{background:#fef3ed;}
+  .stat-blue{background:#eff6ff;}
+  .stat-gray{background:#f8fafc;}
+  .stat-label{font-size:12px;color:#6b7280;margin-bottom:6px;}
+  .stat-value{font-size:24px;font-weight:800;color:#1a2236;}
+  
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .inline-form{display:flex;gap:6px;align-items:center;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-success{background:#16a34a;color:#fff;}
+  .btn-success:hover{background:#15803d;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 14px;font-size:12px;min-height:34px;}
+  
+  .form-select{padding:10px 14px;border:1.5px solid #eaecf0;border-radius:8px;font-size:14px;background:#fff;color:#1a2236;}
+  .form-select-sm{padding:6px 10px;font-size:12px;}
+  .form-select:focus{outline:none;border-color:#E8793A;}
+  
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge-primary{background:#fef3ed;color:#E8793A;}
+  .text-muted{color:#6b7280;}
+  .text-primary{color:#E8793A;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .erp-table{min-width:500px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:hover{background:#fafbfc;}
+  
+  .mobile-loyalty-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-loyalty-card:last-child{border-bottom:none;}
+  .mobile-loyalty-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-loyalty-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-loyalty-value{font-size:13px;color:#1a2236;}
+  .mobile-loyalty-name{font-size:15px;font-weight:700;color:#1a2236;}
+  .mobile-loyalty-actions{margin-top:10px;}
+  .mobile-loyalty-actions .btn{width:100%;justify-content:center;}
+  
+  .mobile-customer-summary{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-customer-summary:last-child{border-bottom:none;}
+  .mobile-customer-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  
+  @media(max-width:600px){
+    .stats-grid{grid-template-columns:1fr 1fr;}
+    .stats-grid > .stat-box:last-child{grid-column:span 2;}
+    .stat-value{font-size:20px;}
+    
+    .card-header{flex-direction:column;align-items:stretch;}
+    .header-actions{flex-direction:column;align-items:stretch;}
+    .inline-form{flex-direction:column;}
+    .inline-form .form-select,.inline-form .btn,.header-actions .btn{width:100%;justify-content:center;}
+    
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .badge{font-size:12px;padding:4px 12px;}
+    .btn-sm{min-height:40px;padding:8px 12px;}
+    
+    .desktop-table{display:none !important;}
+    .mobile-loyalty-card{display:block !important;}
+    .mobile-customer-summary{display:block !important;}
+  }
+  
+  @media(max-width:380px){
+    .stats-grid{grid-template-columns:1fr;}
+    .stats-grid > .stat-box:last-child{grid-column:span 1;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.btn{display:none;}.loading-overlay{display:none !important;}}
+</style>
+
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
   <div class="loading-text">جاري تحويل النقاط...</div>
@@ -32,30 +126,41 @@
     <button onclick="markAllTransferred('', '{{ selected_branch }}')" class="btn btn-success btn-sm">تحويل الكل</button>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
+    
+    <div class="table-wrap desktop-table">
       <table class="erp-table">
-        <thead>
-          <tr>
-            <th>العميل</th>
-            <th>الهاتف</th>
-            <th>إجمالي النقاط المعلقة</th>
-            <th>الإجراء</th>
-          </tr>
-        </thead>
+        <thead><tr><th>العميل</th><th>الهاتف</th><th>إجمالي النقاط</th><th>الإجراء</th></tr></thead>
         <tbody>
           {% for cs in customers_summary %}
           <tr id="customer-row-{{ cs.customer__pk }}">
             <td class="fw-600">{{ cs.customer__full_name }}</td>
             <td>{{ cs.customer__phone }}</td>
             <td><span class="badge badge-primary" style="font-size:14px;">{{ cs.total_points|intcomma }}</span></td>
-            <td>
-              <button onclick="markAllTransferred('{{ cs.customer__pk }}', '')" class="btn btn-success btn-sm">تحويل نقاط هذا العميل</button>
-            </td>
+            <td><button onclick="markAllTransferred('{{ cs.customer__pk }}', '')" class="btn btn-success btn-sm">تحويل نقاط هذا العميل</button></td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    
+    <div class="mobile-customers">
+      {% for cs in customers_summary %}
+      <div class="mobile-customer-summary">
+        <div class="mobile-customer-row">
+          <span class="fw-600">{{ cs.customer__full_name }}</span>
+          <span><span class="badge badge-primary">{{ cs.total_points|intcomma }}</span></span>
+        </div>
+        <div class="mobile-customer-row">
+          <span class="mobile-loyalty-label">الهاتف</span>
+          <span class="mobile-loyalty-value">{{ cs.customer__phone }}</span>
+        </div>
+        <div class="mobile-loyalty-actions">
+          <button onclick="markAllTransferred('{{ cs.customer__pk }}', '')" class="btn btn-success btn-sm">تحويل نقاط هذا العميل</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
 {% endif %}
@@ -77,216 +182,162 @@
     </div>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
+    
+    <div class="table-wrap desktop-table">
       <table class="erp-table">
         <thead>
           <tr>
-            <th>العميل</th>
-            <th>الفرع</th>
-            <th>النقاط</th>
-            <th>الفاتورة</th>
-            <th>التاريخ</th>
-            <th>تحويل</th>
+            <th>العميل</th><th>الفرع</th><th>النقاط</th>
+            <th>الفاتورة</th><th>التاريخ</th><th>تحويل</th>
           </tr>
         </thead>
         <tbody id="transfers-tbody">
           {% for t in transfers %}
           <tr id="loyalty-row-{{ t.pk }}">
-            <td>
-              <a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a>
-              <div class="text-muted" style="font-size:12px;">{{ t.customer.phone }}</div>
-            </td>
+            <td><a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a><div class="text-muted" style="font-size:12px;">{{ t.customer.phone }}</div></td>
             <td>{{ t.branch.name }}</td>
             <td><span class="badge badge-primary" style="font-size:13px;">{{ t.points|intcomma }}</span></td>
-            <td>
-              {% if t.invoice %}
-              <a href="{% url 'invoices_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>
-              {% else %}-{% endif %}
-            </td>
+            <td>{% if t.invoice %}<a href="{% url 'invoices_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>{% else %}-{% endif %}</td>
             <td style="font-size:12px;">{{ t.created_at|date:"Y/m/d H:i" }}</td>
-            <td>
-              <button onclick="markTransferred({{ t.pk }})" class="btn btn-success btn-sm">تم التحويل</button>
-            </td>
+            <td><button onclick="markTransferred({{ t.pk }})" class="btn btn-success btn-sm">تم التحويل</button></td>
           </tr>
           {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <div style="font-size:32px;margin-bottom:8px;">--</div>
-              <h5>لا توجد نقاط معلقة</h5>
-              <p>جميع نقاط الولاء تم تحويلها</p>
-            </td>
-          </tr>
+          <tr><td colspan="6" class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع نقاط الولاء تم تحويلها</p></td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    
+    <div class="mobile-loyalty">
+      {% for t in transfers %}
+      <div class="mobile-loyalty-card" id="loyalty-row-{{ t.pk }}">
+        <div class="mobile-loyalty-name">{{ t.customer.full_name }}</div>
+        <div class="mobile-loyalty-row">
+          <span class="mobile-loyalty-label">الفرع</span>
+          <span class="mobile-loyalty-value">{{ t.branch.name }}</span>
+        </div>
+        <div class="mobile-loyalty-row">
+          <span class="mobile-loyalty-label">النقاط</span>
+          <span class="mobile-loyalty-value"><span class="badge badge-primary">{{ t.points|intcomma }}</span></span>
+        </div>
+        <div class="mobile-loyalty-row">
+          <span class="mobile-loyalty-label">الفاتورة</span>
+          <span class="mobile-loyalty-value">{% if t.invoice %}{{ t.invoice.invoice_number }}{% else %}-{% endif %}</span>
+        </div>
+        <div class="mobile-loyalty-row">
+          <span class="mobile-loyalty-label">التاريخ</span>
+          <span class="mobile-loyalty-value">{{ t.created_at|date:"d/m/y H:i" }}</span>
+        </div>
+        <div class="mobile-loyalty-actions">
+          <button onclick="markTransferred({{ t.pk }})" class="btn btn-success btn-sm">تم التحويل</button>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع نقاط الولاء تم تحويلها</p></div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
 
-<style>
-  .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column; }
-  .loading-spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
-  .loading-text { color: white; margin-top: 15px; font-size: 16px; }
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
-  .stat-box { padding: 16px; border-radius: 12px; text-align: center; }
-  .stat-orange { background: #fef3ed; }
-  .stat-blue { background: #eff6ff; }
-  .stat-gray { background: #f8fafc; }
-  .stat-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
-  .stat-value { font-size: 26px; font-weight: 800; color: #1a2236; }
-
-  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .inline-form { display: flex; gap: 6px; align-items: center; }
-
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-
-  .erp-table { min-width: 500px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-success { background: #16a34a; color: #fff; }
-  .btn-success:hover { background: #15803d; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-
-  .form-select { padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
-  .form-select-sm { padding: 6px 10px; font-size: 12px; }
-  .form-select:focus { outline: none; border-color: #E8793A; }
-
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-primary { background: #fef3ed; color: #E8793A; }
-
-  .text-muted { color: #6b7280; }
-  .text-primary { color: #E8793A; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 600px) {
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .stats-grid > .stat-box:last-child { grid-column: span 2; }
-    .card-header { flex-direction: column; align-items: stretch; }
-    .header-actions { flex-direction: column; align-items: stretch; }
-    .inline-form { flex-direction: column; }
-    .inline-form .form-select, .inline-form .btn, .header-actions .btn { width: 100%; justify-content: center; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-    .stat-value { font-size: 20px; }
-  }
-  @media (max-width: 380px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .stats-grid > .stat-box:last-child { grid-column: span 1; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } .loading-overlay { display: none !important; } }
-</style>
-
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 
-  function getCSRFToken() {
-    const cookieValue = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
-    return cookieValue ? cookieValue.split('=')[1] : '';
-  }
+function getCSRFToken() {
+  const cookieValue = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+  return cookieValue ? cookieValue.split('=')[1] : '';
+}
 
-  function showToast(message, type) {
-    type = type || 'success';
-    var colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
-    var existing = document.querySelector('.custom-toast');
-    if (existing) existing.remove();
-    var toast = document.createElement('div');
-    toast.className = 'custom-toast';
-    toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;background:' + (colors[type] || colors.success) + ';color:white;padding:12px 24px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:400px;';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(function() { toast.remove(); }, 500); }, 3000);
-  }
+function showToast(message, type) {
+  type = type || 'success';
+  var colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+  var existing = document.querySelector('.custom-toast');
+  if (existing) existing.remove();
+  var toast = document.createElement('div');
+  toast.className = 'custom-toast';
+  toast.style.cssText = 'position:fixed;top:16px;left:16px;right:16px;z-index:99999;background:' + (colors[type] || colors.success) + ';color:white;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:400px;margin:0 auto;';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(function() { toast.remove(); }, 500); }, 3000);
+}
 
-  function downloadBlob(blob, filename) {
-    var url = window.URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  }
+function downloadBlob(blob, filename) {
+  var url = window.URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
 
-  function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
-  function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
+function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-  async function markTransferred(pk) {
-    if (!confirm('هل تم تحويل نقاط الولاء هذه إلى النظام الخارجي؟')) return;
-    showLoading();
-    var btn = event.target;
-    btn.disabled = true; btn.innerHTML = 'جاري...';
-    try {
-      var response = await fetch('/loyalty/' + pk + '/mark-transferred/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': getCSRFToken() }
-      });
-      if (!response.ok) {
-        var errorMsg = 'فشل التحويل';
-        try { var err = await response.json(); errorMsg = err.error || err.message || errorMsg; } catch(e) {}
-        throw new Error(errorMsg);
-      }
-      var cd = response.headers.get('Content-Disposition');
-      var filename = 'نقاط_تحويل.xlsx';
-      if (cd) { var match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/); if (match && match[1]) filename = match[1].replace(/['"]/g, ''); }
-      var blob = await response.blob();
-      downloadBlob(blob, filename);
-      showToast('تم التحويل بنجاح وتحميل الملف', 'success');
-      var row = document.getElementById('loyalty-row-' + pk);
-      if (row) row.remove();
-      setTimeout(function() { location.reload(); }, 1500);
-    } catch(error) {
-      showToast(error.message, 'error');
-      btn.disabled = false; btn.innerHTML = 'تم التحويل';
-    } finally { hideLoading(); }
-  }
+async function markTransferred(pk) {
+  if (!confirm('هل تم تحويل نقاط الولاء هذه إلى النظام الخارجي؟')) return;
+  showLoading();
+  var btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = 'جاري...';
+  try {
+    var response = await fetch('/loyalty/' + pk + '/mark-transferred/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() }
+    });
+    if (!response.ok) {
+      var errorMsg = 'فشل التحويل';
+      try { var err = await response.json(); errorMsg = err.error || err.message || errorMsg; } catch(e) {}
+      throw new Error(errorMsg);
+    }
+    var cd = response.headers.get('Content-Disposition');
+    var filename = 'نقاط_تحويل.xlsx';
+    if (cd) { var match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/); if (match && match[1]) filename = match[1].replace(/['"]/g, ''); }
+    var blob = await response.blob();
+    downloadBlob(blob, filename);
+    showToast('تم التحويل بنجاح وتحميل الملف', 'success');
+    var row = document.getElementById('loyalty-row-' + pk);
+    if (row) row.remove();
+    setTimeout(function() { location.reload(); }, 1500);
+  } catch(error) {
+    showToast(error.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'تم التحويل';
+  } finally { hideLoading(); }
+}
 
-  async function markAllTransferred(customerId, branchId) {
-    var confirmMsg = customerId ? 'هل تريد تحويل نقاط هذا العميل؟' : 'هل تريد تحويل جميع النقاط المعلقة؟';
-    if (!confirm(confirmMsg)) return;
-    showLoading();
-    var formData = new FormData();
-    if (customerId) formData.append('customer_id', customerId);
-    if (branchId) formData.append('branch_id', branchId);
-    try {
-      var response = await fetch('/loyalty/mark-all/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': getCSRFToken() },
-        body: formData
-      });
-      if (!response.ok) {
-        var errorMsg = 'فشل التحويل';
-        try { var err = await response.json(); errorMsg = err.message || err.error || errorMsg; } catch(e) {}
-        throw new Error(errorMsg);
-      }
-      var cd = response.headers.get('Content-Disposition');
-      var filename = 'نقاط_تحويل.xlsx';
-      if (cd) { var match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/); if (match && match[1]) filename = match[1].replace(/['"]/g, ''); }
-      var blob = await response.blob();
-      downloadBlob(blob, filename);
-      showToast('تم تحويل جميع النقاط وتحميل الملف', 'success');
-      setTimeout(function() { location.reload(); }, 1500);
-    } catch(error) {
-      showToast(error.message, 'error');
-    } finally { hideLoading(); }
-  }
+async function markAllTransferred(customerId, branchId) {
+  var confirmMsg = customerId ? 'هل تريد تحويل نقاط هذا العميل؟' : 'هل تريد تحويل جميع النقاط المعلقة؟';
+  if (!confirm(confirmMsg)) return;
+  showLoading();
+  var formData = new FormData();
+  if (customerId) formData.append('customer_id', customerId);
+  if (branchId) formData.append('branch_id', branchId);
+  try {
+    var response = await fetch('/loyalty/mark-all/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() },
+      body: formData
+    });
+    if (!response.ok) {
+      var errorMsg = 'فشل التحويل';
+      try { var err = await response.json(); errorMsg = err.message || err.error || errorMsg; } catch(e) {}
+      throw new Error(errorMsg);
+    }
+    var cd = response.headers.get('Content-Disposition');
+    var filename = 'نقاط_تحويل.xlsx';
+    if (cd) { var match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/); if (match && match[1]) filename = match[1].replace(/['"]/g, ''); }
+    var blob = await response.blob();
+    downloadBlob(blob, filename);
+    showToast('تم تحويل جميع النقاط وتحميل الملف', 'success');
+    setTimeout(function() { location.reload(); }, 1500);
+  } catch(error) {
+    showToast(error.message, 'error');
+  } finally { hideLoading(); }
+}
 </script>
 {% endblock %}

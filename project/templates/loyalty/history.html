@@ -1,10 +1,69 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}سجل التحويلات{% endblock %}
 {% block page_title %}سجل تحويلات نقاط الولاء{% endblock %}
 {% block nav_loyalty_history %}active{% endblock %}
 
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+  
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .inline-form{display:flex;gap:6px;align-items:center;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 14px;font-size:12px;min-height:34px;}
+  
+  .form-select{padding:10px 14px;border:1.5px solid #eaecf0;border-radius:8px;font-size:14px;background:#fff;color:#1a2236;}
+  .form-select-sm{padding:6px 10px;font-size:12px;}
+  .form-select:focus{outline:none;border-color:#E8793A;box-shadow:0 0 0 4px rgba(232,121,58,0.12);}
+  
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge-success{background:#dcfce7;color:#16a34a;}
+  .text-muted{color:#6b7280;}
+  .text-primary{color:#E8793A;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .erp-table{min-width:520px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:hover{background:#fafbfc;}
+  
+  .mobile-transfer-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-transfer-card:last-child{border-bottom:none;}
+  .mobile-transfer-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-transfer-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-transfer-value{font-size:13px;color:#1a2236;}
+  .mobile-transfer-name{font-size:15px;font-weight:700;color:#1a2236;}
+  
+  @media(max-width:600px){
+    .card-header{flex-direction:column;align-items:stretch;}
+    .header-actions{flex-direction:column;align-items:stretch;}
+    .inline-form{flex-direction:column;}
+    .inline-form .form-select,.inline-form .btn,.header-actions .btn{width:100%;justify-content:center;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .badge{font-size:12px;padding:4px 12px;}
+    .btn-sm{min-height:40px;padding:8px 12px;}
+    .desktop-table{display:none !important;}
+    .mobile-transfer-card{display:block !important;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.btn{display:none;}}
+</style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">سجل التحويلات المكتملة</span>
@@ -22,91 +81,69 @@
     </div>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
+    
+    <div class="table-wrap desktop-table">
       <table class="erp-table">
         <thead>
           <tr>
-            <th>العميل</th>
-            <th>الفرع</th>
-            <th>النقاط</th>
-            <th>الفاتورة</th>
-            <th>نُقل بواسطة</th>
-            <th>تاريخ التحويل</th>
+            <th>العميل</th><th>الفرع</th><th>النقاط</th>
+            <th>الفاتورة</th><th>نُقل بواسطة</th><th>تاريخ التحويل</th>
           </tr>
         </thead>
         <tbody>
           {% for t in transfers %}
           <tr>
-            <td>
-              <a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a>
-            </td>
+            <td><a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a></td>
             <td>{{ t.branch.name }}</td>
             <td><span class="badge badge-success" style="font-size:13px;">{{ t.points|intcomma }}</span></td>
-            <td>
-              {% if t.invoice %}
-              <a href="{% url 'sale_invoice_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>
-              {% else %}-{% endif %}
-            </td>
+            <td>{% if t.invoice %}<a href="{% url 'sale_invoice_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>{% else %}-{% endif %}</td>
             <td>{{ t.transferred_by.get_full_name|default:t.transferred_by.username|default:"-" }}</td>
             <td style="font-size:12px;">{{ t.transfer_date|date:"Y/m/d H:i"|default:"-" }}</td>
           </tr>
           {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <div style="font-size:32px;margin-bottom:8px;">--</div>
-              <h5>لا يوجد سجل تحويلات</h5>
-            </td>
-          </tr>
+          <tr><td colspan="6" class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا يوجد سجل تحويلات</h5></td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    
+    <div class="mobile-transfers">
+      {% for t in transfers %}
+      <div class="mobile-transfer-card">
+        <div class="mobile-transfer-name">{{ t.customer.full_name }}</div>
+        <div class="mobile-transfer-row">
+          <span class="mobile-transfer-label">الفرع</span>
+          <span class="mobile-transfer-value">{{ t.branch.name }}</span>
+        </div>
+        <div class="mobile-transfer-row">
+          <span class="mobile-transfer-label">النقاط</span>
+          <span class="mobile-transfer-value"><span class="badge badge-success">{{ t.points|intcomma }}</span></span>
+        </div>
+        <div class="mobile-transfer-row">
+          <span class="mobile-transfer-label">الفاتورة</span>
+          <span class="mobile-transfer-value">{% if t.invoice %}{{ t.invoice.invoice_number }}{% else %}-{% endif %}</span>
+        </div>
+        <div class="mobile-transfer-row">
+          <span class="mobile-transfer-label">نُقل بواسطة</span>
+          <span class="mobile-transfer-value">{{ t.transferred_by.get_full_name|default:t.transferred_by.username|default:"-" }}</span>
+        </div>
+        <div class="mobile-transfer-row">
+          <span class="mobile-transfer-label">التاريخ</span>
+          <span class="mobile-transfer-value">{{ t.transfer_date|date:"d/m/y H:i"|default:"-" }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا يوجد سجل تحويلات</h5></div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
 
-<style>
-  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .inline-form { display: flex; gap: 6px; align-items: center; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 520px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-  .form-select { padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
-  .form-select-sm { padding: 6px 10px; font-size: 12px; }
-  .form-select:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .text-muted { color: #6b7280; }
-  .text-primary { color: #E8793A; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 600px) {
-    .card-header { flex-direction: column; align-items: stretch; }
-    .header-actions { flex-direction: column; align-items: stretch; }
-    .inline-form { flex-direction: column; }
-    .inline-form .form-select, .inline-form .btn, .header-actions .btn { width: 100%; justify-content: center; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
-</style>
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 </script>
 {% endblock %}

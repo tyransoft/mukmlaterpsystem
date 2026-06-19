@@ -16,11 +16,9 @@
     </div>
   </div>
   <div class="card-body" style="padding:12px 16px;">
-    <form method="get" class="filter-form">
-      <div class="search-bar">
-        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="بحث باسم المنتج أو الكود...">
-      </div>
-      <select name="category" class="form-select">
+    <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:10px;">
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="بحث باسم المنتج أو الكود..." style="max-width:280px;">
+      <select name="category" class="form-select" style="max-width:180px;">
         <option value="">كل الفئات</option>
         {% for cat in categories %}
         <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
@@ -30,299 +28,39 @@
       <a href="{% url 'products_list' %}" class="btn btn-outline">إعادة تعيين</a>
     </form>
   </div>
-  <div class="card-body" style="padding:0;">
-    <div class="table-responsive">
-      <table class="erp-table">
-        <thead>
-          <tr><th>المنتج</th><th>الكود</th><th>الفئة</th><th>سعر التكلفة</th><th>سعر البيع</th><th>نقاط</th><th>الحالة</th><th>الإجراءات</th></tr>
-        </thead>
-        <tbody>
-          {% for product in products %}
-          <tr>
-            <td>
-              <div class="fw-600">{{ product.name }}</div>
-            </td>
-            <td><code style="background:#f1f3f5;padding:2px 6px;border-radius:4px;font-size:12px;">{{ product.barcode }}</code></td>
-            <td>{{ product.category.name|default:"-" }}</td>
-            <td>{{ product.cost_price|floatformat:2|intcomma }}</td>
-            <td class="fw-bold text-primary">{{ product.selling_price|floatformat:2|intcomma }}</td>
-            <td>{% if product.loyalty_points > 0 %}<span class="badge badge-primary"> {{ product.loyalty_points }}</span>{% else %}-{% endif %}</td>
-            <td>{% if product.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
-            <td>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">
-                <a href="{% url 'products_detail' product.pk %}" class="btn btn-outline btn-icon btn-sm">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                   <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </a>
-                {% if user.can_modify_prices %}
-                <a href="{% url 'products_edit' product.pk %}" class="btn btn-outline btn-icon btn-sm">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                   <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
-                   <path d="M4 20h16"></path>
-                  </svg>
-                </a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="9" style="text-align:center;padding:40px;"><h5>لا توجد منتجات</h5></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
+  <div class="table-wrapper">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>المنتج</th><th>الكود</th><th>الفئة</th><th>سعر التكلفة</th>
+          <th>سعر البيع</th><th>نقاط</th><th>الحالة</th><th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td><div class="fw-600">{{ product.name }}</div></td>
+          <td><code>{{ product.barcode }}</code></td>
+          <td>{{ product.category.name|default:"-" }}</td>
+          <td>{{ product.cost_price|floatformat:2|intcomma }}</td>
+          <td class="fw-bold text-primary">{{ product.selling_price|floatformat:2|intcomma }}</td>
+          <td>{% if product.loyalty_points > 0 %}<span class="badge badge-primary">{{ product.loyalty_points }}</span>{% else %}-{% endif %}</td>
+          <td>{% if product.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              <a href="{% url 'products_detail' product.pk %}" class="btn btn-outline btn-sm">عرض</a>
+              {% if user.can_modify_prices %}
+              <a href="{% url 'products_edit' product.pk %}" class="btn btn-outline btn-sm">تعديل</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:40px;color:#64748b;">لا توجد منتجات</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
-
-<style>
-  .filter-form {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  
-  .filter-form .search-bar {
-    flex: 1;
-    min-width: 200px;
-  }
-  
-  .filter-form .form-select {
-    width: 180px;
-  }
-  
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
-  }
-  
-  .erp-table {
-    min-width: 700px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-  }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
-  }
-  
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-  
-  .btn-primary {
-    background: #E8793A;
-    color: #fff;
-  }
-  
-  .btn-primary:hover {
-    background: #d4682e;
-    color: #fff;
-  }
-  
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #eaecf0;
-    color: #374151;
-  }
-  
-  .btn-outline:hover {
-    background: #f8f9fb;
-  }
-  
-  .btn-sm {
-    padding: 6px 14px;
-    font-size: 12px;
-    min-height: 34px;
-  }
-  
-  .btn-icon {
-    padding: 6px 10px;
-    min-height: 34px;
-  }
-  
-  .form-control {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-control:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .form-select {
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-select:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  
-  .badge-primary { background: #fef3ed; color: #E8793A; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-danger { background: #fee2e2; color: #dc2626; }
-  
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  
-  .card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .card-body {
-    padding: 20px;
-  }
-  
-  .text-primary { color: #E8793A; }
-  .text-muted { color: #6b7280; }
-  .fw-600 { font-weight: 600; }
-  .fw-bold { font-weight: 700; }
-  
-  @media (max-width: 768px) {
-    .filter-form {
-      flex-direction: column;
-    }
-    
-    .filter-form .search-bar {
-      min-width: unset;
-    }
-    
-    .filter-form .form-select {
-      width: 100%;
-    }
-    
-    .filter-form .btn {
-      width: 100%;
-    }
-    
-    .card-header {
-      flex-direction: column;
-      align-items: stretch !important;
-    }
-    
-    .card-header > div {
-      flex-direction: column;
-    }
-    
-    .card-header > div .btn {
-      width: 100%;
-    }
-    
-    .erp-table {
-      min-width: 500px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .erp-table {
-      min-width: 400px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-    
-    .btn {
-      font-size: 13px;
-      padding: 8px 14px;
-      min-height: 40px;
-    }
-  }
-  
-  @media print {
-    .table-responsive {
-      overflow: visible;
-    }
-    .btn {
-      display: none;
-    }
-  }
-</style>
 {% endblock %}

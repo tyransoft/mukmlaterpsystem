@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% load humanize %}
-
 {% block title %}سجل حركات المراقبة{% endblock %}
 {% block page_title %}سجل حركات مراقبة الصلاحية{% endblock %}
 
@@ -8,152 +7,46 @@
 <div class="card">
   <div class="card-header">
     <span class="card-title">سجل حركات المنتج: {{ expiry.product.name }}</span>
+    <a href="{% url 'product_expiry_list' %}" class="btn btn-outline btn-sm">رجوع</a>
   </div>
-  <div class="card-body" style="padding:0;">
-    <div class="table-responsive">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>نوع الحركة</th>
-            <th>الكمية قبل</th>
-            <th>الكمية بعد</th>
-            <th>الملاحظات</th>
-            <th>تم بواسطة</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for movement in movements %}
-          <tr>
-            <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
-            <td>
-              {% if movement.movement_type == 'create' %}
-                إنشاء
-              {% elif movement.movement_type == 'update' %}
-                تعديل
-              {% elif movement.movement_type == 'delete' %}
-                حذف
-              {% elif movement.movement_type == 'consume' %}
-                استهلاك
-              {% elif movement.movement_type == 'expire' %}
-                انتهاء صلاحية
-              {% endif %}
-            </td>
-            <td>{{ movement.quantity_before }}</td>
-            <td>{{ movement.quantity_after }}</td>
-            <td>{{ movement.notes|default:"-" }}</td>
-            <td>{{ movement.employee.get_full_name|default:movement.employee.username }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">لا توجد حركات مسجلة</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
+  <div class="table-wrapper">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>التاريخ</th><th>نوع الحركة</th><th>الكمية قبل</th>
+          <th>الكمية بعد</th><th>الملاحظات</th><th>تم بواسطة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for movement in movements %}
+        <tr>
+          <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            {% if movement.movement_type == 'create' %}
+              <span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">إنشاء</span>
+            {% elif movement.movement_type == 'update' %}
+              <span style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">تعديل</span>
+            {% elif movement.movement_type == 'delete' %}
+              <span style="background:#fee2e2;color:#b91c1c;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">حذف</span>
+            {% elif movement.movement_type == 'consume' %}
+              <span style="background:#fef3c7;color:#b45309;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">استهلاك</span>
+            {% elif movement.movement_type == 'expire' %}
+              <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">انتهاء صلاحية</span>
+            {% endif %}
+          </td>
+          <td>{{ movement.quantity_before }}</td>
+          <td>{{ movement.quantity_after }}</td>
+          <td>{{ movement.notes|default:"-" }}</td>
+          <td>{{ movement.employee.get_full_name|default:movement.employee.username }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:40px;color:#64748b;">لا توجد حركات مسجلة</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
-
-<style>
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
-  }
-  
-  .erp-table {
-    min-width: 600px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-  }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
-  }
-  
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  
-  .card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .text-muted { color: #6b7280; }
-  .text-center { text-align: center; }
-  
-  @media (max-width: 768px) {
-    .erp-table {
-      min-width: 450px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
-    
-    .card-header {
-      flex-direction: column;
-      align-items: stretch !important;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .erp-table {
-      min-width: 350px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-  }
-  
-  @media print {
-    .table-responsive {
-      overflow: visible;
-    }
-  }
-</style>
 {% endblock %}

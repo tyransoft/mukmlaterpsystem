@@ -1,55 +1,15 @@
 {% extends 'base.html' %}
 {% load humanize %}
-
-{% block title %}تعديل لأسعار البيع{% endblock %}
-{% block page_title %}تعديل لأسعار البيع{% endblock %}
+{% block title %}تعديل أسعار البيع{% endblock %}
+{% block page_title %}تعديل أسعار البيع{% endblock %}
 {% block nav_products %}active{% endblock %}
 
 {% block content %}
 <style>
-  .selection-tools {
-    background: #f8fafc;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .price-update-form {
-    background: #eff6ff;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-  .product-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-  }
-  .selected-count {
-    background: #2563eb;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 13px;
-  }
-  .spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid #fff;
-    border-top: 2px solid transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    vertical-align: middle;
-    margin-left: 5px;
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+.product-checkbox{width:18px;height:18px;cursor:pointer;}
+.selected-count{background:#2563eb;color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;}
+#submit-btn .spinner{display:none;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:5px;}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
 <div class="card">
@@ -58,35 +18,22 @@
     <a href="{% url 'products_list' %}" class="btn btn-outline btn-sm">رجوع</a>
   </div>
   <div class="card-body">
-    
-    <form method="get" style="margin-bottom:20px;">
-      <div class="filter-grid">
-        <div>
-          <label class="text-muted" style="font-size:12px;">بحث</label>
-          <input type="text" name="q" class="form-control" placeholder="اسم أو باركود" value="{{ query }}">
-        </div>
-        <div>
-          <label class="text-muted" style="font-size:12px;">الفئة</label>
-          <select name="category" class="form-select">
-            <option value="">كل الفئات</option>
-            {% for cat in categories %}
-              <option value="{{ cat.id }}" {% if selected_category|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>
-                {{ cat.name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-        <div style="display:flex;gap:5px;align-items:flex-end;">
-          <button type="submit" class="btn btn-primary">بحث</button>
-          <a href="{% url 'products_bulk_price_update' %}" class="btn btn-outline">إعادة تعيين</a>
-        </div>
-      </div>
+    <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+      <input type="text" name="q" class="form-control" placeholder="اسم أو باركود" value="{{ query }}" style="max-width:220px;">
+      <select name="category" class="form-select" style="max-width:180px;">
+        <option value="">كل الفئات</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if selected_category|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">بحث</button>
+      <a href="{% url 'products_bulk_price_update' %}" class="btn btn-outline">إعادة تعيين</a>
     </form>
-    
+
     <form method="post" id="bulk-update-form">
       {% csrf_token %}
-      <div class="price-update-form">
-        <div class="update-grid">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:16px;border-radius:8px;margin-bottom:16px;">
+        <div class="form-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:flex-end;">
           <div>
             <label class="form-label">نوع الزيادة</label>
             <select name="increase_type" id="increase_type" class="form-select">
@@ -100,439 +47,110 @@
           </div>
           <div>
             <button type="submit" class="btn btn-success" style="width:100%;" id="submit-btn">
+              <span class="spinner" id="spinner"></span>
               تطبيق الزيادة على المنتجات المحددة
             </button>
           </div>
         </div>
       </div>
-      
-      <div class="selection-tools">
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--bg-light);padding:12px 14px;border-radius:8px;margin-bottom:14px;">
         <button type="button" id="select_all_btn" class="btn btn-outline btn-sm">تحديد الكل</button>
         <button type="button" id="select_none_btn" class="btn btn-outline btn-sm">إلغاء التحديد</button>
         <button type="button" id="select_page_btn" class="btn btn-outline btn-sm">تحديد كل المنتجات</button>
-        <div class="selected-count">
-          تم اختيار <span id="selected_count">0</span> منتج
-        </div>
-        <div class="text-muted" style="font-size:12px;">
-          إجمالي المنتجات: {{ total_count }}
-        </div>
+        <div class="selected-count">تم اختيار <span id="selected_count">0</span> منتج</div>
+        <div style="font-size:12px;color:var(--text-muted);">إجمالي المنتجات: {{ total_count }}</div>
       </div>
-      
-      <div class="table-responsive">
+
+      <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
+      <div class="table-wrapper">
         <table class="erp-table">
           <thead>
             <tr>
-              <th style="width:40px;">
-                <input type="checkbox" id="select_all_checkbox" style="width:18px;height:18px;">
-              </th>
-              <th>المنتج</th>
-              <th>الباركود</th>
-              <th>الفئة</th>
-              <th>سعر البيع الحالي</th>
-              <th>السعر بعد الزيادة</th>
+              <th style="width:44px;"><input type="checkbox" id="select_all_checkbox" style="width:18px;height:18px;"></th>
+              <th>المنتج</th><th>الباركود</th><th>الفئة</th><th>سعر البيع الحالي</th><th>السعر بعد الزيادة</th>
             </tr>
           </thead>
           <tbody>
             {% for product in products %}
             <tr>
               <td style="text-align:center;">
-                <input type="checkbox" class="product-checkbox" data-id="{{ product.id }}" 
+                <input type="checkbox" class="product-checkbox" data-id="{{ product.id }}"
                        data-price="{{ product.selling_price }}" data-name="{{ product.name }}">
               </td>
               <td class="fw-600">{{ product.name }}</td>
               <td><code>{{ product.barcode|default:"-" }}</code></td>
               <td>{{ product.category.name|default:"-" }}</td>
-              <td class="current-price-{{ product.id }} fw-bold text-primary">
-                {{ product.selling_price|floatformat:2|intcomma }} د.ل
-              </td>
-              <td class="new-price-{{ product.id }} text-muted">-</td>
+              <td class="current-price-{{ product.id }} fw-bold text-primary">{{ product.selling_price|floatformat:2|intcomma }} د.ل</td>
+              <td class="new-price-{{ product.id }}" style="color:var(--text-muted);">-</td>
             </tr>
             {% empty %}
-            <tr>
-              <td colspan="6" class="text-center text-muted" style="padding:40px;">
-                لا توجد منتجات تطابق معايير البحث
-              </td>
-            </tr>
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:#64748b;">لا توجد منتجات</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      
+
       {% if products.has_other_pages %}
-      <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;flex-wrap:wrap;">
+      <div style="display:flex;justify-content:center;gap:5px;margin-top:16px;flex-wrap:wrap;">
         {% if products.has_previous %}
-          <a href="?page={{ products.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn btn-outline btn-sm">السابق</a>
+        <a href="?page={{ products.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn btn-outline btn-sm">السابق</a>
         {% endif %}
-        <span class="btn btn-primary btn-sm" style="background:#2563eb;">{{ products.number }}</span>
+        <span class="btn btn-primary btn-sm">{{ products.number }}</span>
         {% if products.has_next %}
-          <a href="?page={{ products.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn btn-outline btn-sm">التالي</a>
+        <a href="?page={{ products.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn btn-outline btn-sm">التالي</a>
         {% endif %}
       </div>
       {% endif %}
-      
+
       <input type="hidden" name="selected_products" id="selected_products_input" value="">
     </form>
   </div>
 </div>
 
-<style>
-  .filter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
-  }
-  
-  .update-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    align-items: flex-end;
-  }
-  
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
-  }
-  
-  .erp-table {
-    min-width: 600px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-  }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
-  }
-  
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-  
-  .btn-primary {
-    background: #E8793A;
-    color: #fff;
-  }
-  
-  .btn-primary:hover {
-    background: #d4682e;
-    color: #fff;
-  }
-  
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #eaecf0;
-    color: #374151;
-  }
-  
-  .btn-outline:hover {
-    background: #f8f9fb;
-  }
-  
-  .btn-success {
-    background: #16a34a;
-    color: #fff;
-  }
-  
-  .btn-success:hover {
-    background: #15803d;
-    color: #fff;
-  }
-  
-  .btn-sm {
-    padding: 6px 14px;
-    font-size: 12px;
-    min-height: 34px;
-  }
-  
-  .form-control {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-control:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .form-select {
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-select:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  
-  .card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .card-body {
-    padding: 20px;
-  }
-  
-  .form-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 4px;
-  }
-  
-  .text-muted { color: #6b7280; }
-  .text-primary { color: #E8793A; }
-  .fw-600 { font-weight: 600; }
-  .fw-bold { font-weight: 700; }
-  
-  @media (max-width: 768px) {
-    .filter-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-    
-    .update-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .selection-tools {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .selection-tools .btn {
-      width: 100%;
-    }
-    
-    .card-header {
-      flex-direction: column;
-      align-items: stretch !important;
-    }
-    
-    .erp-table {
-      min-width: 450px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .filter-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .update-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .erp-table {
-      min-width: 350px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-    
-    .btn {
-      font-size: 13px;
-      padding: 8px 14px;
-      min-height: 40px;
-    }
-    
-    .selected-count {
-      text-align: center;
-    }
-  }
-  
-  @media print {
-    .table-responsive {
-      overflow: visible;
-    }
-    .btn {
-      display: none;
-    }
-  }
-</style>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function() {
-    
-    $('#increase_type').on('change', function() {
-        if ($(this).val() === 'fixed') {
-            $('#increase_label').text('قيمة الزيادة (د.ل)');
-            $('#increase_value').attr('step', '0.01');
-        } else {
-            $('#increase_label').text('نسبة الزيادة (%)');
-            $('#increase_value').attr('step', '0.1');
-        }
-        calculateNewPrices();
-    });
-    
-    $('#increase_value').on('input', calculateNewPrices);
-    
-    function calculateNewPrices() {
-        const increaseType = $('#increase_type').val();
-        const increaseValue = parseFloat($('#increase_value').val()) || 0;
-        
-        $('.product-checkbox:checked').each(function() {
-            const id = $(this).data('id');
-            const currentPrice = parseFloat($(this).data('price'));
-            let newPrice;
-            
-            if (increaseType === 'fixed') {
-                newPrice = currentPrice + increaseValue;
-            } else {
-                newPrice = currentPrice + (currentPrice * increaseValue / 100);
-            }
-            
-            $(`.new-price-${id}`).html(`<span class="fw-bold text-success">${newPrice.toFixed(2)} د.ل</span>`);
-        });
-        
-        $('.product-checkbox:not(:checked)').each(function() {
-            const id = $(this).data('id');
-            $(`.new-price-${id}`).html('-');
-        });
+var checkboxes=document.querySelectorAll('.product-checkbox');
+var allChk=document.getElementById('select_all_checkbox');
+var countEl=document.getElementById('selected_count');
+var incType=document.getElementById('increase_type');
+var incVal=document.getElementById('increase_value');
+
+function updateCount(){
+  var n=document.querySelectorAll('.product-checkbox:checked').length;
+  countEl.textContent=n;
+  var ids=[];
+  document.querySelectorAll('.product-checkbox:checked').forEach(function(c){ids.push(c.getAttribute('data-id'))});
+  document.getElementById('selected_products_input').value=ids.join(',');
+  updatePreviews();
+}
+function updatePreviews(){
+  var val=parseFloat(incVal.value)||0;
+  var type=incType.value;
+  checkboxes.forEach(function(c){
+    var id=c.getAttribute('data-id');
+    var price=parseFloat(c.getAttribute('data-price'));
+    var el=document.querySelector('.new-price-'+id);
+    if(c.checked&&val>0&&el){
+      var np=type==='percentage'?price+(price*val/100):price+val;
+      el.textContent=np.toFixed(2)+' د.ل';
+      el.style.color='#16a34a';el.style.fontWeight='700';
+    } else if(el){
+      el.textContent='-';el.style.color='';el.style.fontWeight='';
     }
-    
-    function updateSelectedCount() {
-        const count = $('.product-checkbox:checked').length;
-        $('#selected_count').text(count);
-        
-        const totalCheckboxes = $('.product-checkbox').length;
-        const checkedCheckboxes = $('.product-checkbox:checked').length;
-        $('#select_all_checkbox').prop('checked', checkedCheckboxes === totalCheckboxes && totalCheckboxes > 0);
-        $('#select_all_checkbox').prop('indeterminate', checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes);
-        
-        calculateNewPrices();
-    }
-    
-    $('#select_all_checkbox').on('change', function() {
-        const isChecked = $(this).is(':checked');
-        $('.product-checkbox').prop('checked', isChecked);
-        updateSelectedCount();
-    });
-    
-    $('#select_all_btn').on('click', function() {
-        $('.product-checkbox').prop('checked', true);
-        updateSelectedCount();
-    });
-    
-    $('#select_none_btn').on('click', function() {
-        $('.product-checkbox').prop('checked', false);
-        updateSelectedCount();
-    });
-    
-    $('#select_page_btn').on('click', function() {
-        $('.product-checkbox').prop('checked', true);
-        updateSelectedCount();
-    });
-    
-    $('.product-checkbox').on('change', updateSelectedCount);
-    
-    $('#bulk-update-form').on('submit', function(e) {
-        const selected = [];
-        $('.product-checkbox:checked').each(function() {
-            selected.push($(this).data('id'));
-        });
-        
-        if (selected.length === 0) {
-            e.preventDefault();
-            alert('الرجاء اختيار منتج واحد على الأقل');
-            return false;
-        }
-        
-        const increaseValue = parseFloat($('#increase_value').val());
-        if (!increaseValue || increaseValue <= 0) {
-            e.preventDefault();
-            alert('الرجاء إدخال قيمة الزيادة');
-            return false;
-        }
-        
-        $('#selected_products_input').val(selected.join(','));
-        
-        const $btn = $('#submit-btn');
-        $btn.prop('disabled', true);
-        $btn.html('<span class="spinner"></span> جاري التحديث...');
-        
-        return true;
-    });
-    
-    updateSelectedCount();
+  });
+}
+incType.addEventListener('change',function(){
+  document.getElementById('increase_label').textContent=this.value==='percentage'?'قيمة الزيادة (%)':'قيمة الزيادة (د.ل)';
+  updatePreviews();
+});
+incVal.addEventListener('input',updatePreviews);
+checkboxes.forEach(function(c){c.addEventListener('change',updateCount)});
+allChk.addEventListener('change',function(){checkboxes.forEach(function(c){c.checked=allChk.checked});updateCount()});
+document.getElementById('select_all_btn').addEventListener('click',function(){checkboxes.forEach(function(c){c.checked=true});allChk.checked=true;updateCount()});
+document.getElementById('select_none_btn').addEventListener('click',function(){checkboxes.forEach(function(c){c.checked=false});allChk.checked=false;updateCount()});
+document.getElementById('select_page_btn').addEventListener('click',function(){checkboxes.forEach(function(c){c.checked=true});allChk.checked=true;updateCount()});
+document.getElementById('bulk-update-form').addEventListener('submit',function(){
+  document.getElementById('spinner').style.display='inline-block';
 });
 </script>
 {% endblock %}

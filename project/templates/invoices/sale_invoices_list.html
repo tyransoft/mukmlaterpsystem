@@ -1,450 +1,85 @@
 {% extends 'base.html' %}
 {% load humanize %}
-
 {% block title %}فواتير المبيعات{% endblock %}
 {% block page_title %}فواتير المبيعات{% endblock %}
 
 {% block content %}
 <div class="card">
-  <div class="card-header">
-    <span class="card-title">فواتير المبيعات</span>
-    <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary btn-sm">فاتورة جديدة</a>
-  </div>
+  <div class="card-header"><span class="card-title">فواتير المبيعات</span></div>
   <div class="card-body">
-    
-    <div class="stats-grid-4">
-      <div style="background:#eff6ff;padding:12px;border-radius:8px;text-align:center;">
-        <div class="text-muted" style="font-size:12px;">إجمالي الفواتير</div>
-        <div class="fw-bold" style="font-size:20px;color:#2563eb;">{{ stats.total_count }}</div>
-      </div>
-      <div style="background:#f0fdf4;padding:12px;border-radius:8px;text-align:center;">
-        <div class="text-muted" style="font-size:12px;">إجمالي المبلغ</div>
-        <div class="fw-bold" style="font-size:20px;color:#16a34a;">{{ stats.total_amount|floatformat:0|intcomma }} د.ل</div>
-      </div>
-      <div style="background:#fef3c7;padding:12px;border-radius:8px;text-align:center;">
-        <div class="text-muted" style="font-size:12px;">مسودة</div>
-        <div class="fw-bold" style="font-size:20px;color:#d97706;">{{ stats.draft_count }}</div>
-      </div>
-      <div style="background:#dbeafe;padding:12px;border-radius:8px;text-align:center;">
-        <div class="text-muted" style="font-size:12px;">مؤكدة</div>
-        <div class="fw-bold" style="font-size:20px;color:#2563eb;">{{ stats.confirmed_count }}</div>
-      </div>
-    </div>
-    
-    <form method="get" style="margin-bottom:20px;">
-      <div class="filter-grid-4">
-        <select name="status" class="form-select">
-          <option value="">جميع الحالات</option>
-          {% for value, label in status_choices %}
-            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <select name="sale_type" class="form-select">
-          <option value="">جميع الأنواع</option>
-          {% for value, label in sale_type_choices %}
-            <option value="{{ value }}" {% if sale_type_filter == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <input type="date" name="date_from" class="form-control" placeholder="من تاريخ" value="{{ date_from }}">
-        <input type="date" name="date_to" class="form-control" placeholder="إلى تاريخ" value="{{ date_to }}">
-        <button type="submit" class="btn btn-primary">بحث</button>
-        <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إعادة تعيين</a>
-      </div>
+    <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:10px;">
+      {% if user.can_see_all_data %}
+      <select name="branch" class="form-select" style="max-width:160px;">
+        <option value="">كل الفروع</option>
+        {% for b in branches %}
+        <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="status" class="form-select" style="max-width:150px;">
+        <option value="">كل الحالات</option>
+        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>مؤكد</option>
+        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>مسودة</option>
+        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>ملغي</option>
+      </select>
+      <input type="text" name="q" class="form-control" placeholder="بحث..." value="{{ query }}" style="max-width:200px;">
+      <input type="date" name="date_from" class="form-control" value="{{ date_from }}" style="max-width:160px;">
+      <input type="date" name="date_to" class="form-control" value="{{ date_to }}" style="max-width:160px;">
+      <button type="submit" class="btn btn-primary">بحث</button>
+      <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إعادة تعيين</a>
     </form>
-    
-    <div class="table-responsive">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>رقم الفاتورة</th>
-            <th>التاريخ</th>
-            <th>الفرع</th>
-            <th>نوع البيع</th>
-            <th>العميل</th>
-            <th>الإجمالي</th>
-            <th>المدفوع</th>
-            <th>المتبقي</th>
-            <th>الحالة</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for inv in invoices %}
-          <tr>
-            <td class="fw-600">{{ inv.invoice_number }}</td>
-            <td>{{ inv.created_at|date:"Y-m-d H:i" }}</td>
-            <td>{{ inv.branch.name }}</td>
-            <td>
-              {% if inv.sale_type == 'customer' %}
-                <span class="badge badge-info">بيع لعميل</span>
-              {% else %}
-                <span class="badge badge-warning">توريد لفرع</span>
+  </div>
+  <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
+  <div class="table-wrapper">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>نوع البيع</th>
+          <th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td class="fw-600">{{ inv.invoice_number }}</td>
+          <td>{{ inv.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{{ inv.branch.name }}</td>
+          <td>
+            {% if inv.sale_type == 'customer' %}
+              <span class="badge badge-info">بيع لعميل</span>
+            {% else %}
+              <span class="badge badge-warning">توريد لفرع</span>
+            {% endif %}
+          </td>
+          <td>{% if inv.customer %}{{ inv.customer.full_name }}{% else %}<span style="color:#64748b;">-</span>{% endif %}</td>
+          <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+          <td>{{ inv.paid_amount|floatformat:2|intcomma }}</td>
+          <td class="{% if inv.remaining_amount > 0 %}text-danger{% endif %}">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
+          <td>
+            <span class="badge {% if inv.status == 'confirmed' %}badge-success{% elif inv.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
+              {{ inv.get_status_display }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              <a href="{% url 'sale_invoice_detail' inv.pk %}" class="btn btn-outline btn-sm">عرض</a>
+              <a href="{% url 'sale_invoice_print' inv.pk %}" class="btn btn-outline btn-sm" target="_blank">طباعة</a>
+              {% if request.user.can_see_all_data %}
+              <a href="{% url 'sale_invoice_return' inv.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">مرتجع</a>
               {% endif %}
-            </td>
-            <td>
-              {% if inv.customer %}
-                {{ inv.customer.full_name }}
-              {% else %}
-                <span class="text-muted">-</span>
+              {% if inv.status == 'draft' %}
+              <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')">تأكيد</a>
               {% endif %}
-            </td>
-            <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
-            <td>{{ inv.paid_amount|floatformat:2|intcomma }}</td>
-            <td class="{% if inv.remaining_amount > 0 %}text-danger{% endif %}">
-              {{ inv.remaining_amount|floatformat:2|intcomma }}
-            </td>
-            <td>
-              <span class="badge {% if inv.status == 'confirmed' %}badge-success{% elif inv.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
-                {{ inv.get_status_display }}
-              </span>
-            </td>
-            <td>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">
-                <a href="{% url 'sale_invoice_detail' inv.pk %}" class="btn btn-outline btn-icon btn-sm" title="تفاصيل">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </a>
-                <a href="{% url 'sale_invoice_print' inv.pk %}" class="btn btn-outline btn-icon btn-sm" title="طباعة" target="_blank">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M6 9V2h12v7"></path>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                  </svg>
-                </a>
-                {% if request.user.can_see_all_data %}
-                 <a href="{% url 'sale_invoice_return' inv.pk %}" class="btn btn-outline btn-icon btn-sm" title="مرتجع" style="border-color:#dc2626;color:#dc2626;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                   <path d="M3 12a9 9 0 1 0 9-9m0 0L7 7m5-5-5 5" stroke="currentColor"/>
-                   <path d="M12 7v6l4 2" stroke="currentColor"/>
-                  </svg>
-                 </a>
-                {% endif %}
-                {% if inv.status == 'draft' %}
-                  <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-icon btn-sm" title="تأكيد" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="10" class="text-center text-muted" style="padding:40px;">
-              لا توجد فواتير مبيعات
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" style="text-align:center;padding:40px;color:#64748b;">لا توجد فواتير مبيعات</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
-
-<style>
-  .stats-grid-4 {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .filter-grid-4 {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
-  }
-  
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
-  }
-  
-  .erp-table {
-    min-width: 700px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-  }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
-  }
-  
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-  
-  .btn-primary {
-    background: #E8793A;
-    color: #fff;
-  }
-  
-  .btn-primary:hover {
-    background: #d4682e;
-    color: #fff;
-  }
-  
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #eaecf0;
-    color: #374151;
-  }
-  
-  .btn-outline:hover {
-    background: #f8f9fb;
-  }
-  
-  .btn-success {
-    background: #16a34a;
-    color: #fff;
-  }
-  
-  .btn-success:hover {
-    background: #15803d;
-    color: #fff;
-  }
-  
-  .btn-sm {
-    padding: 6px 14px;
-    font-size: 12px;
-    min-height: 34px;
-  }
-  
-  .btn-icon {
-    padding: 6px 10px;
-    min-height: 34px;
-  }
-  
-  .form-control {
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-control:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .form-select {
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-select:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  
-  .badge-info { background: #dbeafe; color: #2563eb; }
-  .badge-warning { background: #fef3c7; color: #d97706; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-secondary { background: #f1f3f5; color: #6b7280; }
-  
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  
-  .card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .card-body {
-    padding: 20px;
-  }
-  
-  .text-muted { color: #6b7280; }
-  .text-danger { color: #dc2626; }
-  .fw-600 { font-weight: 600; }
-  .fw-bold { font-weight: 700; }
-  
-  @media (max-width: 1024px) {
-    .stats-grid-4 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .stats-grid-4 {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-    
-    .stats-grid-4 > div {
-      padding: 10px !important;
-    }
-    
-    .stats-grid-4 .fw-bold {
-      font-size: 18px !important;
-    }
-    
-    .filter-grid-4 {
-      grid-template-columns: 1fr 1fr;
-    }
-    
-    .card-header {
-      flex-direction: column;
-      align-items: stretch !important;
-    }
-    
-    .card-header .btn {
-      width: 100%;
-      justify-content: center;
-    }
-    
-    .erp-table {
-      min-width: 500px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .stats-grid-4 {
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    
-    .stats-grid-4 > div {
-      padding: 8px !important;
-    }
-    
-    .stats-grid-4 .fw-bold {
-      font-size: 16px !important;
-    }
-    
-    .stats-grid-4 .text-muted {
-      font-size: 10px !important;
-    }
-    
-    .filter-grid-4 {
-      grid-template-columns: 1fr;
-    }
-    
-    .filter-grid-4 .btn {
-      width: 100%;
-    }
-    
-    .erp-table {
-      min-width: 400px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-    
-    .card-body {
-      padding: 12px 14px;
-    }
-    
-    .btn {
-      font-size: 13px;
-      padding: 8px 14px;
-      min-height: 40px;
-    }
-    
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 11px;
-      min-height: 30px;
-    }
-    
-    .btn-icon {
-      padding: 4px 8px;
-    }
-  }
-  
-  @media print {
-    .table-responsive {
-      overflow: visible;
-    }
-    .btn {
-      display: none;
-    }
-    .stats-grid-4 {
-      display: none;
-    }
-  }
-</style>
 {% endblock %}

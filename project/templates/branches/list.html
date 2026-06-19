@@ -1,9 +1,89 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}الفروع{% endblock %}
 {% block page_title %}إدارة الفروع{% endblock %}
 {% block nav_branches %}active{% endblock %}
+
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:0;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;touch-action:manipulation;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-danger{background:#dc2626;color:#fff;}
+  .btn-danger:hover{background:#b91c1c;color:#fff;}
+  .btn-sm{padding:6px 12px;font-size:12px;min-height:36px;min-width:36px;}
+  .btn-icon{width:38px;height:38px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;}
+  
+  .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .badge-success{background:#dcfce7;color:#16a34a;}
+  .badge-primary{background:#fef3ed;color:#E8793A;}
+  .badge-secondary{background:#f1f3f5;color:#6b7280;}
+  .badge-danger{background:#fee2e2;color:#dc2626;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .erp-table{min-width:580px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-branch-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-branch-card:last-child{border-bottom:none;}
+  .mobile-branch-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .mobile-branch-name{font-size:16px;font-weight:700;color:#1a2236;}
+  .mobile-branch-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-branch-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-branch-value{font-size:13px;color:#1a2236;}
+  .mobile-branch-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;}
+  .mobile-branch-actions .btn{width:100%;justify-content:center;font-size:12px;min-height:40px;}
+  
+  .empty-state{text-align:center;padding:60px 20px;}
+  .empty-icon{font-size:56px;margin-bottom:16px;opacity:0.6;}
+  .empty-state h3{font-size:20px;color:#1a2236;margin-bottom:6px;}
+  .empty-state p{color:#6b7280;font-size:14px;margin-bottom:16px;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  @media(max-width:768px){
+    .card-header{flex-direction:column;align-items:stretch;}
+    .card-header .btn{width:100%;justify-content:center;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-branch-card{display:block !important;}
+    .mobile-branch-actions{grid-template-columns:1fr 1fr 1fr;}
+  }
+  
+  @media(max-width:480px){
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+    .btn-icon{width:44px;height:44px;}
+    .mobile-branch-actions{grid-template-columns:1fr 1fr;}
+  }
+  
+  @media print{
+    .table-wrap{overflow:visible;}
+    .btn,.mobile-cards{display:none !important;}
+    .desktop-table{display:block !important;}
+  }
+</style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">قائمة الفروع</span>
@@ -11,203 +91,108 @@
     <a href="{% url 'branches_create' %}" class="btn btn-primary btn-sm">+ إضافة فرع</a>
     {% endif %}
   </div>
-  <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>الفرع</th>
-            <th>الهاتف</th>
-            <th>العمولة %</th>
-            <th>النوع</th>
-            <th>الحالة</th>
-            <th>الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for branch in branches %}
-          <tr>
-            <td>
-              <div class="fw-600">{{ branch.name }}</div>
-              {% if branch.address %}<div class="text-muted" style="font-size:12px;">{{ branch.address|truncatechars:40 }}</div>{% endif %}
-            </td>
-            <td>{{ branch.phone|default:"-" }}</td>
-            <td><span class="badge badge-primary">{{ branch.commission_percentage }}%</span></td>
-            <td>{% if branch.is_main %}<span class="badge badge-success">رئيسي</span>{% else %}<span class="badge badge-secondary">فرع</span>{% endif %}</td>
-            <td>{% if branch.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
-            <td>
-              <div class="actions-cell">
-                <a href="{% url 'branches_detail' branch.pk %}" class="btn btn-outline btn-icon btn-sm" title="التفاصيل">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </a>
-                {% if user.is_main_admin %}
-                <a href="{% url 'branches_edit' branch.pk %}" class="btn btn-outline btn-icon btn-sm" title="تعديل">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
-                    <path d="M4 20h16"></path>
-                  </svg>
-                </a>
-                {% if not branch.is_main %}
-                <button onclick="ERP.confirmDelete('{% url 'branches_delete' branch.pk %}', '{{ branch.name }}')" class="btn btn-danger btn-icon btn-sm" title="حذف">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                  </svg>
-                </button>
-                {% endif %}
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6">
+  <div class="card-body">
+    
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>الفرع</th>
+              <th>الهاتف</th>
+              <th>العمولة %</th>
+              <th>النوع</th>
+              <th>الحالة</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for branch in branches %}
+            <tr>
+              <td>
+                <div class="fw-600">{{ branch.name }}</div>
+                {% if branch.address %}<div class="text-muted" style="font-size:12px;">{{ branch.address|truncatechars:40 }}</div>{% endif %}
+              </td>
+              <td>{{ branch.phone|default:"-" }}</td>
+              <td><span class="badge badge-primary">{{ branch.commission_percentage }}%</span></td>
+              <td>{% if branch.is_main %}<span class="badge badge-success">رئيسي</span>{% else %}<span class="badge badge-secondary">فرع</span>{% endif %}</td>
+              <td>{% if branch.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
+              <td>
+                <div style="display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;">
+                  <a href="{% url 'branches_detail' branch.pk %}" class="btn btn-outline btn-icon btn-sm" title="التفاصيل">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </a>
+                  {% if user.is_main_admin %}
+                  <a href="{% url 'branches_edit' branch.pk %}" class="btn btn-outline btn-icon btn-sm" title="تعديل">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-7 7H10v-4l7-7z"></path><path d="M4 20h16"></path></svg>
+                  </a>
+                  {% if not branch.is_main %}
+                  <button onclick="ERP.confirmDelete('{% url 'branches_delete' branch.pk %}', '{{ branch.name }}')" class="btn btn-danger btn-icon btn-sm" title="حذف">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
+                  </button>
+                  {% endif %}
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">
               <div class="empty-state">
-                <div class="empty-icon">___</div>
-                <h5>لا توجد فروع</h5>
+                <h3>لا توجد فروع</h3>
+                <p>قم بإضافة أول فرع للبدء</p>
+                <a href="{% url 'branches_create' %}" class="btn btn-primary">إضافة فرع جديد</a>
               </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    
+    <div class="mobile-cards">
+      {% for branch in branches %}
+      <div class="mobile-branch-card">
+        <div class="mobile-branch-header">
+          <span class="mobile-branch-name">{{ branch.name }}</span>
+          <div>
+            {% if branch.is_main %}<span class="badge badge-success">رئيسي</span>{% else %}<span class="badge badge-secondary">فرع</span>{% endif %}
+            {% if branch.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}
+          </div>
+        </div>
+        <div class="mobile-branch-row">
+          <span class="mobile-branch-label">الهاتف</span>
+          <span class="mobile-branch-value">{{ branch.phone|default:"-" }}</span>
+        </div>
+        <div class="mobile-branch-row">
+          <span class="mobile-branch-label">العمولة</span>
+          <span class="mobile-branch-value"><span class="badge badge-primary">{{ branch.commission_percentage }}%</span></span>
+        </div>
+        <div class="mobile-branch-row">
+          <span class="mobile-branch-label">العنوان</span>
+          <span class="mobile-branch-value" style="font-size:12px;">{{ branch.address|default:"-" }}</span>
+        </div>
+        <div class="mobile-branch-actions">
+          <a href="{% url 'branches_detail' branch.pk %}" class="btn btn-outline btn-sm"> عرض</a>
+          {% if user.is_main_admin %}
+          <a href="{% url 'branches_edit' branch.pk %}" class="btn btn-outline btn-sm"> تعديل</a>
+          {% if not branch.is_main %}
+          <button onclick="ERP.confirmDelete('{% url 'branches_delete' branch.pk %}', '{{ branch.name }}')" class="btn btn-danger btn-sm"> حذف</button>
+          {% endif %}
+                    {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <h3>لا توجد فروع</h3>
+        <p>قم بإضافة أول فرع للبدء</p>
+        <a href="{% url 'branches_create' %}" class="btn btn-primary">إضافة فرع جديد</a>
+      </div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
-<style>
-  .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
-  .table-wrap::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 30px;
-    background: linear-gradient(to right, rgba(255,255,255,0.9), transparent);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .table-wrap.has-scroll::after {
-    opacity: 1;
-  }
-  .erp-table {
-    min-width: 580px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .actions-cell {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    flex-wrap: nowrap;
-  }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    min-height: 44px;
-    touch-action: manipulation;
-    white-space: nowrap;
-  }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-danger { background: #dc2626; color: #fff; }
-  .btn-danger:hover { background: #b91c1c; color: #fff; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-  .btn-icon { padding: 6px 10px; min-height: 34px; }
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  .card-header {
-    padding: 14px 16px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-primary { background: #fef3ed; color: #E8793A; }
-  .badge-secondary { background: #f1f3f5; color: #6b7280; }
-  .badge-danger { background: #fee2e2; color: #dc2626; }
-  .text-muted { color: #6b7280; }
-  .fw-600 { font-weight: 600; }
-  .empty-state { text-align: center; padding: 40px 20px; }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state h5 { font-size: 18px; color: #1a2236; margin-bottom: 4px; }
-  @media (max-width: 600px) {
-    .card-header {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .card-header .btn {
-      width: 100%;
-      justify-content: center;
-    }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-  }
-  @media print {
-    .table-wrap { overflow: visible; }
-    .table-wrap::after { display: none; }
-    .btn { display: none; }
-  }
-</style>
+
 <script>
   document.querySelectorAll('.table-wrap').forEach(function(wrap) {
     function check() {

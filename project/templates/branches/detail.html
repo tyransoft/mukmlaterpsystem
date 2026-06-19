@@ -52,9 +52,294 @@
     font-size: 14px;
     opacity: 0.9;
   }
+  
+  .branch-layout {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+  }
+  
+  .stats-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px;
+  }
+  
+  .erp-table {
+    min-width: 500px;
+    width: 100%;
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+  
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+  
+  .erp-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .btn-primary {
+    background: #E8793A;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #d4682e;
+    color: #fff;
+  }
+  
+  .btn-success {
+    background: #16a34a;
+    color: #fff;
+  }
+  
+  .btn-success:hover {
+    background: #15803d;
+    color: #fff;
+  }
+  
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid #eaecf0;
+    color: #374151;
+  }
+  
+  .btn-outline:hover {
+    background: #f8f9fb;
+  }
+  
+  .btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    min-height: 34px;
+  }
+  
+  .btn-icon {
+    padding: 6px 10px;
+    min-height: 34px;
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #eaecf0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: #1a2236;
+  }
+  
+  .form-control:focus {
+    outline: none;
+    border-color: #E8793A;
+    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
+  }
+  
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2236;
+    margin: 0;
+  }
+  
+  .card-body {
+    padding: 20px;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-primary { background: #fef3ed; color: #E8793A; }
+  .badge-secondary { background: #f1f3f5; color: #6b7280; }
+  
+  .text-muted { color: #6b7280; }
+  .text-primary { color: #E8793A; }
+  .text-warning { color: #d97706; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  
+  .empty-state {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  
+  @media (max-width: 1024px) {
+    .branch-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .card-header {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    
+    .card-header .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .erp-table {
+      min-width: 400px;
+      font-size: 13px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 8px 10px;
+    }
+    
+    .points-value {
+      font-size: 28px !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .stats-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid-2 .summary-box h4 {
+      font-size: 18px !important;
+    }
+    
+    .erp-table {
+      min-width: 320px;
+      font-size: 12px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 6px 8px;
+    }
+    
+    .card-body {
+      padding: 12px 14px;
+    }
+    
+    .btn {
+      font-size: 13px;
+      padding: 8px 14px;
+      min-height: 40px;
+    }
+    
+    .points-box {
+      padding: 15px;
+    }
+    
+    .points-value {
+      font-size: 24px !important;
+    }
+  }
+  
+  @media print {
+    .filter-bar {
+      display: none;
+    }
+    .btn {
+      display: none;
+    }
+    .points-box {
+      display: none;
+    }
+    .table-responsive {
+      overflow: visible;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
 </style>
 
-<div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;">
+<div class="branch-layout">
   
   <div>
     <div class="card">
@@ -65,23 +350,23 @@
         </div>
         
         <div class="points-box">
-          <div class="points-label">نقاط الولاء المتاحة</div>
+          <div class="points-label">نقاط  متاحة</div>
           <div class="points-value">{{ branch.loyalty_points_inventory|floatformat:0|intcomma }}</div>
           <div class="points-label" style="margin-top:5px;">نقطة</div>
           {% if user.can_see_all_data %}
-          <div style="margin-top:15px;display:flex;gap:10px;">
-            <button onclick="showAdjustPointsForm('add')" class="btn btn-light btn-sm" style="background:rgba(255,255,255,0.2);color:white;">➕ إضافة نقاط</button>
-            <button onclick="showAdjustPointsForm('deduct')" class="btn btn-light btn-sm" style="background:rgba(255,255,255,0.2);color:white;">➖ خصم نقاط</button>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button onclick="showAdjustPointsForm('add')" class="btn" style="background:rgba(255,255,255,0.2);color:white;flex:1;min-width:80px;">➕ إضافة نقاط</button>
+            <button onclick="showAdjustPointsForm('deduct')" class="btn" style="background:rgba(255,255,255,0.2);color:white;flex:1;min-width:80px;">➖ خصم نقاط</button>
           </div>
           {% endif %}
         </div>
         
         <div style="border-top:1px solid var(--border-color);padding-top:16px;">
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);flex-wrap:wrap;gap:5px;">
             <span class="text-muted">الهاتف</span>
             <span class="fw-600">{{ branch.phone|default:"-" }}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);flex-wrap:wrap;gap:5px;">
             <span class="text-muted">نسبة العمولة</span>
             <span class="fw-600 text-primary">{{ branch.commission_percentage }}%</span>
           </div>
@@ -108,14 +393,14 @@
       <div class="card-header"><span class="card-title">الموظفون</span></div>
       <div class="card-body" style="padding:0;">
         {% for emp in employees %}
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:5px;">
           <div>
             <div class="fw-600">{{ emp.get_full_name|default:emp.username }}</div>
             <div class="text-muted" style="font-size:12px;">{{ emp.get_role_display }}</div>
           </div>
         </div>
         {% empty %}
-        <div class="empty-state" style="padding:20px;"><p>لا يوجد موظفون</p></div>
+        <div class="empty-state"><p>لا يوجد موظفون</p></div>
         {% endfor %}
       </div>
     </div>
@@ -123,7 +408,7 @@
 
   <div>
     <div class="filter-bar">
-      <form method="get" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <form method="get" class="filter-grid">
         <div>
           <label class="text-muted" style="font-size:12px;">من تاريخ</label>
           <input type="date" name="date_from" class="form-control" value="{{ date_from|default:'' }}">
@@ -141,7 +426,7 @@
       </form>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
+    <div class="stats-grid-2">
       <div class="summary-box" style="background:#eff6ff;">
         <div class="label">إجمالي المبيعات</div>
         <h4 style="color:#2563eb;">{{ total_sales|floatformat:0|intcomma }} د.ل</h4>
@@ -154,7 +439,7 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
+    <div class="stats-grid-2">
       <div class="summary-box" style="background:#fef3c7;">
         <div class="label">المستحق للفرع الرئيسي</div>
         <h4 style="color:#d97706;">{{ amount_due_to_main|floatformat:0|intcomma }} د.ل</h4>
@@ -172,7 +457,7 @@
         <span class="card-title">المدفوعات غير المسددة</span>
       </div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;">
+        <div class="stats-grid-2">
           <div style="text-align:center;padding:20px;background:#fee2e2;border-radius:12px;">
             <div class="text-muted">المتبقي للفرع الرئيسي</div>
             <div class="fw-bold" style="font-size:28px;color:#dc2626;">{{ remaining_to_deliver|floatformat:0|intcomma }} د.ل</div>
@@ -208,7 +493,7 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">فواتير المبيعات</span>
-        <div style="display:flex;gap:5px;">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
           <button onclick="window.print()" class="btn btn-outline btn-sm">طباعة</button>
           <a href="{% url 'branch_sales_report' branch.pk %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline btn-sm">تقرير</a>
         </div>
@@ -317,7 +602,7 @@
 
 {% if user.can_see_all_data %}
 <div id="pointsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:16px;padding:30px;max-width:400px;width:90%;">
+  <div style="background:white;border-radius:16px;padding:30px;max-width:400px;width:90%;margin:20px;">
     <h3 id="pointsModalTitle" style="margin-bottom:20px;"></h3>
     <form method="post" action="{% url 'branch_adjust_points' branch.pk %}">
       {% csrf_token %}
@@ -330,9 +615,9 @@
         <label class="form-label">السبب</label>
         <textarea name="reason" class="form-control" rows="3"></textarea>
       </div>
-      <div style="display:flex;gap:10px;margin-top:20px;">
-        <button type="submit" class="btn btn-primary">تأكيد</button>
-        <button type="button" onclick="closePointsModal()" class="btn btn-outline">إلغاء</button>
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">تأكيد</button>
+        <button type="button" onclick="closePointsModal()" class="btn btn-outline" style="flex:1;">إلغاء</button>
       </div>
     </form>
   </div>
@@ -345,10 +630,10 @@
     var actionInput = document.getElementById('pointsAction');
     
     if (action === 'add') {
-      title.innerText = 'إضافة نقاط ولاء للفرع';
+      title.innerText = 'إضافة نقاط  للفرع';
       actionInput.value = 'add';
     } else {
-      title.innerText = 'خصم نقاط ولاء من الفرع';
+      title.innerText = 'خصم نقاط  من الفرع';
       actionInput.value = 'deduct';
     }
     
@@ -367,12 +652,4 @@
   }
 </script>
 {% endif %}
-
-<style>
-  @media print {
-    .filter-bar, .btn, .card-header .btn, .no-print, .points-box {
-      display: none !important;
-    }
-  }
-</style>
 {% endblock %}

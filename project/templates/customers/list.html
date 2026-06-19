@@ -7,21 +7,12 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <span class="card-title">
-      
-      قائمة العملاء
-    </span>
-    <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-      عميل جديد
-    </a>
+    <span class="card-title">قائمة العملاء</span>
+    <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">عميل جديد</a>
   </div>
-  <div class="card-body" style="padding:10px 16px;border-bottom:1px solid var(--border-color);">
-    <form method="get" style="display:flex;gap:10px;">
-      <div class="search-bar" style="flex:1;">
+  <div class="card-body" style="padding:10px 16px;border-bottom:1px solid #eaecf0;">
+    <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
         <input type="text" name="q" value="{{ query }}" class="form-control" placeholder=" بحث بالاسم أو الهاتف...">
       </div>
       <button type="submit" class="btn btn-primary">بحث</button>
@@ -58,7 +49,7 @@
             </td>
             <td>{{ customer.created_at|date:"Y-m-d" }}</td>
             <td>
-              <div style="display:flex;gap:5px;">
+              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">
                 <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تفاصيل">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -92,7 +83,7 @@
           {% empty %}
           <tr>
             <td colspan="6" class="text-center text-muted" style="padding:60px;">
-              <div style="font-size:48px;margin-bottom:10px;">👥</div>
+              <div style="font-size:48px;margin-bottom:10px;">--</div>
               <h5>لا يوجد عملاء</h5>
               <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">إضافة عميل جديد</a>
             </td>
@@ -103,4 +94,233 @@
     </div>
   </div>
 </div>
+
+<style>
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px;
+  }
+  
+  .erp-table {
+    min-width: 600px;
+    width: 100%;
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+  
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+  
+  .erp-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .btn-primary {
+    background: #E8793A;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #d4682e;
+    color: #fff;
+  }
+  
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid #eaecf0;
+    color: #374151;
+  }
+  
+  .btn-outline:hover {
+    background: #f8f9fb;
+  }
+  
+  .btn-success {
+    background: #16a34a;
+    color: #fff;
+  }
+  
+  .btn-success:hover {
+    background: #15803d;
+    color: #fff;
+  }
+  
+  .btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    min-height: 34px;
+  }
+  
+  .btn-icon {
+    padding: 6px 10px;
+    min-height: 34px;
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #eaecf0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: #1a2236;
+  }
+  
+  .form-control:focus {
+    outline: none;
+    border-color: #E8793A;
+    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
+  }
+  
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2236;
+    margin: 0;
+  }
+  
+  .card-body {
+    padding: 20px;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .badge-danger { background: #fee2e2; color: #dc2626; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  
+  .text-muted { color: #6b7280; }
+  .text-primary { color: #E8793A; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  
+  @media (max-width: 768px) {
+    .card-header {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    
+    .card-header .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .card-body form {
+      flex-direction: column;
+    }
+    
+    .card-body form > div {
+      min-width: unset !important;
+    }
+    
+    .card-body form .btn {
+      width: 100%;
+    }
+    
+    .erp-table {
+      min-width: 450px;
+      font-size: 13px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 8px 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .erp-table {
+      min-width: 350px;
+      font-size: 12px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 6px 8px;
+    }
+    
+    .card-body {
+      padding: 0;
+    }
+    
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 11px;
+      min-height: 30px;
+    }
+    
+    .btn-icon {
+      padding: 4px 8px;
+    }
+  }
+  
+  @media print {
+    .table-responsive {
+      overflow: visible;
+    }
+    .btn {
+      display: none;
+    }
+  }
+</style>
 {% endblock %}

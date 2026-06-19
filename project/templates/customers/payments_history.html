@@ -6,33 +6,20 @@
 {% block nav_customers %}active{% endblock %}
 
 {% block content %}
-<div style="margin-bottom:20px;">
-  <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-sm">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-    رجوع للعميل
-  </a>
+<div style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;">
+  <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-sm">رجوع للعميل</a>
   {% if customer.debt_balance > 0 %}
-  <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-sm">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-      <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-    تسديد جديد
-  </a>
+  <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-sm">تسديد جديد</a>
   {% endif %}
 </div>
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">
-      
-      سجل تسديدات {{ customer.full_name }}
-    </span>
+    <span class="card-title">سجل تسديدات {{ customer.full_name }}</span>
   </div>
   <div class="card-body">
     
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px;">
+    <div class="stats-grid">
       <div style="background:#eff6ff;padding:15px;border-radius:12px;text-align:center;">
         <div class="text-muted" style="font-size:12px;">إجمالي الدين السابق</div>
         <div class="fw-bold" style="font-size:22px;color:#2563eb;">{{ total_previous_debt|floatformat:0|intcomma }} د.ل</div>
@@ -94,7 +81,7 @@
     </div>
     
     {% if payments.has_other_pages %}
-    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;">
+    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;flex-wrap:wrap;">
       {% if payments.has_previous %}
         <a href="?page={{ payments.previous_page_number }}" class="btn btn-outline btn-sm">السابق</a>
       {% endif %}
@@ -106,4 +93,215 @@
     {% endif %}
   </div>
 </div>
+
+<style>
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px;
+  }
+  
+  .erp-table {
+    min-width: 500px;
+    width: 100%;
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+  
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+  
+  .erp-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .btn-primary {
+    background: #E8793A;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #d4682e;
+    color: #fff;
+  }
+  
+  .btn-success {
+    background: #16a34a;
+    color: #fff;
+  }
+  
+  .btn-success:hover {
+    background: #15803d;
+    color: #fff;
+  }
+  
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid #eaecf0;
+    color: #374151;
+  }
+  
+  .btn-outline:hover {
+    background: #f8f9fb;
+  }
+  
+  .btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    min-height: 34px;
+  }
+  
+  .btn-icon {
+    padding: 6px 10px;
+    min-height: 34px;
+  }
+  
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2236;
+    margin: 0;
+  }
+  
+  .card-body {
+    padding: 20px;
+  }
+  
+  .text-muted { color: #6b7280; }
+  .text-success { color: #16a34a; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid > div:last-child {
+      grid-column: span 2;
+    }
+    
+    .card-header {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    
+    .erp-table {
+      min-width: 400px;
+      font-size: 13px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 8px 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid > div:last-child {
+      grid-column: span 2;
+    }
+    
+    .stats-grid > div {
+      padding: 10px !important;
+    }
+    
+    .stats-grid .fw-bold {
+      font-size: 18px !important;
+    }
+    
+    .erp-table {
+      min-width: 320px;
+      font-size: 12px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 6px 8px;
+    }
+    
+    .card-body {
+      padding: 12px 14px;
+    }
+    
+    .btn {
+      font-size: 13px;
+      padding: 8px 14px;
+      min-height: 40px;
+    }
+  }
+  
+  @media print {
+    .table-responsive {
+      overflow: visible;
+    }
+    .btn {
+      display: none;
+    }
+  }
+</style>
 {% endblock %}

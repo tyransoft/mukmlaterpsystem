@@ -6,32 +6,53 @@
 {% block nav_dashboard %}active{% endblock %}
 
 {% block content %}
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-  <div style="background:var(--primary);color:white;padding:8px 16px;border-radius:8px;font-weight:700;">{{ branch.name }}</div>
-  {% if branch.is_main %}<span class="badge badge-primary">الفرع الرئيسي</span>{% endif %}
-  <span class="text-muted" style="font-size:13px;">نسبة العمولة: {{ branch.commission_percentage }}%</span>
+
+<div class="branch-header">
+  <div class="branch-info">
+    <div class="branch-name">{{ branch.name }}</div>
+    {% if branch.is_main %}<span class="badge badge-primary">الفرع الرئيسي</span>{% endif %}
+    <span class="branch-commission">نسبة العمولة: {{ branch.commission_percentage }}%</span>
+  </div>
 </div>
 
-<div class="grid-4" style="margin-bottom:20px;">
+<div class="stats-grid">
   <div class="stat-card">
+    <div class="stat-icon green">
+      
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
-      <div class="stat-label">مبيعات اليوم  </div>
+      <div class="stat-label">مبيعات اليوم</div>
     </div>
   </div>
+  
   <div class="stat-card">
+    <div class="stat-icon blue">
+      
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
-      <div class="stat-label">مبيعات الشهر </div>
+      <div class="stat-label">مبيعات الشهر</div>
     </div>
   </div>
+  
   <div class="stat-card">
+    <div class="stat-icon orange">
+      
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ commission|floatformat:0|intcomma }}</div>
-      <div class="stat-label">عمولة الشهر </div>
+      <div class="stat-label">عمولة الشهر</div>
     </div>
   </div>
+  
   <div class="stat-card">
+    <div class="stat-icon purple">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <polyline points="16 3 12 7 8 3"></polyline>
+      </svg>
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ invoice_count_today }}</div>
       <div class="stat-label">فواتير اليوم</div>
@@ -39,75 +60,612 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-  <!-- Recent Invoices -->
+<div class="dashboard-grid">
+  
   <div class="card">
     <div class="card-header">
       <span class="card-title">آخر الفواتير</span>
       <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary btn-sm">+ جديدة</a>
     </div>
-    <div class="card-body" style="padding:0;">
-      <table class="erp-table">
-        <thead><tr><th>رقم الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>الحالة</th></tr></thead>
-        <tbody>
-          {% for inv in recent_invoices %}
-          <tr>
-            <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
-            <td>{{ inv.customer.full_name|default:"-" }}</td>
-            <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
-            <td>
-              <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}">
-                {{ inv.get_status_display }}
-              </span>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد فواتير</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="card-body table-card-body">
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>رقم الفاتورة</th>
+              <th>العميل</th>
+              <th>الإجمالي</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in recent_invoices %}
+            <tr>
+              <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="invoice-link">{{ inv.invoice_number }}</a></td>
+              <td>{{ inv.customer.full_name|default:"-" }}</td>
+              <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+              <td>
+                <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}">
+                  {{ inv.get_status_display }}
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد فواتير</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Low Stock -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title"> تنبيهات المخزون المنخفض</span>
+      <span class="card-title">تنبيهات المخزون المنخفض</span>
       <a href="{% url 'inventory_list' %}" class="btn btn-outline btn-sm">المخزون</a>
     </div>
-    <div class="card-body" style="padding:0;">
+    <div class="card-body table-card-body">
       {% if low_stock %}
-      <table class="erp-table">
-        <thead><tr><th>المنتج</th><th>المتاح</th><th>الحد الأدنى</th></tr></thead>
-        <tbody>
-          {% for item in low_stock %}
-          <tr>
-            <td class="fw-600">{{ item.product.name }}</td>
-            <td><span class="badge badge-danger">{{ item.quantity }}</span></td>
-            <td class="text-muted">{{ item.min_quantity }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>المنتج</th>
+              <th>المتاح</th>
+              <th>الحد الأدنى</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in low_stock %}
+            <tr>
+              <td class="fw-600">{{ item.product.name }}</td>
+              <td><span class="badge badge-danger">{{ item.quantity }}</span></td>
+              <td class="text-muted">{{ item.min_quantity }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
-      <div class="empty-state" style="padding:30px;">
+      <div class="empty-state">
         <div class="empty-icon">--</div>
         <h5>المخزون كافٍ</h5>
-        <p>لا توجد تنبيهات مخزون منخفض</p>
+        <p class="text-muted">لا توجد تنبيهات مخزون منخفض</p>
       </div>
       {% endif %}
     </div>
   </div>
 </div>
 
-<div class="card" style="margin-top:20px;">
-  <div class="card-body">
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary"> فاتورة مبيعات</a>
-      <a href="{% url 'customers_create' %}" class="btn btn-outline-primary">عميل جديد</a>
-      <a href="{% url 'inventory_list' %}" class="btn btn-outline"> المخزون</a>
-      <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline"> الفواتير</a>
-    </div>
-  </div>
+<div class="quick-actions">
+  <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary">فاتورة مبيعات</a>
+  <a href="{% url 'customers_create' %}" class="btn btn-outline">عميل جديد</a>
+  <a href="{% url 'inventory_list' %}" class="btn btn-outline">المخزون</a>
+  <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">الفواتير</a>
 </div>
+
+<style>
+  .branch-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .branch-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  
+  .branch-name {
+    background: #E8793A;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  
+  .branch-commission {
+    font-size: 13px;
+    color: #6b7280;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.2s;
+    min-height: 80px;
+  }
+  
+  .stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .stat-icon.green { background: #dcfce7; color: #16a34a; }
+  .stat-icon.blue { background: #dbeafe; color: #2563eb; }
+  .stat-icon.orange { background: #fef3ed; color: #E8793A; }
+  .stat-icon.purple { background: #ede9fe; color: #7c3aed; }
+  
+  .stat-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .stat-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a2236;
+    line-height: 1.2;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .table-card-body {
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px;
+  }
+  
+  .table-responsive table {
+    min-width: 350px;
+    width: 100%;
+  }
+  
+  .erp-table {
+    font-size: 14px;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+  
+  .erp-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  
+  .invoice-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .invoice-link:hover {
+    text-decoration: underline;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .badge-primary { background: #fef3ed; color: #E8793A; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-danger { background: #fee2e2; color: #dc2626; }
+  .badge-warning { background: #fef3c7; color: #d97706; }
+  .badge-info { background: #dbeafe; color: #2563eb; }
+  .badge-secondary { background: #f1f3f5; color: #6b7280; }
+  
+  .text-success { color: #16a34a; }
+  .text-primary { color: #E8793A; }
+  .text-muted { color: #6b7280; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+  }
+  
+  .empty-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+  
+  .empty-state h5 {
+    font-size: 16px;
+    color: #1a2236;
+    margin-bottom: 4px;
+  }
+  
+  .empty-state p {
+    font-size: 13px;
+    color: #6b7280;
+  }
+  
+  .quick-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .btn-primary {
+    background: #E8793A;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #d4682e;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(232, 121, 58, 0.3);
+  }
+  
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid #eaecf0;
+    color: #374151;
+  }
+  
+  .btn-outline:hover {
+    background: #f8f9fb;
+    border-color: #d1d5db;
+  }
+  
+  .btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    min-height: 34px;
+  }
+  
+  @media (max-width: 1024px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .branch-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .branch-info {
+      width: 100%;
+    }
+    
+    .branch-name {
+      font-size: 14px;
+      padding: 6px 14px;
+    }
+    
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .stat-card {
+      padding: 12px 14px;
+      min-height: 70px;
+      gap: 10px;
+    }
+    
+    .stat-icon {
+      width: 38px;
+      height: 38px;
+    }
+    
+    .stat-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+    }
+    
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    
+    .card-header {
+      padding: 12px 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .card-title {
+      font-size: 14px;
+    }
+    
+    .erp-table {
+      font-size: 13px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 8px 10px;
+    }
+    
+    .table-responsive table {
+      min-width: 320px;
+    }
+    
+    .quick-actions {
+      padding: 12px 14px;
+      gap: 8px;
+    }
+    
+    .quick-actions .btn {
+      flex: 1;
+      min-width: 100px;
+      justify-content: center;
+      font-size: 13px;
+      padding: 8px 12px;
+      min-height: 40px;
+    }
+    
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+      min-height: 30px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .stat-card {
+      padding: 10px 12px;
+      min-height: 60px;
+      gap: 8px;
+    }
+    
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+    
+    .stat-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .stat-value {
+      font-size: 16px;
+    }
+    
+    .stat-label {
+      font-size: 10px;
+    }
+    
+    .branch-name {
+      font-size: 13px;
+      padding: 5px 12px;
+    }
+    
+    .branch-commission {
+      font-size: 12px;
+    }
+    
+    .erp-table {
+      font-size: 12px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 6px 8px;
+    }
+    
+    .table-responsive table {
+      min-width: 280px;
+    }
+    
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+    }
+    
+    .quick-actions .btn {
+      font-size: 12px;
+      padding: 6px 10px;
+      min-height: 36px;
+      min-width: 80px;
+    }
+    
+    .empty-state {
+      padding: 20px 16px;
+    }
+    
+    .empty-icon {
+      font-size: 32px;
+    }
+    
+    .empty-state h5 {
+      font-size: 14px;
+    }
+    
+    .empty-state p {
+      font-size: 12px;
+    }
+  }
+  
+  @media print {
+    .quick-actions {
+      display: none;
+    }
+    
+    .stat-card {
+      border: 1px solid #ddd;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+    
+    .table-responsive {
+      overflow: visible;
+    }
+    
+    .erp-table tbody tr:hover {
+      background: transparent;
+    }
+    
+    .dashboard-grid {
+      display: block;
+    }
+    
+    .dashboard-grid .card {
+      page-break-inside: avoid;
+      margin-bottom: 16px;
+    }
+    
+    .branch-header {
+      margin-bottom: 12px;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    'use strict';
+    
+    document.querySelectorAll('.table-responsive').forEach(function(wrapper) {
+      if (window.innerWidth <= 768) {
+        var table = wrapper.querySelector('table');
+        if (table && table.scrollWidth > wrapper.clientWidth) {
+          var hint = document.createElement('div');
+          hint.style.cssText = 'text-align:center;padding:4px;font-size:11px;color:#9ca3af;background:#f8fafc;border-radius:0 0 8px 8px;';
+          hint.textContent = '↔ اسحب للتمرير لعرض المزيد';
+          wrapper.parentNode.appendChild(hint);
+          
+          wrapper.addEventListener('scroll', function() {
+            if (hint && hint.parentNode) {
+              hint.style.opacity = '0';
+              hint.style.transition = 'opacity 0.5s';
+              setTimeout(function() {
+                if (hint && hint.parentNode) {
+                  hint.parentNode.removeChild(hint);
+                }
+              }, 500);
+            }
+          }, { once: true });
+        }
+      }
+    });
+    
+    document.querySelectorAll('.stat-card').forEach(function(card) {
+      card.addEventListener('touchstart', function() {
+        this.style.transform = 'scale(0.98)';
+      }, { passive: true });
+      
+      card.addEventListener('touchend', function() {
+        this.style.transform = 'scale(1)';
+      }, { passive: true });
+    });
+    
+  })();
+</script>
+
 {% endblock %}

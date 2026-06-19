@@ -8,26 +8,7 @@
 {% block content %}
 <div class="users-page">
   
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div>
-        <div class="stat-value">{{ users.count }}</div>
-        <div class="stat-label">إجمالي المستخدمين</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div>
-        <div class="stat-value">{{ users|length|add:0 }}</div>
-        <div class="stat-label">المستخدمين النشطين</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div>
-        <div class="stat-value">{{ users|length|add:0 }}</div>
-        <div class="stat-label">المستخدمين غير النشطين</div>
-      </div>
-    </div>
-  </div>
+  
 
   <div class="card">
     <div class="card-header">
@@ -96,7 +77,7 @@
         </div>
         {% empty %}
         <div class="empty-state">
-          <div class="empty-icon">👥</div>
+          <div class="empty-icon">--</div>
           <h5>لا يوجد مستخدمون</h5>
           <a href="{% url 'user_create' %}" class="btn btn-primary mt-3"> إضافة مستخدم</a>
         </div>
@@ -110,7 +91,6 @@
               <th>المستخدم</th>
               <th>الدور</th>
               <th>الفرع</th>
-              <th>البريد الإلكتروني</th>
               <th>الحالة</th>
               <th>الإجراءات</th>
             </tr>
@@ -120,10 +100,8 @@
             <tr data-username="{{ u.username|lower }}" data-role="{{ u.role }}" data-branch="{{ u.branch.name|default:''|lower }}">
               <td>
                 <div class="user-cell">
-                  <div class="user-avatar-table">{{ u.username|first|upper }}</div>
                   <div>
                     <div class="fw-bold">{{ u.username }}</div>
-                    <div class="text-muted" style="font-size:12px;">{{ u.email|default:"-" }}</div>
                   </div>
                 </div>
               </td>
@@ -133,7 +111,6 @@
                 </span>
               </td>
               <td>{{ u.branch.name|default:"-" }}</td>
-              <td>{{ u.email|default:"-" }}</td>
               <td>
                 {% if u.is_active %}
                 <span class="badge badge-success">نشط</span>

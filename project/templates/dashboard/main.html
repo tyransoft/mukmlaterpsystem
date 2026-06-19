@@ -6,42 +6,35 @@
 {% block nav_dashboard %}active{% endblock %}
 
 {% block content %}
-<!-- Quick Actions Bar - TOP -->
+
 <div class="card" style="margin-bottom:24px;">
   <div class="card-body">
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+    <div class="actions-wrapper">
+      <div class="actions-group">
         <a href="{% url 'sale_invoice_create' %}" class="btn btn-primary">
-         
-          فاتورة جديدة
+           فاتورة جديدة
         </a>
-        <a href="{% url 'customers_create' %}" class="btn btn-outline-primary">
-          
-          عميل جديد
+        <a href="{% url 'customers_create' %}" class="btn btn-outline">
+           عميل جديد
         </a>
-        <a href="{% url 'products_create' %}" class="btn btn-outline-primary">
-          
-          منتج جديد
+        <a href="{% url 'products_create' %}" class="btn btn-outline">
+           منتج جديد
         </a>
         <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline">
-          
-          تنبيهات المخزون
+           تنبيهات المخزون
         </a>
         <a href="{% url 'loyalty_pending' %}" class="btn btn-outline">
-          
-          نقاط الولاء
+                النقاط
         </a>
       </div>
-      
     </div>
   </div>
 </div>
 
-<!-- Stats Row -->
-<div class="grid-4" style="margin-bottom:20px;">
+<div class="stats-grid">
   <div class="stat-card">
     <div class="stat-icon orange">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
         <polyline points="16 3 12 7 8 3"></polyline>
       </svg>
@@ -51,21 +44,23 @@
       <div class="stat-label">الفروع النشطة</div>
     </div>
   </div>
+  
   <div class="stat-card">
     <div class="stat-icon green">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="1" x2="12" y2="23"></line>
         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
       </svg>
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
-      <div class="stat-label">مبيعات اليوم </div>
+      <div class="stat-label">مبيعات اليوم</div>
     </div>
   </div>
+  
   <div class="stat-card">
     <div class="stat-icon blue">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
         <line x1="16" y1="2" x2="16" y2="6"></line>
         <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -74,12 +69,13 @@
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
-      <div class="stat-label">مبيعات الشهر </div>
+      <div class="stat-label">مبيعات الشهر</div>
     </div>
   </div>
+  
   <div class="stat-card">
     <div class="stat-icon purple">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="20" x2="12" y2="10"></line>
         <line x1="18" y1="20" x2="18" y2="4"></line>
         <line x1="6" y1="20" x2="6" y2="16"></line>
@@ -87,15 +83,15 @@
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ net_profit|floatformat:0|intcomma }}</div>
-      <div class="stat-label">صافي الربح </div>
+      <div class="stat-label">صافي الربح</div>
     </div>
   </div>
 </div>
 
-<div class="grid-4" style="margin-bottom:24px;">
+<div class="stats-grid">
   <div class="stat-card">
     <div class="stat-icon orange">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
         <circle cx="12" cy="7" r="4"></circle>
       </svg>
@@ -105,9 +101,10 @@
       <div class="stat-label">إجمالي العملاء</div>
     </div>
   </div>
+  
   <div class="stat-card">
     <div class="stat-icon blue">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
         <polyline points="16 3 12 7 8 3"></polyline>
       </svg>
@@ -117,9 +114,10 @@
       <div class="stat-label">المنتجات النشطة</div>
     </div>
   </div>
+  
   <div class="stat-card">
     <div class="stat-icon red">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -129,128 +127,526 @@
       <div class="stat-value">{{ low_stock_count }}</div>
       <div class="stat-label">تنبيهات المخزون</div>
       {% if low_stock_count > 0 %}
-      <div class="stat-change down"><a href="{% url 'inventory_low_stock' %}" style="color:inherit;">عرض التنبيهات</a></div>
+      <a href="{% url 'inventory_low_stock' %}" class="stat-link">عرض التنبيهات</a>
       {% endif %}
     </div>
   </div>
+  
   <div class="stat-card">
     <div class="stat-icon purple">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
       </svg>
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ pending_loyalty }}</div>
-      <div class="stat-label">نقاط ولاء معلقة</div>
+      <div class="stat-label">نقاط  معلقة</div>
       {% if pending_loyalty > 0 %}
-      <div class="stat-change"><a href="{% url 'loyalty_pending' %}" style="color:var(--primary);">تحويل النقاط</a></div>
+      <a href="{% url 'loyalty_pending' %}" class="stat-link">تحويل النقاط</a>
       {% endif %}
     </div>
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-  <!-- Branch Sales -->
+<div class="dashboard-grid">
+  
   <div class="card">
     <div class="card-header">
-      <span class="card-title">
-        
-        مبيعات الفروع (هذا الشهر)
-      </span>
+      <span class="card-title"> مبيعات الفروع </span>
     </div>
-    <div class="card-body" style="padding:0;">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                <polyline points="16 3 12 7 8 3"></polyline>
-              </svg>
-              الفرع
-            </th>
-            <th>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
-              المبيعات
-            </th>
-            <th>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              العمولة
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in branch_sales %}
-          <tr>
-            <td>
-              <span class="fw-600">{{ item.branch.name }}</span>
-              {% if item.branch.is_main %}<span class="badge badge-primary" style="margin-right:4px;">رئيسي</span>{% endif %}
-            </td>
-            <td class="text-success fw-bold">{{ item.sales|floatformat:2|intcomma }} د.ل</td>
-            <td class="text-primary">{{ item.commission|floatformat:2|intcomma }} د.ل</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">لا توجد مبيعات</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="card-body table-card-body">
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>الفرع</th>
+              <th>المبيعات</th>
+              <th>العمولة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in branch_sales %}
+            <tr>
+              <td>
+                <span class="fw-600">{{ item.branch.name }}</span>
+                {% if item.branch.is_main %}<span class="badge badge-primary">رئيسي</span>{% endif %}
+              </td>
+              <td class="text-success fw-bold">{{ item.sales|floatformat:2|intcomma }} د.ل</td>
+              <td class="text-primary">{{ item.commission|floatformat:2|intcomma }} د.ل</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted" style="padding:30px;">لا توجد مبيعات</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Recent Invoices -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">
-        
-        آخر الفواتير
-      </span>
-      <a href="/" class="btn btn-outline btn-sm">عرض الكل</a>
+      <span class="card-title"> آخر الفواتير</span>
     </div>
-    <div class="card-body" style="padding:0;">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-              رقم
-            </th>
-            <th>النوع</th>
-            <th>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;vertical-align:middle;">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
-              الإجمالي
-            </th>
-            <th>الحالة</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for inv in recent_invoices %}
-          <tr>
-            <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="text-primary fw-600">{{ inv.invoice_number }}</a></td>
-            <td><small>{{ inv.get_invoice_type_display }}</small></td>
-            <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
-            <td>
-              <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% elif inv.status == 'partial' %}badge-warning{% else %}badge-secondary{% endif %}">
-                {{ inv.get_status_display }}
-              </span>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد فواتير</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="card-body table-card-body">
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>رقم</th>
+              <th>النوع</th>
+              <th>الإجمالي</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in recent_invoices %}
+            <tr>
+              <td>
+                <a href="{% url 'sale_invoice_detail' inv.pk %}" class="invoice-link">{{ inv.invoice_number }}</a>
+              </td>
+              <td><small>{{ inv.get_invoice_type_display }}</small></td>
+              <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+              <td>
+                <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% elif inv.status == 'partial' %}badge-warning{% else %}badge-secondary{% endif %}">
+                  {{ inv.get_status_display }}
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted" style="padding:30px;">لا توجد فواتير</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
+
+<style>
+
+  .actions-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .btn-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.2s;
+    min-height: 80px;
+  }
+  
+  .stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .stat-icon.orange { background: #fef3ed; color: #E8793A; }
+  .stat-icon.green { background: #dcfce7; color: #16a34a; }
+  .stat-icon.blue { background: #dbeafe; color: #2563eb; }
+  .stat-icon.purple { background: #ede9fe; color: #7c3aed; }
+  .stat-icon.red { background: #fee2e2; color: #dc2626; }
+  
+  .stat-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .stat-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a2236;
+    line-height: 1.2;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .stat-link {
+    display: inline-block;
+    font-size: 11px;
+    color: #E8793A;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  
+  .stat-link:hover {
+    text-decoration: underline;
+  }
+  
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  .table-card-body {
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px;
+  }
+  
+  .table-responsive table {
+    min-width: 350px;
+    width: 100%;
+  }
+  
+  .erp-table {
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+  
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+  
+  .erp-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  
+  .invoice-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .invoice-link:hover {
+    text-decoration: underline;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .badge-primary { background: #fef3ed; color: #E8793A; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-danger { background: #fee2e2; color: #dc2626; }
+  .badge-warning { background: #fef3c7; color: #d97706; }
+  .badge-info { background: #dbeafe; color: #2563eb; }
+  .badge-secondary { background: #f1f3f5; color: #6b7280; }
+  
+  .text-success { color: #16a34a; }
+  .text-primary { color: #E8793A; }
+  .text-muted { color: #6b7280; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  
+ 
+  @media (max-width: 1024px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .stat-card {
+      padding: 12px 14px;
+      min-height: 70px;
+      gap: 10px;
+    }
+    
+    .stat-icon {
+      width: 38px;
+      height: 38px;
+    }
+    
+    .stat-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+    }
+    
+    .actions-group {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    
+    .actions-group .btn {
+      flex: 1;
+      min-width: 100px;
+      justify-content: center;
+      font-size: 13px;
+      padding: 8px 12px;
+      min-height: 40px;
+    }
+    
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    
+    .card-header {
+      padding: 12px 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .card-title {
+      font-size: 14px;
+    }
+    
+    .erp-table {
+      font-size: 13px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 8px 10px;
+    }
+    
+    .table-responsive table {
+      min-width: 320px;
+    }
+    
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+      min-height: 30px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .stat-card {
+      padding: 10px 12px;
+      min-height: 60px;
+      gap: 8px;
+    }
+    
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+    
+    .stat-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .stat-value {
+      font-size: 16px;
+    }
+    
+    .stat-label {
+      font-size: 10px;
+    }
+    
+    .stat-link {
+      font-size: 10px;
+    }
+    
+    .actions-group .btn {
+      font-size: 12px;
+      padding: 6px 10px;
+      min-height: 36px;
+      min-width: 80px;
+    }
+    
+    .btn-icon {
+      font-size: 14px;
+    }
+    
+    .erp-table {
+      font-size: 12px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 6px 8px;
+    }
+    
+    .table-responsive table {
+      min-width: 280px;
+    }
+    
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+    }
+    
+    .card {
+      margin-bottom: 12px;
+      border-radius: 10px;
+    }
+    
+    .card-body {
+      padding: 0;
+    }
+  }
+  
+  @media print {
+    .actions-wrapper {
+      display: none;
+    }
+    
+    .stat-card {
+      border: 1px solid #ddd;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+    
+    .stat-link {
+      display: none;
+    }
+    
+    .table-responsive {
+      overflow: visible;
+    }
+    
+    .erp-table tbody tr:hover {
+      background: transparent;
+    }
+    
+    .dashboard-grid {
+      display: block;
+    }
+    
+    .dashboard-grid .card {
+      page-break-inside: avoid;
+      margin-bottom: 16px;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    'use strict';
+    
+    document.querySelectorAll('.table-responsive').forEach(function(wrapper) {
+      if (window.innerWidth <= 768) {
+        var table = wrapper.querySelector('table');
+        if (table && table.scrollWidth > wrapper.clientWidth) {
+          var hint = document.createElement('div');
+          hint.style.cssText = 'text-align:center;padding:4px;font-size:11px;color:#9ca3af;background:#f8fafc;border-radius:0 0 8px 8px;';
+          hint.textContent = '↔ اسحب للتمرير لعرض المزيد';
+          wrapper.parentNode.appendChild(hint);
+          
+          wrapper.addEventListener('scroll', function() {
+            if (hint && hint.parentNode) {
+              hint.style.opacity = '0';
+              hint.style.transition = 'opacity 0.5s';
+              setTimeout(function() {
+                if (hint && hint.parentNode) {
+                  hint.parentNode.removeChild(hint);
+                }
+              }, 500);
+            }
+          }, { once: true });
+        }
+      }
+    });
+    
+    document.querySelectorAll('.stat-card').forEach(function(card) {
+      card.addEventListener('touchstart', function() {
+        this.style.transform = 'scale(0.98)';
+      }, { passive: true });
+      
+      card.addEventListener('touchend', function() {
+        this.style.transform = 'scale(1)';
+      }, { passive: true });
+    });
+    
+  })();
+</script>
+
 {% endblock %}

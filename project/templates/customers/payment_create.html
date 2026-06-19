@@ -7,7 +7,7 @@
 {% block content %}
 <div class="card" style="max-width:600px;margin:0 auto;">
   <div class="card-header">
-    <span class="card-title">💰 تسديد دين العميل</span>
+    <span class="card-title"> تسديد دين العميل</span>
   </div>
   <div class="card-body">
     
@@ -25,10 +25,7 @@
           <div class="text-muted" style="font-size:12px;">إجمالي الدين</div>
           <div class="fw-bold text-danger" style="font-size:22px;">{{ debt_amount|floatformat:2|intcomma }} د.ل</div>
         </div>
-        <div>
-          <div class="text-muted" style="font-size:12px;">نقاط الولاء</div>
-          <div>⭐ {{ customer.loyalty_points }}</div>
-        </div>
+        
       </div>
     </div>
     

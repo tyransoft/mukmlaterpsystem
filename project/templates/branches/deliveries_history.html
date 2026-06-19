@@ -15,7 +15,7 @@
   <div class="card-body">
     
     <form method="get" style="margin-bottom:20px;">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:flex-end;">
+      <div class="filter-grid">
         <div>
           <label class="text-muted" style="font-size:12px;">من تاريخ</label>
           <input type="date" name="date_from" class="form-control" value="{{ date_from|default:'' }}">
@@ -35,8 +35,7 @@
       </div>
     </form>
     
-    <!-- إحصائيات -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;">
+    <div class="stats-grid-3">
       <div style="background:#eff6ff;padding:15px;border-radius:12px;text-align:center;">
         <div class="text-muted">إجمالي التسليمات</div>
         <div class="fw-bold" style="font-size:22px;color:#2563eb;">{{ total_count }}</div>
@@ -106,7 +105,7 @@
     </div>
     
     {% if deliveries.has_other_pages %}
-    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;">
+    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;flex-wrap:wrap;">
       {% if deliveries.has_previous %}
         <a href="?page={{ deliveries.previous_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="btn btn-outline btn-sm">السابق</a>
       {% endif %}
@@ -120,4 +119,257 @@
     {% endif %}
   </div>
 </div>
+
+<style>
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    align-items: flex-end;
+  }
+  
+  .stats-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px;
+  }
+  
+  .erp-table {
+    min-width: 500px;
+    width: 100%;
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+  
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+  }
+  
+  .erp-table tbody tr:hover {
+    background: #fafbfc;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .btn-primary {
+    background: #E8793A;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #d4682e;
+    color: #fff;
+  }
+  
+  .btn-success {
+    background: #16a34a;
+    color: #fff;
+  }
+  
+  .btn-success:hover {
+    background: #15803d;
+    color: #fff;
+  }
+  
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid #eaecf0;
+    color: #374151;
+  }
+  
+  .btn-outline:hover {
+    background: #f8f9fb;
+  }
+  
+  .btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    min-height: 34px;
+  }
+  
+  .btn-icon {
+    padding: 6px 10px;
+    min-height: 34px;
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #eaecf0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: #1a2236;
+  }
+  
+  .form-control:focus {
+    outline: none;
+    border-color: #E8793A;
+    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
+  }
+  
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2236;
+    margin: 0;
+  }
+  
+  .card-body {
+    padding: 20px;
+  }
+  
+  .text-muted { color: #6b7280; }
+  .text-success { color: #16a34a; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  
+  @media (max-width: 768px) {
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid-3 {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid-3 > div:last-child {
+      grid-column: span 2;
+    }
+    
+    .card-header {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    
+    .card-header .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .erp-table {
+      min-width: 400px;
+      font-size: 13px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 8px 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .stats-grid-3 {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-grid-3 > div:last-child {
+      grid-column: span 2;
+    }
+    
+    .stats-grid-3 > div {
+      padding: 10px !important;
+    }
+    
+    .stats-grid-3 .fw-bold {
+      font-size: 18px !important;
+    }
+    
+    .erp-table {
+      min-width: 320px;
+      font-size: 12px;
+    }
+    
+    .erp-table th,
+    .erp-table td {
+      padding: 6px 8px;
+    }
+    
+    .card-body {
+      padding: 12px 14px;
+    }
+    
+    .btn {
+      font-size: 13px;
+      padding: 8px 14px;
+      min-height: 40px;
+    }
+  }
+  
+  @media print {
+    .filter-grid {
+      display: none;
+    }
+    
+    .table-responsive {
+      overflow: visible;
+    }
+    
+    .btn {
+      display: none;
+    }
+  }
+</style>
 {% endblock %}

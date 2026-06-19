@@ -1,23 +1,28 @@
 {% extends 'base.html' %}
 {% load humanize %}
-
 {% block title %}الفروع{% endblock %}
 {% block page_title %}إدارة الفروع{% endblock %}
 {% block nav_branches %}active{% endblock %}
-
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <span class="card-title"> قائمة الفروع</span>
+    <span class="card-title">قائمة الفروع</span>
     {% if user.is_main_admin %}
     <a href="{% url 'branches_create' %}" class="btn btn-primary btn-sm">+ إضافة فرع</a>
     {% endif %}
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-responsive">
+    <div class="table-wrap">
       <table class="erp-table">
         <thead>
-          <tr><th>الفرع</th><th>الهاتف</th><th>العمولة %</th><th>النوع</th><th>الحالة</th><th>الإجراءات</th></tr>
+          <tr>
+            <th>الفرع</th>
+            <th>الهاتف</th>
+            <th>العمولة %</th>
+            <th>النوع</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
         </thead>
         <tbody>
           {% for branch in branches %}
@@ -31,7 +36,7 @@
             <td>{% if branch.is_main %}<span class="badge badge-success">رئيسي</span>{% else %}<span class="badge badge-secondary">فرع</span>{% endif %}</td>
             <td>{% if branch.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
             <td>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+              <div class="actions-cell">
                 <a href="{% url 'branches_detail' branch.pk %}" class="btn btn-outline btn-icon btn-sm" title="التفاصيل">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -61,28 +66,47 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">___</div><h5>لا توجد فروع</h5></div></td></tr>
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="empty-icon">___</div>
+                <h5>لا توجد فروع</h5>
+              </div>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
-
 <style>
-  .table-responsive {
+  .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
+    position: relative;
   }
-  
+  .table-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, rgba(255,255,255,0.9), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .table-wrap.has-scroll::after {
+    opacity: 1;
+  }
   .erp-table {
-    min-width: 600px;
+    min-width: 580px;
     width: 100%;
     font-size: 14px;
     border-collapse: collapse;
   }
-  
   .erp-table th {
     background: #f8fafc;
     font-weight: 600;
@@ -92,21 +116,21 @@
     border-bottom: 2px solid #eaecf0;
     white-space: nowrap;
     font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
   }
-  
   .erp-table td {
     padding: 10px 14px;
     text-align: center;
     border-bottom: 1px solid #f1f3f5;
     vertical-align: middle;
+    white-space: nowrap;
   }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
+  .erp-table tbody tr:hover { background: #fafbfc; }
+  .actions-cell {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: nowrap;
   }
-  
   .btn {
     display: inline-flex;
     align-items: center;
@@ -122,49 +146,16 @@
     text-decoration: none;
     min-height: 44px;
     touch-action: manipulation;
+    white-space: nowrap;
   }
-  
-  .btn-primary {
-    background: #E8793A;
-    color: #fff;
-  }
-  
-  .btn-primary:hover {
-    background: #d4682e;
-    color: #fff;
-  }
-  
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #eaecf0;
-    color: #374151;
-  }
-  
-  .btn-outline:hover {
-    background: #f8f9fb;
-  }
-  
-  .btn-danger {
-    background: #dc2626;
-    color: #fff;
-  }
-  
-  .btn-danger:hover {
-    background: #b91c1c;
-    color: #fff;
-  }
-  
-  .btn-sm {
-    padding: 6px 14px;
-    font-size: 12px;
-    min-height: 34px;
-  }
-  
-  .btn-icon {
-    padding: 6px 10px;
-    min-height: 34px;
-  }
-  
+  .btn-primary { background: #E8793A; color: #fff; }
+  .btn-primary:hover { background: #d4682e; color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; color: #fff; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
+  .btn-icon { padding: 6px 10px; min-height: 34px; }
   .card {
     background: #fff;
     border-radius: 12px;
@@ -172,28 +163,16 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     margin-bottom: 20px;
   }
-  
   .card-header {
-    padding: 16px 20px;
+    padding: 14px 16px;
     border-bottom: 1px solid #eaecf0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
   }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .card-body {
-    padding: 20px;
-  }
-  
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
   .badge {
     display: inline-block;
     padding: 3px 10px;
@@ -202,86 +181,44 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  
   .badge-success { background: #dcfce7; color: #16a34a; }
   .badge-primary { background: #fef3ed; color: #E8793A; }
   .badge-secondary { background: #f1f3f5; color: #6b7280; }
   .badge-danger { background: #fee2e2; color: #dc2626; }
-  
   .text-muted { color: #6b7280; }
   .fw-600 { font-weight: 600; }
-  
-  .empty-state {
-    text-align: center;
-    padding: 40px 20px;
-  }
-  
-  .empty-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-  }
-  
-  .empty-state h5 {
-    font-size: 18px;
-    color: #1a2236;
-    margin-bottom: 4px;
-  }
-  
-  @media (max-width: 768px) {
+  .empty-state { text-align: center; padding: 40px 20px; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state h5 { font-size: 18px; color: #1a2236; margin-bottom: 4px; }
+  @media (max-width: 600px) {
     .card-header {
       flex-direction: column;
-      align-items: stretch !important;
+      align-items: stretch;
     }
-    
     .card-header .btn {
       width: 100%;
       justify-content: center;
     }
-    
-    .erp-table {
-      min-width: 450px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
   }
-  
-  @media (max-width: 480px) {
-    .erp-table {
-      min-width: 350px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-    
-    .card-body {
-      padding: 0;
-    }
-    
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 11px;
-      min-height: 30px;
-    }
-    
-    .btn-icon {
-      padding: 4px 8px;
-    }
-  }
-  
   @media print {
-    .table-responsive {
-      overflow: visible;
-    }
-    .btn {
-      display: none;
-    }
+    .table-wrap { overflow: visible; }
+    .table-wrap::after { display: none; }
+    .btn { display: none; }
   }
 </style>
+<script>
+  document.querySelectorAll('.table-wrap').forEach(function(wrap) {
+    function check() {
+      if (wrap.scrollWidth > wrap.clientWidth) {
+        wrap.classList.add('has-scroll');
+      } else {
+        wrap.classList.remove('has-scroll');
+      }
+    }
+    check();
+    window.addEventListener('resize', check);
+  });
+</script>
 {% endblock %}

@@ -6,386 +6,60 @@
 {% block nav_branches %}active{% endblock %}
 
 {% block content %}
-<style>
-  .stat-card-sm {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 15px;
-    text-align: center;
-  }
-  .filter-bar {
-    background: #f8fafc;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-  }
-  .summary-box {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 15px;
-    text-align: center;
-    transition: all 0.3s;
-  }
-  .summary-box h4 {
-    font-size: 24px;
-    font-weight: bold;
-    margin: 10px 0 5px;
-  }
-  .summary-box .label {
-    font-size: 12px;
-    color: #6b7280;
-  }
-  .points-box {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  .points-value {
-    font-size: 36px;
-    font-weight: bold;
-  }
-  .points-label {
-    font-size: 14px;
-    opacity: 0.9;
-  }
-  
-  .branch-layout {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 20px;
-  }
-  
-  .stats-grid-2 {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
-  }
-  
-  .erp-table {
-    min-width: 500px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-  }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
-  }
-  
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-  
-  .btn-primary {
-    background: #E8793A;
-    color: #fff;
-  }
-  
-  .btn-primary:hover {
-    background: #d4682e;
-    color: #fff;
-  }
-  
-  .btn-success {
-    background: #16a34a;
-    color: #fff;
-  }
-  
-  .btn-success:hover {
-    background: #15803d;
-    color: #fff;
-  }
-  
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #eaecf0;
-    color: #374151;
-  }
-  
-  .btn-outline:hover {
-    background: #f8f9fb;
-  }
-  
-  .btn-sm {
-    padding: 6px 14px;
-    font-size: 12px;
-    min-height: 34px;
-  }
-  
-  .btn-icon {
-    padding: 6px 10px;
-    min-height: 34px;
-  }
-  
-  .form-control {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-control:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  
-  .card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .card-body {
-    padding: 20px;
-  }
-  
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-primary { background: #fef3ed; color: #E8793A; }
-  .badge-secondary { background: #f1f3f5; color: #6b7280; }
-  
-  .text-muted { color: #6b7280; }
-  .text-primary { color: #E8793A; }
-  .text-warning { color: #d97706; }
-  .fw-bold { font-weight: 700; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-  
-  .empty-state {
-    text-align: center;
-    padding: 20px;
-  }
-  
-  .filter-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-  
-  @media (max-width: 1024px) {
-    .branch-layout {
-      grid-template-columns: 1fr;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .filter-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-    
-    .stats-grid-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-    
-    .card-header {
-      flex-direction: column;
-      align-items: stretch !important;
-    }
-    
-    .card-header .btn {
-      width: 100%;
-      justify-content: center;
-    }
-    
-    .erp-table {
-      min-width: 400px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
-    
-    .points-value {
-      font-size: 28px !important;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .filter-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .stats-grid-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-    
-    .stats-grid-2 .summary-box h4 {
-      font-size: 18px !important;
-    }
-    
-    .erp-table {
-      min-width: 320px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-    
-    .card-body {
-      padding: 12px 14px;
-    }
-    
-    .btn {
-      font-size: 13px;
-      padding: 8px 14px;
-      min-height: 40px;
-    }
-    
-    .points-box {
-      padding: 15px;
-    }
-    
-    .points-value {
-      font-size: 24px !important;
-    }
-  }
-  
-  @media print {
-    .filter-bar {
-      display: none;
-    }
-    .btn {
-      display: none;
-    }
-    .points-box {
-      display: none;
-    }
-    .table-responsive {
-      overflow: visible;
-    }
-    .no-print {
-      display: none !important;
-    }
-  }
-</style>
 
 <div class="branch-layout">
-  
-  <div>
+
+  <div class="branch-sidebar">
+
     <div class="card">
+      <div class="card-header">
+        <span class="card-title">معلومات الفرع</span>
+        {% if branch.is_main %}
+        <span class="badge badge-success">رئيسي</span>
+        {% else %}
+        <span class="badge badge-secondary">فرع</span>
+        {% endif %}
+      </div>
       <div class="card-body">
-        <div style="text-align:center;padding:10px 0 20px;">
-          <h3 style="font-size:18px;font-weight:800;">{{ branch.name }}</h3>
-          {% if branch.is_main %}<span class="badge badge-success">الفرع الرئيسي</span>{% endif %}
-        </div>
-        
+
         <div class="points-box">
-          <div class="points-label">نقاط  متاحة</div>
+          <div class="points-label">نقاط متاحة</div>
           <div class="points-value">{{ branch.loyalty_points_inventory|floatformat:0|intcomma }}</div>
           <div class="points-label" style="margin-top:5px;">نقطة</div>
           {% if user.can_see_all_data %}
           <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
-            <button onclick="showAdjustPointsForm('add')" class="btn" style="background:rgba(255,255,255,0.2);color:white;flex:1;min-width:80px;">➕ إضافة نقاط</button>
-            <button onclick="showAdjustPointsForm('deduct')" class="btn" style="background:rgba(255,255,255,0.2);color:white;flex:1;min-width:80px;">➖ خصم نقاط</button>
+            <button onclick="showAdjustPointsForm('add')" class="btn" style="background:rgba(255,255,255,0.2);color:white;flex:1;min-width:80px;">+ إضافة نقاط</button>
+            <button onclick="showAdjustPointsForm('deduct')" class="btn" style="background:rgba(255,255,255,0.2);color:white;flex:1;min-width:80px;">- خصم نقاط</button>
           </div>
           {% endif %}
         </div>
-        
-        <div style="border-top:1px solid var(--border-color);padding-top:16px;">
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);flex-wrap:wrap;gap:5px;">
+
+        <div class="info-list">
+          <div class="info-row">
             <span class="text-muted">الهاتف</span>
             <span class="fw-600">{{ branch.phone|default:"-" }}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);flex-wrap:wrap;gap:5px;">
+          <div class="info-row">
             <span class="text-muted">نسبة العمولة</span>
             <span class="fw-600 text-primary">{{ branch.commission_percentage }}%</span>
           </div>
           {% if branch.address %}
-          <div style="padding:8px 0;">
+          <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
             <span class="text-muted">العنوان</span>
-            <p style="margin:4px 0 0;font-size:13px;">{{ branch.address }}</p>
+            <p style="margin:0;font-size:13px;">{{ branch.address }}</p>
           </div>
           {% endif %}
         </div>
-        
+
         {% if user.can_see_all_data %}
         <div style="margin-top:16px;display:flex;gap:10px;flex-direction:column;">
           <a href="{% url 'branches_edit' branch.pk %}" class="btn btn-primary">تعديل الفرع</a>
-          <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success" style="background:#16a34a;">
+          <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success">
             تسليم مبيعات للفرع الرئيسي
           </a>
         </div>
         {% endif %}
+
       </div>
     </div>
 
@@ -393,7 +67,7 @@
       <div class="card-header"><span class="card-title">الموظفون</span></div>
       <div class="card-body" style="padding:0;">
         {% for emp in employees %}
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:5px;">
+        <div class="emp-row">
           <div>
             <div class="fw-600">{{ emp.get_full_name|default:emp.username }}</div>
             <div class="text-muted" style="font-size:12px;">{{ emp.get_role_display }}</div>
@@ -404,9 +78,11 @@
         {% endfor %}
       </div>
     </div>
+
   </div>
 
-  <div>
+  <div class="branch-main">
+
     <div class="filter-bar">
       <form method="get" class="filter-grid">
         <div>
@@ -417,7 +93,7 @@
           <label class="text-muted" style="font-size:12px;">إلى تاريخ</label>
           <input type="date" name="date_to" class="form-control" value="{{ date_to|default:'' }}">
         </div>
-        <div style="display:flex;gap:5px;align-items:flex-end;">
+        <div class="filter-actions">
           <button type="submit" class="btn btn-primary" style="flex:1;">عرض</button>
           {% if date_from or date_to %}
           <a href="{% url 'branch_detail' branch.pk %}" class="btn btn-outline">إعادة</a>
@@ -429,12 +105,12 @@
     <div class="stats-grid-2">
       <div class="summary-box" style="background:#eff6ff;">
         <div class="label">إجمالي المبيعات</div>
-        <h4 style="color:#2563eb;">{{ total_sales|floatformat:0|intcomma }} د.ل</h4>
+        <div class="summary-value" style="color:#2563eb;">{{ total_sales|floatformat:0|intcomma }} د.ل</div>
         <div class="label">للفترة المحددة</div>
       </div>
       <div class="summary-box" style="background:#f0fdf4;">
         <div class="label">عمولة الفرع</div>
-        <h4 style="color:#16a34a;">{{ total_commission|floatformat:0|intcomma }} د.ل</h4>
+        <div class="summary-value" style="color:#16a34a;">{{ total_commission|floatformat:0|intcomma }} د.ل</div>
         <div class="label">{{ branch.commission_percentage }}% من المبيعات</div>
       </div>
     </div>
@@ -442,12 +118,12 @@
     <div class="stats-grid-2">
       <div class="summary-box" style="background:#fef3c7;">
         <div class="label">المستحق للفرع الرئيسي</div>
-        <h4 style="color:#d97706;">{{ amount_due_to_main|floatformat:0|intcomma }} د.ل</h4>
+        <div class="summary-value" style="color:#d97706;">{{ amount_due_to_main|floatformat:0|intcomma }} د.ل</div>
         <div class="label">(المبيعات - العمولة)</div>
       </div>
       <div class="summary-box" style="background:#dbeafe;">
         <div class="label">تم تسليمه للرئيسي</div>
-        <h4 style="color:#2563eb;">{{ total_delivered|floatformat:0|intcomma }} د.ل</h4>
+        <div class="summary-value" style="color:#2563eb;">{{ total_delivered|floatformat:0|intcomma }} د.ل</div>
         <div class="label">إجمالي التسليمات</div>
       </div>
     </div>
@@ -458,14 +134,14 @@
       </div>
       <div class="card-body">
         <div class="stats-grid-2">
-          <div style="text-align:center;padding:20px;background:#fee2e2;border-radius:12px;">
+          <div class="stat-box" style="background:#fee2e2;">
             <div class="text-muted">المتبقي للفرع الرئيسي</div>
-            <div class="fw-bold" style="font-size:28px;color:#dc2626;">{{ remaining_to_deliver|floatformat:0|intcomma }} د.ل</div>
+            <div class="stat-value" style="color:#dc2626;">{{ remaining_to_deliver|floatformat:0|intcomma }} د.ل</div>
             <div class="text-muted" style="font-size:11px;">من إجمالي مبيعات {{ total_sales|floatformat:0|intcomma }} د.ل</div>
           </div>
-          <div style="text-align:center;padding:20px;background:#f0fdf4;border-radius:12px;">
+          <div class="stat-box" style="background:#f0fdf4;">
             <div class="text-muted">آخر تسجيل</div>
-            <div class="fw-bold" style="font-size:20px;color:#16a34a;">
+            <div class="stat-value" style="color:#16a34a;">
               {% if last_delivery %}
                 {{ last_delivery.amount|floatformat:0|intcomma }} د.ل
               {% else %}
@@ -473,16 +149,13 @@
               {% endif %}
             </div>
             <div class="text-muted" style="font-size:11px;">
-              {% if last_delivery %}
-                {{ last_delivery.delivery_date|date:"Y-m-d" }}
-              {% endif %}
+              {% if last_delivery %}{{ last_delivery.delivery_date|date:"Y-m-d" }}{% endif %}
             </div>
           </div>
         </div>
-        
         {% if remaining_to_deliver > 0 %}
         <div style="margin-top:15px;">
-          <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success" style="width:100%;">
+          <a href="{% url 'branch_sales_delivery' branch.pk %}" class="btn btn-success" style="width:100%;box-sizing:border-box;">
             تسليم مبيعات للفرع الرئيسي
           </a>
         </div>
@@ -499,7 +172,7 @@
         </div>
       </div>
       <div class="card-body" style="padding:0;">
-        <div class="table-responsive">
+        <div class="table-wrap">
           <table class="erp-table">
             <thead>
               <tr>
@@ -549,7 +222,7 @@
         <a href="{% url 'branch_deliveries_history' branch.pk %}" class="btn btn-outline btn-sm">عرض الكل</a>
       </div>
       <div class="card-body" style="padding:0;">
-        <div class="table-responsive">
+        <div class="table-wrap">
           <table class="erp-table">
             <thead>
               <tr>
@@ -568,11 +241,7 @@
                 <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
                 <td class="text-success fw-bold">{{ delivery.amount|floatformat:2|intcomma }} د.ل</td>
                 <td>
-                  {% if delivery.payment_method == 'cash' %}
-                    كاش
-                  {% else %}
-                    تحويل بنكي
-                  {% endif %}
+                  {% if delivery.payment_method == 'cash' %}كاش{% else %}تحويل بنكي{% endif %}
                 </td>
                 <td>{{ delivery.notes|default:"-" }}</td>
                 <td>
@@ -597,13 +266,14 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
 {% if user.can_see_all_data %}
 <div id="pointsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:16px;padding:30px;max-width:400px;width:90%;margin:20px;">
-    <h3 id="pointsModalTitle" style="margin-bottom:20px;"></h3>
+  <div style="background:white;border-radius:16px;padding:24px;max-width:400px;width:90%;margin:20px;box-sizing:border-box;">
+    <h3 id="pointsModalTitle" style="margin-bottom:20px;margin-top:0;"></h3>
     <form method="post" action="{% url 'branch_adjust_points' branch.pk %}">
       {% csrf_token %}
       <input type="hidden" name="action" id="pointsAction" value="">
@@ -622,34 +292,312 @@
     </form>
   </div>
 </div>
+{% endif %}
+
+<style>
+  .branch-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .branch-sidebar { min-width: 0; }
+  .branch-main { min-width: 0; }
+
+  .stats-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .stat-box {
+    padding: 16px 12px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 4px 0;
+    word-break: break-all;
+    line-height: 1.2;
+  }
+  .summary-box {
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .summary-value {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 6px 0 4px;
+    word-break: break-all;
+    line-height: 1.2;
+  }
+  .summary-box .label { font-size: 12px; color: #6b7280; }
+
+  .points-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .points-value { font-size: 32px; font-weight: bold; line-height: 1.2; }
+  .points-label { font-size: 13px; opacity: 0.9; }
+
+  .info-list {
+    border-top: 1px solid #eaecf0;
+    padding-top: 12px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eaecf0;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .info-row:last-child { border-bottom: none; }
+
+  .emp-row {
+    padding: 10px 16px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .filter-bar {
+    background: #f8fafc;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .filter-actions { display: flex; gap: 6px; }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  .table-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, rgba(255,255,255,0.9), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .table-wrap.has-scroll::after { opacity: 1; }
+
+  .erp-table {
+    min-width: 500px;
+    width: 100%;
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+  .erp-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 2px solid #eaecf0;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+  .erp-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .erp-table tbody tr:hover { background: #fafbfc; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    min-height: 44px;
+    touch-action: manipulation;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+  .btn-primary { background: #E8793A; color: #fff; }
+  .btn-primary:hover { background: #d4682e; color: #fff; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
+  .btn-icon { padding: 6px 10px; min-height: 34px; }
+
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #eaecf0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: #1a2236;
+    box-sizing: border-box;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: #E8793A;
+    box-shadow: 0 0 0 4px rgba(232,121,58,0.12);
+  }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+  .form-group { margin-bottom: 14px; }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  .card-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
+  .card-body { padding: 16px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-secondary { background: #f1f3f5; color: #6b7280; }
+
+  .text-muted { color: #6b7280; font-size: 12px; }
+  .text-primary { color: #E8793A; }
+  .text-warning { color: #d97706; }
+  .text-success { color: #16a34a; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+  .empty-state { text-align: center; padding: 30px 20px; }
+
+  @media (max-width: 900px) {
+    .branch-layout {
+      grid-template-columns: 1fr;
+    }
+    .branch-sidebar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .branch-sidebar .card {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .branch-sidebar {
+      grid-template-columns: 1fr;
+    }
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .filter-actions {
+      grid-column: span 2;
+    }
+    .stats-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    .card-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .card-header > div {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .card-body { padding: 12px; }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
+    .summary-value { font-size: 16px; }
+    .stat-value { font-size: 18px; }
+    .points-value { font-size: 26px; }
+  }
+
+  @media (max-width: 380px) {
+    .stats-grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media print {
+    .table-wrap { overflow: visible; }
+    .table-wrap::after { display: none; }
+    .btn { display: none; }
+    #pointsModal { display: none !important; }
+  }
+</style>
 
 <script>
+  document.querySelectorAll('.table-wrap').forEach(function(wrap) {
+    function check() {
+      if (wrap.scrollWidth > wrap.clientWidth) {
+        wrap.classList.add('has-scroll');
+      } else {
+        wrap.classList.remove('has-scroll');
+      }
+    }
+    check();
+    window.addEventListener('resize', check);
+  });
+
   function showAdjustPointsForm(action) {
     var modal = document.getElementById('pointsModal');
     var title = document.getElementById('pointsModalTitle');
     var actionInput = document.getElementById('pointsAction');
-    
-    if (action === 'add') {
-      title.innerText = 'إضافة نقاط  للفرع';
-      actionInput.value = 'add';
-    } else {
-      title.innerText = 'خصم نقاط  من الفرع';
-      actionInput.value = 'deduct';
-    }
-    
+    title.innerText = action === 'add' ? 'إضافة نقاط للفرع' : 'خصم نقاط من الفرع';
+    actionInput.value = action;
     modal.style.display = 'flex';
   }
-  
+
   function closePointsModal() {
     document.getElementById('pointsModal').style.display = 'none';
   }
-  
+
   window.onclick = function(event) {
     var modal = document.getElementById('pointsModal');
-    if (event.target == modal) {
+    if (modal && event.target == modal) {
       modal.style.display = 'none';
     }
   }
 </script>
-{% endif %}
 {% endblock %}

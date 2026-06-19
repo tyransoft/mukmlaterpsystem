@@ -1,10 +1,87 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}حركة المخزون{% endblock %}
 {% block page_title %}سجل حركة المخزون{% endblock %}
 {% block nav_movements %}active{% endblock %}
 
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .filter-bar{padding:10px 16px;border-bottom:1px solid #eaecf0;}
+  .filter-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .filter-form .form-select{flex:1;min-width:140px;}
+  .filter-btns{display:flex;gap:6px;min-width:140px;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;touch-action:manipulation;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 12px;font-size:12px;min-height:36px;min-width:36px;}
+  
+  .form-select{padding:12px 14px;border:1.5px solid #eaecf0;border-radius:8px;font-size:16px;background:#fff;color:#1a2236;box-sizing:border-box;}
+  .form-select:focus{outline:none;border-color:#E8793A;box-shadow:0 0 0 4px rgba(232,121,58,0.12);}
+  
+  .badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .badge-success{background:#dcfce7;color:#16a34a;}
+  .badge-warning{background:#fef9c3;color:#ca8a04;}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-movement-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-movement-card:last-child{border-bottom:none;}
+  .mobile-movement-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-movement-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-movement-value{font-size:13px;color:#1a2236;}
+  .mobile-movement-name{font-size:15px;font-weight:700;color:#1a2236;}
+  .mobile-movement-qty{font-size:16px;font-weight:700;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .table-wrap::after{content:'';position:absolute;top:0;left:0;bottom:0;width:30px;background:linear-gradient(to right,rgba(255,255,255,0.9),transparent);pointer-events:none;opacity:0;transition:opacity 0.2s;}
+  .table-wrap.has-scroll::after{opacity:1;}
+  .erp-table{min-width:640px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .text-success{color:#16a34a;}
+  .text-danger{color:#dc2626;}
+  .fw-bold{font-weight:700;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  .empty-state{text-align:center;padding:40px 20px;}
+  .empty-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+  .empty-state h5{font-size:16px;color:#1a2236;margin-bottom:4px;}
+  
+  @media(max-width:768px){
+    .filter-form{flex-direction:column;}
+    .filter-form .form-select{min-width:unset;}
+    .filter-btns{width:100%;}
+  }
+  
+  @media(max-width:600px){
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-movement-card{display:block !important;}
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.table-wrap::after{display:none;}.btn{display:none;}}
+</style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">حركات المخزون</span>
@@ -32,103 +109,106 @@
     </form>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>الفرع</th>
-            <th>المنتج</th>
-            <th>نوع الحركة</th>
-            <th>الكمية</th>
-            <th>قبل</th>
-            <th>بعد</th>
-            <th>الموظف</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in movements %}
-          <tr>
-            <td style="font-size:12px;">{{ m.created_at|date:"Y/m/d H:i" }}</td>
-            <td>{{ m.branch.name }}</td>
-            <td>
-              <div class="fw-600">{{ m.product.name }}</div>
-              <div class="text-muted" style="font-size:11px;">{{ m.product.code }}</div>
-            </td>
-            <td>
-              <span class="badge {% if 'in' in m.movement_type or m.movement_type in 'in,transfer_in,return_in,supply' %}badge-success{% else %}badge-warning{% endif %}">
-                {{ m.get_movement_type_display }}
-              </span>
-            </td>
-            <td>
-              <span class="fw-bold {% if m.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
-                {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
-              </span>
-            </td>
-            <td class="text-muted">{{ m.quantity_before }}</td>
-            <td class="fw-600">{{ m.quantity_after }}</td>
-            <td>{{ m.employee.get_full_name|default:m.employee.username|default:"-" }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="8" class="text-center text-muted" style="padding:40px;">
-              <div style="font-size:32px;margin-bottom:8px;">--</div>
-              <h5>لا توجد حركات</h5>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الفرع</th>
+              <th>المنتج</th>
+              <th>نوع الحركة</th>
+              <th>الكمية</th>
+              <th>قبل</th>
+              <th>بعد</th>
+              <th>الموظف</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in movements %}
+            <tr>
+              <td style="font-size:12px;">{{ m.created_at|date:"Y/m/d H:i" }}</td>
+              <td>{{ m.branch.name }}</td>
+              <td>
+                <div class="fw-600">{{ m.product.name }}</div>
+                <div class="text-muted" style="font-size:11px;">{{ m.product.code }}</div>
+              </td>
+              <td>
+                <span class="badge {% if 'in' in m.movement_type or m.movement_type in 'in,transfer_in,return_in,supply' %}badge-success{% else %}badge-warning{% endif %}">
+                  {{ m.get_movement_type_display }}
+                </span>
+              </td>
+              <td>
+                <span class="fw-bold {% if m.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+                  {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
+                </span>
+              </td>
+              <td class="text-muted">{{ m.quantity_before }}</td>
+              <td class="fw-600">{{ m.quantity_after }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <h5>لا توجد حركات</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    
+    <div class="mobile-cards">
+      {% for m in movements %}
+      <div class="mobile-movement-card">
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">التاريخ</span>
+          <span class="mobile-movement-value">{{ m.created_at|date:"d/m/y H:i" }}</span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">الفرع</span>
+          <span class="mobile-movement-value">{{ m.branch.name }}</span>
+        </div>
+        <div class="mobile-movement-name">{{ m.product.name }}</div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">نوع الحركة</span>
+          <span class="mobile-movement-value">
+            <span class="badge {% if 'in' in m.movement_type or m.movement_type in 'in,transfer_in,return_in,supply' %}badge-success{% else %}badge-warning{% endif %}">
+              {{ m.get_movement_type_display }}
+            </span>
+          </span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">الكمية</span>
+          <span class="mobile-movement-value">
+            <span class="mobile-movement-qty {% if m.quantity > 0 %}text-success{% else %}text-danger{% endif %}">
+              {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
+            </span>
+          </span>
+        </div>
+        <div class="mobile-movement-row">
+          <span class="mobile-movement-label">قبل → بعد</span>
+          <span class="mobile-movement-value">{{ m.quantity_before }} → {{ m.quantity_after }}</span>
+        </div>
+       
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <h5>لا توجد حركات</h5>
+      </div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
 
-<style>
-  .filter-bar { padding: 10px 16px; border-bottom: 1px solid #eaecf0; }
-  .filter-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-  .filter-form .form-select { flex: 1; min-width: 140px; }
-  .filter-btns { display: flex; gap: 6px; min-width: 140px; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 640px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-  .form-select { padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
-  .form-select:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-warning { background: #fef9c3; color: #ca8a04; }
-  .text-muted { color: #6b7280; }
-  .text-success { color: #16a34a; }
-  .text-danger { color: #dc2626; }
-  .fw-bold { font-weight: 700; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 600px) {
-    .filter-form { flex-direction: column; }
-    .filter-form .form-select { min-width: unset; }
-    .filter-btns { width: 100%; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } }
-</style>
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 </script>
 {% endblock %}

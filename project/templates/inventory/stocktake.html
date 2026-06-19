@@ -1,10 +1,79 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}جرد المخزون - {{ branch.name }}{% endblock %}
 {% block page_title %}جرد المخزون - {{ branch.name }}{% endblock %}
 {% block nav_inventory %}active{% endblock %}
 
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;touch-action:manipulation;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  
+  .form-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .form-actions .btn{flex:1;min-width:120px;justify-content:center;}
+  
+  .qty-input{width:110px;padding:10px 12px;border:1.5px solid #eaecf0;border-radius:8px;font-size:16px;text-align:center;box-sizing:border-box;}
+  .qty-input:focus{outline:none;border-color:#E8793A;box-shadow:0 0 0 4px rgba(232,121,58,0.12);}
+  
+  .barcode-code{background:#f3f4f6;padding:3px 8px;border-radius:4px;font-size:12px;font-family:monospace;}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-stock-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-stock-card:last-child{border-bottom:none;}
+  .mobile-stock-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-stock-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-stock-value{font-size:13px;color:#1a2236;}
+  .mobile-stock-name{font-size:15px;font-weight:700;color:#1a2236;margin-bottom:4px;}
+  .mobile-stock-qty{display:flex;gap:10px;align-items:center;margin-top:8px;}
+  .mobile-stock-qty .qty-input{width:100%;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .table-wrap::after{content:'';position:absolute;top:0;left:0;bottom:0;width:30px;background:linear-gradient(to right,rgba(255,255,255,0.9),transparent);pointer-events:none;opacity:0;transition:opacity 0.2s;}
+  .table-wrap.has-scroll::after{opacity:1;}
+  .erp-table{min-width:460px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .fw-bold{font-weight:700;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  .empty-state{text-align:center;padding:40px 20px;}
+  .empty-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+  
+  @media(max-width:600px){
+    .form-actions{flex-direction:column;}
+    .form-actions .btn{width:100%;justify-content:center;}
+    .card-body{padding:12px;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-stock-card{display:block !important;}
+    .qty-input{width:100%;}
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.table-wrap::after{display:none;}.btn{display:none;}}
+</style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">جرد المخزون</span>
@@ -12,43 +81,70 @@
   <div class="card-body">
     <form method="post">
       {% csrf_token %}
-      <div class="table-wrap">
-        <table class="erp-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>المنتج</th>
-              <th>الباركود</th>
-              <th>الكمية الحالية</th>
-              <th>الكمية بعد الجرد</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in inventory_items %}
-            <tr>
-              <td>{{ forloop.counter }}</td>
-              <td>
-                <div class="fw-600">{{ item.product.name }}</div>
-              </td>
-              <td><code class="barcode-code">{{ item.product.barcode|default:"-" }}</code></td>
-              <td class="fw-bold">{{ item.quantity }}</td>
-              <td>
-                <input type="number" name="quantity_{{ item.pk }}"
-                       class="qty-input"
-                       value="{{ item.quantity }}"
-                       min="0">
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5" class="text-center text-muted" style="padding:40px;">
-                لا توجد منتجات في مخزون هذا الفرع
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      
+      <div class="desktop-table">
+        <div class="table-wrap">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>المنتج</th>
+                <th>الباركود</th>
+                <th>الكمية الحالية</th>
+                <th>الكمية بعد الجرد</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in inventory_items %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><div class="fw-600">{{ item.product.name }}</div></td>
+                <td><code class="barcode-code">{{ item.product.barcode|default:"-" }}</code></td>
+                <td class="fw-bold">{{ item.quantity }}</td>
+                <td>
+                  <input type="number" name="quantity_{{ item.pk }}" class="qty-input" value="{{ item.quantity }}" min="0">
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state">
+                    <h5>لا توجد منتجات في مخزون هذا الفرع</h5>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
+      
+      <div class="mobile-cards">
+        {% for item in inventory_items %}
+        <div class="mobile-stock-card">
+          <div class="mobile-stock-name">{{ item.product.name }}</div>
+          <div class="mobile-stock-row">
+            <span class="mobile-stock-label">الباركود</span>
+            <span class="mobile-stock-value"><code class="barcode-code">{{ item.product.barcode|default:"-" }}</code></span>
+          </div>
+          <div class="mobile-stock-row">
+            <span class="mobile-stock-label">الكمية الحالية</span>
+            <span class="mobile-stock-value fw-bold">{{ item.quantity }}</span>
+          </div>
+          <div class="mobile-stock-row">
+            <span class="mobile-stock-label">الكمية بعد الجرد</span>
+            <span class="mobile-stock-value">
+              <input type="number" name="quantity_{{ item.pk }}" class="qty-input" value="{{ item.quantity }}" min="0">
+            </span>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+          <h5>لا توجد منتجات في مخزون هذا الفرع</h5>
+        </div>
+        {% endfor %}
+      </div>
+      
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">حفظ الجرد</button>
         <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
@@ -57,46 +153,10 @@
   </div>
 </div>
 
-<style>
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 460px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .qty-input { width: 110px; padding: 8px 12px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; text-align: center; box-sizing: border-box; }
-  .qty-input:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
-  .barcode-code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
-  .form-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .card-body { padding: 16px; }
-  .text-muted { color: #6b7280; }
-  .fw-bold { font-weight: 700; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 600px) {
-    .form-actions { flex-direction: column; }
-    .form-actions .btn { width: 100%; justify-content: center; }
-    .card-body { padding: 12px; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-    .qty-input { width: 90px; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
-</style>
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 </script>
 {% endblock %}

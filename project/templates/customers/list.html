@@ -1,10 +1,102 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}العملاء{% endblock %}
 {% block page_title %}إدارة العملاء{% endblock %}
 {% block nav_customers %}active{% endblock %}
 
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .search-bar{padding:10px 16px;border-bottom:1px solid #eaecf0;}
+  .search-form{display:flex;gap:10px;flex-wrap:wrap;}
+  .search-form > div{flex:1;min-width:180px;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;touch-action:manipulation;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-success{background:#16a34a;color:#fff;}
+  .btn-success:hover{background:#15803d;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 12px;font-size:12px;min-height:36px;min-width:36px;}
+  .btn-icon{width:38px;height:38px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;}
+  
+  .form-control{width:100%;padding:12px 14px;border:1.5px solid #eaecf0;border-radius:8px;font-size:16px;background:#fff;color:#1a2236;box-sizing:border-box;}
+  .form-control:focus{outline:none;border-color:#E8793A;box-shadow:0 0 0 4px rgba(232,121,58,0.12);}
+  
+  .badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .badge-danger{background:#fee2e2;color:#dc2626;}
+  .badge-success{background:#dcfce7;color:#16a34a;}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-customer-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-customer-card:last-child{border-bottom:none;}
+  .mobile-customer-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .mobile-customer-name{font-size:16px;font-weight:700;color:#1a2236;}
+  .mobile-customer-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-customer-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-customer-value{font-size:13px;color:#1a2236;}
+  .mobile-customer-actions{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:10px;}
+  .mobile-customer-actions .btn{width:100%;justify-content:center;font-size:12px;min-height:40px;}
+  
+  .actions-cell{display:flex;gap:4px;justify-content:center;flex-wrap:nowrap;}
+  
+  .empty-state{text-align:center;padding:50px 20px;}
+  .empty-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+  .empty-state h5{font-size:16px;color:#1a2236;margin-bottom:6px;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .table-wrap::after{content:'';position:absolute;top:0;left:0;bottom:0;width:30px;background:linear-gradient(to right,rgba(255,255,255,0.9),transparent);pointer-events:none;opacity:0;transition:opacity 0.2s;}
+  .table-wrap.has-scroll::after{opacity:1;}
+  .erp-table{min-width:560px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+  .money{text-align:left;direction:ltr;font-variant-numeric:tabular-nums;font-weight:600;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .text-primary{color:#E8793A;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  @media(max-width:768px){
+    .search-form{flex-direction:column;}
+    .search-form > div{min-width:unset;}
+    .search-form .btn{width:100%;justify-content:center;}
+  }
+  
+  @media(max-width:600px){
+    .card-header{flex-direction:column;align-items:stretch;}
+    .card-header .btn{width:100%;justify-content:center;}
+    .card-body{padding:12px;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-customer-card{display:block !important;}
+    .mobile-customer-actions{grid-template-columns:1fr 1fr;}
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+    .btn-icon{width:44px;height:44px;}
+  }
+  
+  @media(max-width:380px){
+    .mobile-customer-actions{grid-template-columns:1fr;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.table-wrap::after{display:none;}.btn{display:none;}}
+</style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">قائمة العملاء</span>
@@ -12,7 +104,7 @@
   </div>
   <div class="card-body search-bar">
     <form method="get" class="search-form">
-      <div style="flex:1;min-width:180px;">
+      <div>
         <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="بحث بالاسم أو الهاتف...">
       </div>
       <button type="submit" class="btn btn-primary">بحث</button>
@@ -20,114 +112,117 @@
     </form>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>الاسم</th>
-            <th>رقم العضوية</th>
-            <th>النقاط</th>
-            <th>الدين</th>
-            <th>تاريخ الإضافة</th>
-            <th>الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for customer in customers %}
-          <tr>
-            <td><a href="{% url 'customers_detail' customer.pk %}" class="fw-600 text-primary">{{ customer.full_name }}</a></td>
-            <td dir="ltr">{{ customer.customer_id }}</td>
-            <td>{{ customer.loyalty_points }}</td>
-            <td>
-              {% if customer.debt_balance > 0 %}
-              <span class="badge badge-danger">{{ customer.debt_balance|floatformat:2|intcomma }} د.ل</span>
-              {% else %}
-              <span class="badge badge-success">لا دين</span>
-              {% endif %}
-            </td>
-            <td style="white-space:nowrap;">{{ customer.created_at|date:"Y-m-d" }}</td>
-            <td>
-              <div class="actions-cell">
-                <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تفاصيل">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </a>
-                <a href="{% url 'customers_edit' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تعديل">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-7 7H10v-4l7-7z"></path><path d="M4 20h16"></path></svg>
-                </a>
+    
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>رقم العضوية</th>
+              <th>النقاط</th>
+              <th class="money">الدين</th>
+              <th>تاريخ الإضافة</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for customer in customers %}
+            <tr>
+              <td><a href="{% url 'customers_detail' customer.pk %}" class="fw-600 text-primary">{{ customer.full_name }}</a></td>
+              <td dir="ltr">{{ customer.customer_id }}</td>
+              <td>{{ customer.loyalty_points }}</td>
+              <td class="money">
                 {% if customer.debt_balance > 0 %}
-                <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-icon btn-sm" title="تسديد دين">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </a>
+                <span class="badge badge-danger">{{ customer.debt_balance|floatformat:2|intcomma }} د.ل</span>
+                {% else %}
+                <span class="badge badge-success">لا دين</span>
                 {% endif %}
-                <a href="{% url 'customer_payments_history' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="سجل التسديدات">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:50px;">
-              <div style="font-size:40px;margin-bottom:10px;">--</div>
-              <h5 style="margin-bottom:12px;">لا يوجد عملاء</h5>
-              <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">إضافة عميل جديد</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              </td>
+              <td>{{ customer.created_at|date:"Y-m-d" }}</td>
+              <td>
+                <div class="actions-cell">
+                  <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تفاصيل">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </a>
+                  <a href="{% url 'customers_edit' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تعديل">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-7 7H10v-4l7-7z"></path><path d="M4 20h16"></path></svg>
+                  </a>
+                  {% if customer.debt_balance > 0 %}
+                  <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-icon btn-sm" title="تسديد دين">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </a>
+                  {% endif %}
+                  <a href="{% url 'customer_payments_history' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="سجل التسديدات">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <h5>لا يوجد عملاء</h5>
+                  <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">إضافة عميل جديد</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    
+    <div class="mobile-cards">
+      {% for customer in customers %}
+      <div class="mobile-customer-card">
+        <div class="mobile-customer-header">
+          <span class="mobile-customer-name">{{ customer.full_name }}</span>
+          <span>#{{ customer.customer_id }}</span>
+        </div>
+        <div class="mobile-customer-row">
+          <span class="mobile-customer-label">النقاط</span>
+          <span class="mobile-customer-value">{{ customer.loyalty_points }}</span>
+        </div>
+        <div class="mobile-customer-row">
+          <span class="mobile-customer-label">الدين</span>
+          <span class="mobile-customer-value">
+            {% if customer.debt_balance > 0 %}
+            <span class="badge badge-danger">{{ customer.debt_balance|floatformat:2|intcomma }} د.ل</span>
+            {% else %}
+            <span class="badge badge-success">لا دين</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="mobile-customer-row">
+          <span class="mobile-customer-label">تاريخ الإضافة</span>
+          <span class="mobile-customer-value">{{ customer.created_at|date:"Y-m-d" }}</span>
+        </div>
+        <div class="mobile-customer-actions">
+          <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-sm">تفاصيل</a>
+          <a href="{% url 'customers_edit' customer.pk %}" class="btn btn-outline btn-sm">تعديل</a>
+          {% if customer.debt_balance > 0 %}
+          <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-sm">تسديد</a>
+          {% endif %}
+          <a href="{% url 'customer_payments_history' customer.pk %}" class="btn btn-outline btn-sm">سجل</a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <h5>لا يوجد عملاء</h5>
+        <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">إضافة عميل جديد</a>
+      </div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
 
-<style>
-  .search-bar { padding: 10px 16px; border-bottom: 1px solid #eaecf0; }
-  .search-form { display: flex; gap: 10px; flex-wrap: wrap; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 560px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .actions-cell { display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-success { background: #16a34a; color: #fff; }
-  .btn-success:hover { background: #15803d; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-  .btn-icon { padding: 6px 9px; min-height: 34px; }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .card-body { padding: 16px; }
-  .form-control { width: 100%; padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
-  .form-control:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .badge-danger { background: #fee2e2; color: #dc2626; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .text-muted { color: #6b7280; }
-  .text-primary { color: #E8793A; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 600px) {
-    .card-header { flex-direction: column; align-items: stretch; }
-    .card-header .btn { width: 100%; justify-content: center; }
-    .search-form { flex-direction: column; }
-    .search-form .btn { width: 100%; justify-content: center; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
-</style>
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 </script>
 {% endblock %}

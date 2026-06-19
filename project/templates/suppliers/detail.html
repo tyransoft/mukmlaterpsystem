@@ -1,19 +1,115 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}تفاصيل المورد{% endblock %}
 {% block page_title %}تفاصيل المورد{% endblock %}
 {% block nav_suppliers %}active{% endblock %}
 
 {% block content %}
-<div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
+<style>
+  *{box-sizing:border-box;}
+  
+  .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .action-bar .btn{flex:1;min-width:100px;justify-content:center;}
+  
+  .top-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:0;}
+  
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  
+  .fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .fin-box{padding:14px 10px;border-radius:10px;text-align:center;}
+  .fin-value{font-size:18px;font-weight:700;margin-top:4px;word-break:break-all;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;touch-action:manipulation;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-success{background:#16a34a;color:#fff;}
+  .btn-success:hover{background:#15803d;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 12px;font-size:12px;min-height:36px;min-width:36px;}
+  
+  .badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .badge-success{background:#dcfce7;color:#16a34a;}
+  .badge-danger{background:#fee2e2;color:#dc2626;}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-card{padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-card:last-child{border-bottom:none;}
+  .mobile-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-value{font-size:13px;color:#1a2236;}
+  .mobile-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;}
+  .mobile-actions .btn{width:100%;justify-content:center;font-size:12px;min-height:40px;}
+  
+  .empty-state{text-align:center;padding:40px 20px;}
+  .empty-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+  .empty-state h5{font-size:16px;color:#1a2236;margin-bottom:4px;}
+  .empty-state p{color:#6b7280;font-size:13px;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .table-wrap::after{content:'';position:absolute;top:0;left:0;bottom:0;width:30px;background:linear-gradient(to right,rgba(255,255,255,0.9),transparent);pointer-events:none;opacity:0;transition:opacity 0.2s;}
+  .table-wrap.has-scroll::after{opacity:1;}
+  .erp-table{min-width:440px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+  .money{text-align:left;direction:ltr;font-variant-numeric:tabular-nums;font-weight:600;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .text-primary{color:#E8793A;}
+  .text-success{color:#16a34a;}
+  .text-danger{color:#dc2626;}
+  .fw-bold{font-weight:700;}
+  .fw-600{font-weight:600;}
+  .text-center{text-align:center;}
+  
+  @media(max-width:768px){
+    .top-grid{grid-template-columns:1fr;gap:16px;}
+    .fin-grid{grid-template-columns:1fr 1fr;}
+    .fin-grid .fin-box:last-child{grid-column:span 2;}
+    .action-bar .btn{min-width:80px;font-size:13px;padding:8px 14px;}
+  }
+  
+  @media(max-width:600px){
+    .info-grid{grid-template-columns:1fr;}
+    .fin-grid{grid-template-columns:1fr;}
+    .fin-grid .fin-box:last-child{grid-column:span 1;}
+    .card-body{padding:12px;}
+    .fin-value{font-size:16px;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-actions{grid-template-columns:1fr 1fr;}
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+  }
+  
+  @media(max-width:380px){
+    .mobile-actions{grid-template-columns:1fr;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.table-wrap::after{display:none;}.btn{display:none;}}
+</style>
+
+<div class="action-bar">
   <a href="{% url 'supplier_list' %}" class="btn btn-outline btn-sm">رجوع</a>
   <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">تعديل</a>
   <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة</a>
   <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-outline btn-sm">سجل الدفعات</a>
 </div>
 
-<div class="supplier-top-grid">
-
+<div class="top-grid">
+  
   <div class="card">
     <div class="card-header"><span class="card-title">معلومات المورد</span></div>
     <div class="card-body">
@@ -45,7 +141,7 @@
       {% endif %}
     </div>
   </div>
-
+  
   <div class="card">
     <div class="card-header"><span class="card-title">الحساب المالي</span></div>
     <div class="card-body">
@@ -65,7 +161,7 @@
       </div>
     </div>
   </div>
-
+  
 </div>
 
 <div class="card">
@@ -75,24 +171,45 @@
   </div>
   <div class="card-body" style="padding:0;">
     {% if recent_payments %}
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr><th>التاريخ</th><th>المبلغ</th><th>الطريقة</th></tr>
-        </thead>
-        <tbody>
-          {% for payment in recent_payments %}
-          <tr>
-            <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
-            <td class="text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
-            <td>{{ payment.get_payment_method_display }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead><tr><th>التاريخ</th><th class="money">المبلغ</th><th>الطريقة</th></tr></thead>
+          <tbody>
+            {% for payment in recent_payments %}
+            <tr>
+              <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
+              <td class="money text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
+              <td>{{ payment.get_payment_method_display }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mobile-cards">
+      {% for payment in recent_payments %}
+      <div class="mobile-card">
+        <div class="mobile-row">
+          <span class="mobile-label">التاريخ</span>
+          <span class="mobile-value">{{ payment.payment_date|date:"Y-m-d" }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">المبلغ</span>
+          <span class="mobile-value fw-bold text-success">{{ payment.amount|floatformat:2|intcomma }} د.ل</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">الطريقة</span>
+          <span class="mobile-value">{{ payment.get_payment_method_display }}</span>
+        </div>
+      </div>
+      {% endfor %}
     </div>
     {% else %}
-    <div class="text-center text-muted" style="padding:30px;">لا توجد دفعات مسجلة</div>
+    <div class="empty-state">
+      <h5>لا توجد دفعات مسجلة</h5>
+      <p>لم يتم تسجيل أي دفعات لهذا المورد</p>
+    </div>
     {% endif %}
   </div>
 </div>
@@ -100,36 +217,78 @@
 <div class="card">
   <div class="card-header"><span class="card-title">فواتير المشتريات غير المسددة</span></div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>رقم الفاتورة</th>
-            <th>التاريخ</th>
-            <th>الإجمالي</th>
-            <th>المدفوع</th>
-            <th>المتبقي</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for invoice in supplier.purchaseinvoice_set.all %}
-          {% if invoice.status == 'confirmed' and invoice.debt_amount > 0 %}
-          <tr>
-            <td class="fw-600">{{ invoice.invoice_number }}</td>
-            <td>{{ invoice.created_at|date:"Y-m-d" }}</td>
-            <td>{{ invoice.total|floatformat:2|intcomma }}</td>
-            <td>{{ invoice.paid_amount|floatformat:2|intcomma }}</td>
-            <td class="text-danger fw-bold">{{ invoice.debt_amount|floatformat:2|intcomma }}</td>
-            <td>
-              <a href="{% url 'supplier_payment_create' supplier.pk %}?invoice={{ invoice.pk }}" class="btn btn-success btn-sm">تسديد</a>
-            </td>
-          </tr>
-          {% endif %}
-          {% endfor %}
-        </tbody>
-      </table>
+    {% with unpaid=supplier.purchaseinvoice_set.all|dictsort:"created_at"|slice:":10" %}
+    {% if unpaid %}
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>رقم الفاتورة</th>
+              <th>التاريخ</th>
+              <th class="money">الإجمالي</th>
+              <th class="money">المدفوع</th>
+              <th class="money">المتبقي</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invoice in unpaid %}
+            {% if invoice.status == 'confirmed' and invoice.debt_amount > 0 %}
+            <tr>
+              <td class="fw-600">{{ invoice.invoice_number }}</td>
+              <td>{{ invoice.created_at|date:"Y-m-d" }}</td>
+              <td class="money">{{ invoice.total|floatformat:2|intcomma }}</td>
+              <td class="money">{{ invoice.paid_amount|floatformat:2|intcomma }}</td>
+              <td class="money text-danger fw-bold">{{ invoice.debt_amount|floatformat:2|intcomma }}</td>
+              <td>
+                <a href="{% url 'supplier_payment_create' supplier.pk %}?invoice={{ invoice.pk }}" class="btn btn-success btn-sm">تسديد</a>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    <div class="mobile-cards">
+      {% for invoice in unpaid %}
+      {% if invoice.status == 'confirmed' and invoice.debt_amount > 0 %}
+      <div class="mobile-card">
+        <div class="mobile-row">
+          <span class="mobile-label">رقم الفاتورة</span>
+          <span class="mobile-value fw-600">{{ invoice.invoice_number }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">التاريخ</span>
+          <span class="mobile-value">{{ invoice.created_at|date:"Y-m-d" }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">الإجمالي</span>
+          <span class="mobile-value">{{ invoice.total|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">المدفوع</span>
+          <span class="mobile-value">{{ invoice.paid_amount|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">المتبقي</span>
+          <span class="mobile-value fw-bold text-danger">{{ invoice.debt_amount|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="mobile-actions">
+          <a href="{% url 'supplier_payment_create' supplier.pk %}?invoice={{ invoice.pk }}" class="btn btn-success btn-sm">تسديد</a>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <h5>لا توجد فواتير غير مسددة</h5>
+      <p>جميع فواتير هذا المورد مسددة</p>
+    </div>
+    {% endif %}
+    {% endwith %}
   </div>
 </div>
 
@@ -140,96 +299,78 @@
   </div>
   <div class="card-body" style="padding:0;">
     {% if purchases %}
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>رقم الفاتورة</th>
-            <th>التاريخ</th>
-            <th>الفرع</th>
-            <th>الإجمالي</th>
-            <th>المتبقي</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for purchase in purchases %}
-          <tr>
-            <td class="fw-600">{{ purchase.invoice_number }}</td>
-            <td>{{ purchase.created_at|date:"Y-m-d" }}</td>
-            <td>{{ purchase.branch.name }}</td>
-            <td>{{ purchase.total|floatformat:2|intcomma }}</td>
-            <td class="{% if purchase.debt_amount > 0 %}text-danger fw-bold{% endif %}">{{ purchase.debt_amount|floatformat:2|intcomma }}</td>
-            <td>
-              <a href="{% url 'purchase_invoice_detail' purchase.pk %}" class="btn btn-outline btn-sm">عرض</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>رقم الفاتورة</th>
+              <th>التاريخ</th>
+              <th>الفرع</th>
+              <th class="money">الإجمالي</th>
+              <th class="money">المتبقي</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for purchase in purchases %}
+            <tr>
+              <td class="fw-600">{{ purchase.invoice_number }}</td>
+              <td>{{ purchase.created_at|date:"Y-m-d" }}</td>
+              <td>{{ purchase.branch.name }}</td>
+              <td class="money">{{ purchase.total|floatformat:2|intcomma }}</td>
+              <td class="money {% if purchase.debt_amount > 0 %}text-danger fw-bold{% endif %}">{{ purchase.debt_amount|floatformat:2|intcomma }}</td>
+              <td>
+                <a href="{% url 'purchase_invoice_detail' purchase.pk %}" class="btn btn-outline btn-sm">عرض</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mobile-cards">
+      {% for purchase in purchases %}
+      <div class="mobile-card">
+        <div class="mobile-row">
+          <span class="mobile-label">رقم الفاتورة</span>
+          <span class="mobile-value fw-600">{{ purchase.invoice_number }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">التاريخ</span>
+          <span class="mobile-value">{{ purchase.created_at|date:"Y-m-d" }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">الفرع</span>
+          <span class="mobile-value">{{ purchase.branch.name }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">الإجمالي</span>
+          <span class="mobile-value">{{ purchase.total|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="mobile-row">
+          <span class="mobile-label">المتبقي</span>
+          <span class="mobile-value {% if purchase.debt_amount > 0 %}text-danger fw-bold{% endif %}">{{ purchase.debt_amount|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="mobile-actions">
+          <a href="{% url 'purchase_invoice_detail' purchase.pk %}" class="btn btn-outline btn-sm">عرض</a>
+        </div>
+      </div>
+      {% endfor %}
     </div>
     {% else %}
-    <div class="text-center text-muted" style="padding:40px;">لا توجد فواتير مشتريات</div>
+    <div class="empty-state">
+      <h5>لا توجد فواتير مشتريات</h5>
+      <p>لم يتم تسجيل أي فواتير لهذا المورد</p>
+    </div>
     {% endif %}
   </div>
 </div>
 
-<style>
-  .supplier-top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 0; }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .fin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .fin-box { padding: 14px 10px; border-radius: 10px; text-align: center; }
-  .fin-value { font-size: 18px; font-weight: 700; margin-top: 4px; word-break: break-all; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 440px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-success { background: #16a34a; color: #fff; }
-  .btn-success:hover { background: #15803d; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .card-body { padding: 16px; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .badge-success { background: #dcfce7; color: #16a34a; }
-  .badge-danger { background: #fee2e2; color: #dc2626; }
-  .text-muted { color: #6b7280; font-size: 12px; }
-  .text-primary { color: #E8793A; }
-  .text-success { color: #16a34a; }
-  .text-danger { color: #dc2626; }
-  .fw-bold { font-weight: 700; }
-  .fw-600 { font-weight: 600; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 768px) {
-    .supplier-top-grid { grid-template-columns: 1fr; }
-    .fin-grid { grid-template-columns: 1fr 1fr; }
-    .fin-grid > .fin-box:last-child { grid-column: span 2; }
-  }
-  @media (max-width: 600px) {
-    .info-grid { grid-template-columns: 1fr; }
-    .fin-grid { grid-template-columns: 1fr; }
-    .fin-grid > .fin-box:last-child { grid-column: span 1; }
-    .card-body { padding: 12px; }
-    .fin-value { font-size: 16px; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
-</style>
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 </script>
 {% endblock %}

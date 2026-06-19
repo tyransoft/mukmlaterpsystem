@@ -1,11 +1,94 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}سجل دفعات المورد{% endblock %}
 {% block page_title %}سجل دفعات المورد{% endblock %}
 {% block nav_suppliers %}active{% endblock %}
 
 {% block content %}
-<div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
+<style>
+  *{box-sizing:border-box;}
+  
+  .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .action-bar .btn{flex:1;min-width:100px;justify-content:center;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+  
+  .filter-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+  .filter-form .form-control{flex:1;min-width:140px;}
+  .filter-btns{display:flex;gap:6px;min-width:130px;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;touch-action:manipulation;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-success{background:#16a34a;color:#fff;}
+  .btn-success:hover{background:#15803d;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 12px;font-size:12px;min-height:36px;min-width:36px;}
+  .btn-danger{background:#dc2626;color:#fff;border:none;}
+  .btn-danger:hover{background:#b91c1c;}
+  
+  .form-control{padding:12px 14px;border:1.5px solid #eaecf0;border-radius:8px;font-size:16px;background:#fff;color:#1a2236;box-sizing:border-box;}
+  .form-control:focus{outline:none;border-color:#E8793A;box-shadow:0 0 0 4px rgba(232,121,58,0.12);}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-payment-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-payment-card:last-child{border-bottom:none;}
+  .mobile-payment-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-payment-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-payment-value{font-size:13px;color:#1a2236;}
+  .mobile-payment-actions{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px;}
+  .mobile-payment-actions .btn{width:100%;justify-content:center;font-size:12px;min-height:40px;}
+  
+  .pagination-row{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:20px;flex-wrap:wrap;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .table-wrap::after{content:'';position:absolute;top:0;left:0;bottom:0;width:30px;background:linear-gradient(to right,rgba(255,255,255,0.9),transparent);pointer-events:none;opacity:0;transition:opacity 0.2s;}
+  .table-wrap.has-scroll::after{opacity:1;}
+  .erp-table{min-width:680px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+  .money{text-align:left;direction:ltr;font-variant-numeric:tabular-nums;font-weight:600;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .text-primary{color:#E8793A;}
+  .text-success{color:#16a34a;}
+  .fw-bold{font-weight:700;}
+  .text-center{text-align:center;}
+  
+  .empty-state{text-align:center;padding:40px 20px;}
+  .empty-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+  
+  @media(max-width:768px){
+    .action-bar .btn{min-width:80px;font-size:13px;padding:8px 14px;}
+  }
+  
+  @media(max-width:600px){
+    .filter-form{flex-direction:column;}
+    .filter-form .form-control{min-width:unset;}
+    .filter-btns{width:100%;}
+    .card-body{padding:12px;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-payment-card{display:block !important;}
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.table-wrap::after{display:none;}.btn{display:none;}}
+</style>
+
+<div class="action-bar">
   <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline btn-sm">رجوع للمورد</a>
   <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة جديدة</a>
 </div>
@@ -15,10 +98,10 @@
     <span class="card-title">إجمالي المدفوع: {{ total_paid|floatformat:2|intcomma }}</span>
   </div>
   <div class="card-body">
-
-    <form method="get" class="filter-form" style="margin-bottom:16px;">
-      <input type="date" name="from_date" class="form-control" placeholder="من تاريخ" value="{{ from_date }}">
-      <input type="date" name="to_date" class="form-control" placeholder="إلى تاريخ" value="{{ to_date }}">
+    
+    <form method="get" class="filter-form">
+      <input type="date" name="from_date" class="form-control" value="{{ from_date }}">
+      <input type="date" name="to_date" class="form-control" value="{{ to_date }}">
       <div class="filter-btns">
         <button type="submit" class="btn btn-primary btn-sm" style="flex:1;">فلترة</button>
         {% if from_date or to_date %}
@@ -26,48 +109,92 @@
         {% endif %}
       </div>
     </form>
-
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>المبلغ</th>
-            <th>طريقة الدفع</th>
-            <th>رقم المرجع</th>
-            <th>الفاتورة المرتبطة</th>
-            <th>ملاحظات</th>
-            <th>تم بواسطة</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for payment in page_obj %}
-          <tr>
-            <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
-            <td class="text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
-            <td>{{ payment.get_payment_method_display }}</td>
-            <td>{{ payment.reference_number|default:"-" }}</td>
-            <td>
-              {% if payment.purchase_invoice %}
-              <a href="{% url 'purchase_invoice_detail' payment.purchase_invoice.pk %}" class="text-primary">{{ payment.purchase_invoice.invoice_number }}</a>
-              {% else %}-{% endif %}
-            </td>
-            <td>{{ payment.notes|default:"-"|truncatechars:30 }}</td>
-            <td>{{ payment.created_by.username|default:"-" }}</td>
-            <td>
-              <button onclick="deletePayment({{ payment.pk }})" class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:5px 10px;min-height:30px;">حذف</button>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="8" class="text-center text-muted" style="padding:40px;">لا توجد دفعات مسجلة</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th class="money">المبلغ</th>
+              <th>طريقة الدفع</th>
+              <th>رقم المرجع</th>
+              <th>الفاتورة</th>
+              <th>ملاحظات</th>
+              <th>تم بواسطة</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in page_obj %}
+            <tr>
+              <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
+              <td class="money text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
+              <td>{{ payment.get_payment_method_display }}</td>
+              <td>{{ payment.reference_number|default:"-" }}</td>
+              <td>
+                {% if payment.purchase_invoice %}
+                <a href="{% url 'purchase_invoice_detail' payment.purchase_invoice.pk %}" class="text-primary">{{ payment.purchase_invoice.invoice_number }}</a>
+                {% else %}-{% endif %}
+              </td>
+              <td>{{ payment.notes|default:"-"|truncatechars:30 }}</td>
+              <td>{{ payment.created_by.username|default:"-" }}</td>
+              <td>
+                <button onclick="deletePayment({{ payment.pk }})" class="btn btn-danger btn-sm" style="padding:5px 10px;min-height:30px;">حذف</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <h5>لا توجد دفعات مسجلة</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-
+    
+    <div class="mobile-cards">
+      {% for payment in page_obj %}
+      <div class="mobile-payment-card">
+        <div class="mobile-payment-row">
+          <span class="mobile-payment-label">التاريخ</span>
+          <span class="mobile-payment-value">{{ payment.payment_date|date:"Y-m-d" }}</span>
+        </div>
+        <div class="mobile-payment-row">
+          <span class="mobile-payment-label">المبلغ</span>
+          <span class="mobile-payment-value fw-bold text-success">{{ payment.amount|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="mobile-payment-row">
+          <span class="mobile-payment-label">طريقة الدفع</span>
+          <span class="mobile-payment-value">{{ payment.get_payment_method_display }}</span>
+        </div>
+        <div class="mobile-payment-row">
+          <span class="mobile-payment-label">الفاتورة</span>
+          <span class="mobile-payment-value">
+            {% if payment.purchase_invoice %}
+            <a href="{% url 'purchase_invoice_detail' payment.purchase_invoice.pk %}" class="text-primary">{{ payment.purchase_invoice.invoice_number }}</a>
+            {% else %}-{% endif %}
+          </span>
+        </div>
+        <div class="mobile-payment-row">
+          <span class="mobile-payment-label">الملاحظات</span>
+          <span class="mobile-payment-value">{{ payment.notes|default:"-" }}</span>
+        </div>
+        <div class="mobile-payment-actions">
+          <button onclick="deletePayment({{ payment.pk }})" class="btn btn-danger btn-sm">حذف</button>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <h5>لا توجد دفعات مسجلة</h5>
+      </div>
+      {% endfor %}
+    </div>
+    
     {% if page_obj.has_other_pages %}
     <div class="pagination-row">
       {% if page_obj.has_previous %}
@@ -81,71 +208,28 @@
       {% endif %}
     </div>
     {% endif %}
-
+    
   </div>
 </div>
 
-<style>
-  .filter-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-  .filter-form .form-control { flex: 1; min-width: 140px; }
-  .filter-btns { display: flex; gap: 6px; min-width: 130px; }
-  .pagination-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 20px; flex-wrap: wrap; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 680px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
-  .btn-primary { background: #E8793A; color: #fff; }
-  .btn-primary:hover { background: #d4682e; color: #fff; }
-  .btn-success { background: #16a34a; color: #fff; }
-  .btn-success:hover { background: #15803d; color: #fff; }
-  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
-  .btn-outline:hover { background: #f8f9fb; }
-  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
-  .card-body { padding: 16px; }
-  .form-control { padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
-  .form-control:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
-  .text-muted { color: #6b7280; }
-  .text-primary { color: #E8793A; }
-  .text-success { color: #16a34a; }
-  .fw-bold { font-weight: 700; }
-  .text-center { text-align: center; }
-
-  @media (max-width: 600px) {
-    .filter-form { flex-direction: column; }
-    .filter-form .form-control { min-width: unset; }
-    .filter-btns { width: 100%; }
-    .card-body { padding: 12px; }
-    .erp-table { font-size: 13px; }
-    .erp-table th, .erp-table td { padding: 8px 10px; }
-  }
-  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
-</style>
-
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 
-  function deletePayment(paymentId) {
-    if (confirm('هل تريد حذف هذه الدفعة؟')) {
-      fetch(`/suppliers/payment/${paymentId}/delete/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) { location.reload(); }
-        else { alert(data.error || 'حدث خطأ'); }
-      });
-    }
+function deletePayment(paymentId) {
+  if (confirm('هل تريد حذف هذه الدفعة؟')) {
+    fetch(`/suppliers/payment/${paymentId}/delete/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) { location.reload(); }
+      else { alert(data.error || 'حدث خطأ'); }
+    });
   }
+}
 </script>
 {% endblock %}

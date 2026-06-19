@@ -1,68 +1,125 @@
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block title %}تنبيهات المخزون{% endblock %}
 {% block page_title %}تنبيهات المخزون المنخفض{% endblock %}
 {% block nav_lowstock %}active{% endblock %}
 
 {% block content %}
+<style>
+  *{box-sizing:border-box;}
+  
+  .alert-box{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;font-weight:600;}
+  
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+  
+  .mobile-low-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-low-card:last-child{border-bottom:none;}
+  .mobile-low-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-low-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-low-value{font-size:13px;color:#1a2236;}
+  .mobile-low-name{font-size:15px;font-weight:700;color:#1a2236;}
+  
+  .badge{display:inline-block;padding:5px 14px;border-radius:20px;font-size:14px;font-weight:700;white-space:nowrap;}
+  .badge-danger{background:#fee2e2;color:#dc2626;}
+  
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .table-wrap::after{content:'';position:absolute;top:0;left:0;bottom:0;width:30px;background:linear-gradient(to right,rgba(255,255,255,0.9),transparent);pointer-events:none;opacity:0;transition:opacity 0.2s;}
+  .table-wrap.has-scroll::after{opacity:1;}
+  .erp-table{min-width:360px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  
+  .empty-state{text-align:center;padding:40px 20px;}
+  .empty-icon{font-size:40px;margin-bottom:10px;opacity:0.6;}
+  .empty-state h5{font-size:16px;color:#1a2236;margin-bottom:4px;}
+  
+  .text-muted{color:#6b7280;font-size:12px;}
+  .text-primary{color:#E8793A;}
+  .fw-600{font-weight:600;}
+  
+  @media(max-width:600px){
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-low-card{display:block !important;}
+    .badge{font-size:13px;padding:4px 12px;}
+  }
+  
+  @media print{.table-wrap{overflow:visible;}.table-wrap::after{display:none;}}
+</style>
+
 {% if inventory %}
-<div class="alert-warning-box">يوجد {{ inventory|length }} منتج بمخزون منخفض يحتاج إلى إعادة تعبئة</div>
+<div class="alert-box"> يوجد {{ inventory|length }} منتج بمخزون منخفض يحتاج إلى إعادة تعبئة</div>
 {% endif %}
+
 <div class="card">
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
-      <table class="erp-table">
-        <thead>
-          <tr><th>الفرع</th><th>المنتج</th><th>الكمية الحالية</th></tr>
-        </thead>
-        <tbody>
-          {% for inv in inventory %}
-          <tr>
-            <td>{{ inv.branch.name }}</td>
-            <td>
-              <a href="{% url 'products_detail' inv.product.pk %}" class="fw-600 text-primary">{{ inv.product.name }}</a>
-              <div class="text-muted" style="font-size:11px;">{{ inv.product.code }}</div>
-            </td>
-            <td><span class="badge badge-danger" style="font-size:14px;padding:5px 14px;">{{ inv.quantity }}</span></td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="3">
-              <div class="empty-state">
-                <div style="font-size:36px;margin-bottom:10px;">✓</div>
-                <h5>كل المخزون كافٍ</h5>
-                <p class="text-muted">لا توجد تنبيهات مخزون منخفض</p>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr><th>الفرع</th><th>المنتج</th><th>الكمية الحالية</th></tr>
+          </thead>
+          <tbody>
+            {% for inv in inventory %}
+            <tr>
+              <td>{{ inv.branch.name }}</td>
+              <td>
+                <a href="{% url 'products_detail' inv.product.pk %}" class="fw-600 text-primary">{{ inv.product.name }}</a>
+                <div class="text-muted" style="font-size:11px;">{{ inv.product.code }}</div>
+              </td>
+              <td><span class="badge badge-danger">{{ inv.quantity }}</span></td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3">
+                <div class="empty-state">
+                  <h5>كل المخزون كافٍ</h5>
+                  <p class="text-muted">لا توجد تنبيهات مخزون منخفض</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    
+    <div class="mobile-cards">
+      {% for inv in inventory %}
+      <div class="mobile-low-card">
+        <div class="mobile-low-row">
+          <span class="mobile-low-label">الفرع</span>
+          <span class="mobile-low-value">{{ inv.branch.name }}</span>
+        </div>
+        <div class="mobile-low-name">{{ inv.product.name }}</div>
+        <div class="mobile-low-row">
+          <span class="mobile-low-label">الكمية</span>
+          <span class="mobile-low-value"><span class="badge badge-danger">{{ inv.quantity }}</span></span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <h5>كل المخزون كافٍ</h5>
+        <p class="text-muted">لا توجد تنبيهات مخزون منخفض</p>
+      </div>
+      {% endfor %}
+    </div>
+    
   </div>
 </div>
 
-<style>
-  .alert-warning-box { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; font-weight: 600; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-  .table-wrap.has-scroll::after { opacity: 1; }
-  .erp-table { min-width: 360px; width: 100%; font-size: 14px; border-collapse: collapse; }
-  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
-  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
-  .erp-table tbody tr:hover { background: #fafbfc; }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .badge-danger { background: #fee2e2; color: #dc2626; }
-  .empty-state { text-align: center; padding: 40px 20px; }
-  .text-muted { color: #6b7280; font-size: 12px; }
-  .text-primary { color: #E8793A; }
-  .fw-600 { font-weight: 600; }
-</style>
 <script>
-  document.querySelectorAll('.table-wrap').forEach(function(w) {
-    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-    c(); window.addEventListener('resize', c);
-  });
+document.querySelectorAll('.table-wrap').forEach(function(w) {
+  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+  c(); window.addEventListener('resize', c);
+});
 </script>
 {% endblock %}

@@ -6,19 +6,31 @@
 
 {% block content %}
 <style>
-.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.table-wrap .erp-table{min-width:500px;width:100%;}
-.erp-table td,.erp-table th{white-space:nowrap;}
+*{box-sizing:border-box;}
+code{word-break:break-all;}
 @media(max-width:768px){
   .pd-grid{grid-template-columns:1fr!important;}
   .btn-sm{min-height:40px;padding:8px 12px;}
 }
+@media(max-width:500px){
+  .price-grid{grid-template-columns:1fr!important;}
+}
+.stock-desktop{display:block;}
+.stock-mobile{display:none;}
+@media(max-width:768px){
+  .stock-desktop{display:none;}
+  .stock-mobile{display:block;}
+}
+.stock-card-m{background:var(--bg-light);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.stock-card-m .sc-branch{font-weight:700;font-size:14px;}
+.stock-card-m .sc-info{font-size:12px;color:#64748b;margin-top:2px;}
 </style>
+
 <div class="pd-grid" style="display:grid;grid-template-columns:280px 1fr;gap:20px;">
   <div class="card">
     <div class="card-body">
       <h3 style="font-size:16px;font-weight:800;margin-bottom:4px;">{{ product.name }}</h3>
-      <code style="background:var(--bg-light);padding:3px 8px;border-radius:4px;font-size:12px;">{{ product.code }}</code>
+      <code style="background:var(--bg-light);padding:3px 8px;border-radius:4px;font-size:12px;display:inline-block;">{{ product.code }}</code>
       {% if product.loyalty_points > 0 %}
       <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:14px;border-radius:8px;margin-top:12px;text-align:center;">
         <div style="font-size:11px;opacity:.8;">نقاط الولاء لكل وحدة</div>
@@ -34,7 +46,7 @@
     <div class="card">
       <div class="card-header"><span class="card-title">معلومات التسعير</span></div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="price-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div style="background:var(--bg-light);padding:16px;border-radius:8px;text-align:center;">
             <div style="font-size:11px;color:var(--text-muted);">سعر التكلفة</div>
             <div style="font-size:20px;font-weight:800;color:var(--danger);">{{ product.cost_price|floatformat:2|intcomma }}</div>
@@ -49,8 +61,8 @@
     <div class="card">
       <div class="card-header"><span class="card-title">المخزون بالفروع</span></div>
       <div class="card-body" style="padding:0;">
-        <div class="table-wrap">
-          <table class="erp-table">
+        <div class="stock-desktop" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table class="erp-table" style="min-width:400px;width:100%;">
             <thead>
               <tr><th>الفرع</th><th>الكمية</th><th>الحد الأدنى</th><th>الحالة</th></tr>
             </thead>
@@ -67,6 +79,19 @@
               {% endfor %}
             </tbody>
           </table>
+        </div>
+        <div class="stock-mobile" style="padding:12px;">
+          {% for stock in branch_stocks %}
+          <div class="stock-card-m">
+            <div>
+              <div class="sc-branch">{{ stock.branch.name }}</div>
+              <div class="sc-info">الكمية: <strong>{{ stock.quantity }}</strong> &nbsp;|&nbsp; الحد الأدنى: {{ stock.min_quantity }}</div>
+            </div>
+            <div>{% if stock.is_low_stock %}<span class="badge badge-danger">منخفض</span>{% else %}<span class="badge badge-success">كافٍ</span>{% endif %}</div>
+          </div>
+          {% empty %}
+          <div style="text-align:center;padding:20px;color:#64748b;">لا توجد بيانات</div>
+          {% endfor %}
         </div>
       </div>
     </div>

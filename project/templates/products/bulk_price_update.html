@@ -6,16 +6,30 @@
 
 {% block content %}
 <style>
+*{box-sizing:border-box;}
 .table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .table-wrap .erp-table{min-width:700px;width:100%;}
-.erp-table td,.erp-table th{white-space:nowrap;}
+.erp-table td,.erp-table th{white-space:nowrap;font-size:13px;padding:10px 8px;}
 @media(max-width:768px){
   .card-header{flex-direction:column;align-items:stretch;}
   .btn-sm{min-height:40px;padding:8px 12px;}
   form[method="get"]{flex-direction:column;}
-  form[method="get"] input,form[method="get"] select,form[method="get"] button,form[method="get"] a{width:100%;box-sizing:border-box;}
+  form[method="get"] input,form[method="get"] select,form[method="get"] button,form[method="get"] a{width:100%;}
+  .selection-bar{flex-direction:column;align-items:stretch;}
+  .selection-bar span,.selection-bar button{width:100%;text-align:center;}
+  .desktop-table{display:none;}
+  .mobile-cards{display:block;}
 }
+@media(min-width:769px){.mobile-cards{display:none;}}
+@media(max-width:480px){.bulk-grid{grid-template-columns:1fr!important;}}
+.bulk-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;position:relative;}
+.bulk-card .bc-check{position:absolute;top:14px;left:14px;}
+.bulk-card .bc-name{font-size:15px;font-weight:700;margin-bottom:8px;padding-left:30px;}
+.bulk-card .bc-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f1f5f9;}
+.bulk-card .bc-row:last-of-type{border-bottom:none;}
+.bulk-card .bc-label{color:#64748b;}
 </style>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">تعديل جماعي لأسعار البيع</span>
@@ -37,7 +51,7 @@
     <form method="post" id="bulk-update-form">
       {% csrf_token %}
       <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:16px;border-radius:8px;margin-bottom:16px;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;align-items:flex-end;">
+        <div class="bulk-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;align-items:flex-end;">
           <div>
             <label class="form-label">نوع الزيادة</label>
             <select name="increase_type" id="increase_type" class="form-select">
@@ -55,7 +69,7 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg-light);padding:12px 14px;border-radius:8px;margin-bottom:14px;">
+      <div class="selection-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg-light);padding:12px 14px;border-radius:8px;margin-bottom:14px;">
         <button type="button" onclick="selectAll(true)" class="btn btn-outline btn-sm">تحديد الكل</button>
         <button type="button" onclick="selectAll(false)" class="btn btn-outline btn-sm">إلغاء التحديد</button>
         <span style="background:#2563eb;color:#fff;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;">
@@ -64,7 +78,7 @@
         <span class="text-muted" style="font-size:12px;">إجمالي: {{ total_count }}</span>
       </div>
 
-      <div class="table-wrap">
+      <div class="desktop-table table-wrap">
         <table class="erp-table">
           <thead>
             <tr>
@@ -79,7 +93,7 @@
                 <input type="checkbox" class="product-checkbox" data-id="{{ product.id }}" data-price="{{ product.selling_price }}" onchange="countSelected()" style="width:17px;height:17px;">
               </td>
               <td class="fw-600">{{ product.name }}</td>
-              <td><code style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-size:12px;">{{ product.barcode|default:"-" }}</code></td>
+              <td><code style="background:var(--bg-light);padding:2px 6px;border-radius:4px;">{{ product.barcode|default:"-" }}</code></td>
               <td>{{ product.category.name|default:"-" }}</td>
               <td class="fw-bold text-primary" id="cur-{{ product.id }}">{{ product.selling_price|floatformat:2|intcomma }} د.ل</td>
               <td id="new-{{ product.id }}" class="text-muted">-</td>
@@ -89,6 +103,21 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+
+      <div class="mobile-cards">
+        {% for product in products %}
+        <div class="bulk-card">
+          <input type="checkbox" class="product-checkbox bc-check" data-id="{{ product.id }}" data-price="{{ product.selling_price }}" onchange="countSelected()" style="width:18px;height:18px;">
+          <div class="bc-name">{{ product.name }}</div>
+          <div class="bc-row"><span class="bc-label">الباركود</span><code style="font-size:12px;">{{ product.barcode|default:"-" }}</code></div>
+          <div class="bc-row"><span class="bc-label">الفئة</span><span>{{ product.category.name|default:"-" }}</span></div>
+          <div class="bc-row"><span class="bc-label">السعر الحالي</span><span class="fw-bold text-primary" id="cur-m-{{ product.id }}">{{ product.selling_price|floatformat:2|intcomma }} د.ل</span></div>
+          <div class="bc-row"><span class="bc-label">السعر بعد الزيادة</span><span id="new-{{ product.id }}" class="text-muted">-</span></div>
+        </div>
+        {% empty %}
+        <div style="text-align:center;padding:40px;color:#64748b;">لا توجد منتجات</div>
+        {% endfor %}
       </div>
 
       {% if products.has_other_pages %}
@@ -105,8 +134,8 @@
 
 <script>
 var chks=document.querySelectorAll('.product-checkbox');
-function countSelected(){var n=0,ids=[];chks.forEach(function(c){if(c.checked){n++;ids.push(c.getAttribute('data-id'));}});document.getElementById('selected_count').textContent=n;document.getElementById('selected_products_input').value=ids.join(',');document.getElementById('select_all_checkbox').checked=(n===chks.length&&chks.length>0);updatePreviews();}
-function selectAll(v){chks.forEach(function(c){c.checked=v;});document.getElementById('select_all_checkbox').checked=v;countSelected();}
+function countSelected(){var n=0,ids=[];chks.forEach(function(c){if(c.checked){n++;ids.push(c.getAttribute('data-id'));}});document.getElementById('selected_count').textContent=n;document.getElementById('selected_products_input').value=ids.join(',');var sa=document.getElementById('select_all_checkbox');if(sa)sa.checked=(n===chks.length&&chks.length>0);updatePreviews();}
+function selectAll(v){chks.forEach(function(c){c.checked=v;});var sa=document.getElementById('select_all_checkbox');if(sa)sa.checked=v;countSelected();}
 function updatePreviews(){var val=parseFloat(document.getElementById('increase_value').value)||0;var type=document.getElementById('increase_type').value;chks.forEach(function(c){var id=c.getAttribute('data-id');var price=parseFloat(c.getAttribute('data-price'));var el=document.getElementById('new-'+id);if(!el)return;if(c.checked&&val>0){var np=type==='percentage'?price+(price*val/100):price+val;el.textContent=np.toFixed(2)+' د.ل';el.style.color='#16a34a';el.style.fontWeight='700';}else{el.textContent='-';el.style.color='';el.style.fontWeight='';}});}
 document.getElementById('increase_type').addEventListener('change',function(){document.getElementById('increase_label').textContent=this.value==='percentage'?'قيمة الزيادة (%)':'قيمة الزيادة (د.ل)';updatePreviews();});
 document.getElementById('increase_value').addEventListener('input',updatePreviews);

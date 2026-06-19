@@ -5,16 +5,29 @@
 
 {% block content %}
 <style>
-.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.table-wrap .erp-table{min-width:750px;width:100%;}
-.erp-table td,.erp-table th{white-space:nowrap;}
+*{box-sizing:border-box;}
 @media(max-width:768px){
   .card-header{flex-direction:column;align-items:stretch;}
   .btn-sm{min-height:40px;padding:8px 12px;}
-  .ex-stats{grid-template-columns:repeat(2,1fr)!important;}
   form[method="get"]{flex-direction:column;}
-  form[method="get"] input,form[method="get"] select,form[method="get"] button,form[method="get"] a{width:100%;box-sizing:border-box;}
+  form[method="get"] input,form[method="get"] select,form[method="get"] button,form[method="get"] a{width:100%;}
+  .ex-stats{grid-template-columns:repeat(2,1fr)!important;}
+  .desktop-table{display:none;}
+  .mobile-cards{display:block;}
 }
+@media(max-width:480px){
+  .ex-stats{grid-template-columns:1fr!important;}
+}
+@media(min-width:769px){.mobile-cards{display:none;}}
+.ex-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+.ex-card .ec-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.ex-card .ec-name{font-size:15px;font-weight:700;}
+.ex-card .ec-branch{font-size:12px;color:#64748b;margin-top:2px;}
+.ex-card .ec-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f1f5f9;}
+.ex-card .ec-row:last-of-type{border-bottom:none;}
+.ex-card .ec-label{color:#64748b;}
+.ex-card .ec-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;}
+.ex-card .ec-actions a{text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;font-size:13px;}
 </style>
 
 <div class="card" style="margin-bottom:20px;">
@@ -55,8 +68,8 @@
 <div class="card">
   <div class="card-header"><span class="card-title">قائمة المنتجات تحت المراقبة</span></div>
   <div class="card-body" style="padding:0;">
-    <div class="table-wrap">
-      <table class="erp-table">
+    <div class="desktop-table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="erp-table" style="min-width:800px;width:100%;">
         <thead>
           <tr>
             {% if user.can_see_all_data %}<th>الفرع</th>{% endif %}
@@ -81,7 +94,7 @@
               {% else %}<span class="badge badge-success">جيد</span>{% endif %}
             </td>
             <td>
-              <div style="display:flex;gap:5px;">
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
                 <a href="{% url 'product_expiry_consume' record.pk %}" class="btn btn-outline btn-sm">استهلاك</a>
                 <a href="{% url 'product_expiry_edit' record.pk %}" class="btn btn-outline btn-sm">تعديل</a>
                 <a href="{% url 'product_expiry_movements' record.pk %}" class="btn btn-outline btn-sm">سجل</a>
@@ -90,14 +103,45 @@
             </td>
           </tr>
           {% empty %}
-          <tr>
-            <td colspan="{% if user.can_see_all_data %}8{% else %}7{% endif %}" class="text-center text-muted" style="padding:40px;">
-              لا توجد منتجات تحت المراقبة
-            </td>
-          </tr>
+          <tr><td colspan="{% if user.can_see_all_data %}8{% else %}7{% endif %}" class="text-center text-muted" style="padding:40px;">لا توجد منتجات تحت المراقبة</td></tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <div class="mobile-cards" style="padding:12px;">
+      {% for record in expiry_records %}
+      <div class="ex-card">
+        <div class="ec-header">
+          <div>
+            <div class="ec-name">{{ record.product.name }}</div>
+            {% if user.can_see_all_data %}<div class="ec-branch">{{ record.branch.name }}</div>{% endif %}
+          </div>
+          <div>
+            {% if record.days_remaining < 0 %}<span class="badge badge-danger">منتهي</span>
+            {% elif record.days_remaining <= 90 %}<span class="badge badge-warning">قريباً</span>
+            {% else %}<span class="badge badge-success">جيد</span>{% endif %}
+          </div>
+        </div>
+        <div class="ec-row"><span class="ec-label">رقم الدفعة</span><span>{{ record.batch_number|default:"-" }}</span></div>
+        <div class="ec-row"><span class="ec-label">الكمية</span><span class="fw-bold">{{ record.quantity }}</span></div>
+        <div class="ec-row"><span class="ec-label">تاريخ الانتهاء</span><span>{{ record.expiry_date|date:"Y-m-d" }}</span></div>
+        <div class="ec-row">
+          <span class="ec-label">المتبقي</span>
+          <span class="fw-bold {% if record.days_remaining < 0 %}text-danger{% elif record.days_remaining <= 90 %}text-warning{% else %}text-success{% endif %}">
+            {% if record.days_remaining < 0 %}منتهي{% else %}{{ record.days_remaining }} يوم{% endif %}
+          </span>
+        </div>
+        <div class="ec-actions">
+          <a href="{% url 'product_expiry_consume' record.pk %}" class="btn btn-outline btn-sm">استهلاك</a>
+          <a href="{% url 'product_expiry_edit' record.pk %}" class="btn btn-outline btn-sm">تعديل</a>
+          <a href="{% url 'product_expiry_movements' record.pk %}" class="btn btn-outline btn-sm">سجل</a>
+          <a href="{% url 'product_expiry_delete' record.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">حذف</a>
+        </div>
+      </div>
+      {% empty %}
+      <div style="text-align:center;padding:40px;color:#64748b;">لا توجد منتجات تحت المراقبة</div>
+      {% endfor %}
     </div>
   </div>
 </div>

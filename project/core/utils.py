@@ -31,7 +31,7 @@ def generate_loyalty_transfer_excel(transfers, transfer_type='single'):
         ws.cell(row=row, column=1, value=transfer.customer.customer_id if transfer.customer else '-')
         ws.cell(row=row, column=2, value=transfer.customer.full_name if transfer.customer else '-')
         ws.cell(row=row, column=3, value=transfer.points)
-        ws.cell(row=row, column=5, value=transfer.transferred_date.strftime('%Y-%m-%d %H:%M') if transfer.transferred_date else datetime.now().strftime('%Y-%m-%d %H:%M'))
+        ws.cell(row=row, column=5, value=transfer.transfer_date.strftime('%Y-%m-%d %H:%M') if transfer.transfer_date else datetime.now().strftime('%Y-%m-%d %H:%M'))
         
         for col in range(1, 6):
             ws.cell(row=row, column=col).border = border

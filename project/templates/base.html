@@ -4,7 +4,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=yes">
   <title>{% block title %}{{ COMPANY_NAME }} - نظام ERP{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
   <style>
@@ -35,7 +35,7 @@
       top: 0;
       height: 100%;
       overflow-y: auto;
-      transition: transform 0.3s ease;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 1000;
       transform: translateX(0);
     }
@@ -157,7 +157,7 @@
       flex: 1;
       margin-right: 280px;
       min-height: 100vh;
-      transition: margin-right 0.3s ease;
+      transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .topbar {
@@ -195,18 +195,25 @@
     .menu-toggle {
       display: none;
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 50px;
-      height: 50px;
+      top: 12px;
+      right: 12px;
+      width: 48px;
+      height: 48px;
       background: #E8793A;
       color: white;
       border: none;
-      border-radius: 50%;
+      border-radius: 12px;
       cursor: pointer;
-      z-index: 1001;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1002;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       font-size: 24px;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+    
+    .menu-toggle:active {
+      transform: scale(0.95);
     }
     
     .overlay {
@@ -218,6 +225,11 @@
       bottom: 0;
       background: rgba(0,0,0,0.5);
       z-index: 999;
+      transition: opacity 0.3s ease;
+    }
+    
+    .overlay.show {
+      display: block;
     }
     
     .page-content {
@@ -270,6 +282,7 @@
       .sidebar {
         width: 280px;
         transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
       
       .sidebar.open {
@@ -278,20 +291,16 @@
       
       .main-content {
         margin-right: 0;
+        transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
       
       .menu-toggle {
         display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      .overlay.show {
-        display: block;
       }
       
       .topbar {
         padding: 12px 16px;
+        padding-right: 70px;
       }
       
       .page-title {
@@ -300,6 +309,74 @@
       
       .page-content {
         padding: 16px;
+        padding-bottom: 20px;
+      }
+      
+      .btn, button, .nav-link, .form-control, select, textarea {
+        min-height: 44px;
+        font-size: 16px !important;
+      }
+      
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+      
+      .table-responsive {
+        font-size: 13px;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .table-responsive th, 
+      .table-responsive td {
+        padding: 8px 6px;
+        white-space: nowrap;
+      }
+      
+      .card {
+        margin-bottom: 16px;
+        border-radius: 10px;
+      }
+      
+      .card-header {
+        padding: 12px 14px;
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+      }
+      
+      .card-body {
+        padding: 12px 14px;
+      }
+      
+      form > div[style*="display:grid"] {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+      }
+      
+      .stat-value, .summary-box h4 {
+        font-size: 22px !important;
+      }
+      
+      .stat-card, .summary-box {
+        padding: 12px;
+      }
+      
+      .sidebar-brand {
+        padding: 16px;
+      }
+      
+      .sidebar-user {
+        padding: 16px;
+      }
+      
+      .nav-link {
+        padding: 12px 16px;
+        font-size: 16px;
+      }
+      
+      .nav-section {
+        padding: 10px 16px 4px;
+        font-size: 10px;
       }
     }
     
@@ -310,6 +387,10 @@
       
       .main-content {
         margin-right: 260px;
+      }
+      
+      .menu-toggle {
+        display: none;
       }
     }
     
@@ -332,7 +413,7 @@
 <body>
 <div class="erp-wrapper">
 
-  <button class="menu-toggle" id="menuToggle">☰</button>
+  <button class="menu-toggle" id="menuToggle" aria-label="فتح القائمة">☰</button>
   <div class="overlay" id="overlay"></div>
 
   <aside class="sidebar" id="sidebar">
@@ -548,38 +629,60 @@
   const menuToggle = document.getElementById('menuToggle');
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
+  let isOpen = false;
   
   function closeSidebar() {
     sidebar.classList.remove('open');
     if (overlay) overlay.classList.remove('show');
+    isOpen = false;
+    if (menuToggle) menuToggle.textContent = '☰';
   }
   
   function openSidebar() {
     sidebar.classList.add('open');
     if (overlay) overlay.classList.add('show');
+    isOpen = true;
+    if (menuToggle) menuToggle.textContent = '✕';
+  }
+  
+  function toggleSidebar() {
+    if (isOpen) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
   }
   
   if (menuToggle) {
     menuToggle.addEventListener('click', function(e) {
+      e.preventDefault();
       e.stopPropagation();
-      if (sidebar.classList.contains('open')) {
-        closeSidebar();
-      } else {
-        openSidebar();
-      }
+      toggleSidebar();
     });
+    
+    menuToggle.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      toggleSidebar();
+    }, { passive: false });
   }
   
   if (overlay) {
     overlay.addEventListener('click', closeSidebar);
+    overlay.addEventListener('touchstart', closeSidebar, { passive: true });
   }
   
   document.querySelectorAll('.nav-link').forEach(function(link) {
     link.addEventListener('click', function() {
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 768 && isOpen) {
         closeSidebar();
       }
     });
+  });
+  
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && isOpen) {
+      closeSidebar();
+    }
   });
   
   document.querySelectorAll('form').forEach(function(form) {
@@ -627,6 +730,16 @@
       }, 500);
     }, 5000);
   });
+  
+  if (window.innerWidth <= 768) {
+    closeSidebar();
+  }
+  
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768 && isOpen) {
+      closeSidebar();
+    }
+  });
 })();
 </script>
 
@@ -641,7 +754,7 @@ input:disabled,
 
 @media (max-width: 768px) {
   .page-content {
-    padding-bottom: 80px;
+    padding-bottom: 20px;
   }
   
   .menu-toggle {
@@ -651,28 +764,6 @@ input:disabled,
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-  }
-  
-  .card {
-    margin-bottom: 16px;
-  }
-  
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start !important;
-    gap: 10px;
-  }
-  
-  form > div[style*="display:grid"] {
-    grid-template-columns: 1fr !important;
-  }
-  
-  .stat-card, .summary-box {
-    padding: 12px;
-  }
-  
-  .stat-value, .summary-box h4 {
-    font-size: 20px !important;
   }
 }
 </style>

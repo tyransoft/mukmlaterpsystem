@@ -1,60 +1,647 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}المستخدمون{% endblock %}
 {% block page_title %}إدارة المستخدمين{% endblock %}
 {% block nav_users %}active{% endblock %}
 
 {% block content %}
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">المستخدمون</span>
-    <a href="{% url 'user_create' %}" class="btn btn-primary btn-sm">+ مستخدم جديد</a>
+<div class="users-page">
+  
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div>
+        <div class="stat-value">{{ users.count }}</div>
+        <div class="stat-label">إجمالي المستخدمين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div>
+        <div class="stat-value">{{ users|length|add:0 }}</div>
+        <div class="stat-label">المستخدمين النشطين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div>
+        <div class="stat-value">{{ users|length|add:0 }}</div>
+        <div class="stat-label">المستخدمين غير النشطين</div>
+      </div>
+    </div>
   </div>
-  <div class="card-body" style="padding:0;">
-    <table class="erp-table">
-      <thead>
-        <tr><th>المستخدم</th><th>الدور</th><th>الفرع</th><th>الحالة</th><th>الإجراءات</th></tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-        <tr>
-          <td>
-            <div class="fw-600">{{ u.username }}</div>
-          </td>
-          <td>
-            <span class="badge {% if u.role == 'super_admin' or u.role == 'admin' %}badge-primary{% elif u.role == 'accountant' %}badge-info{% elif u.role == 'loyalty_employee' %}badge-warning{% else %}badge-secondary{% endif %}">
-              {{ u.get_role_display }}
-            </span>
-          </td>
-          <td>{{ u.branch.name|default:"-" }}</td>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="card-title">قائمة المستخدمين</span>
+        <span class="badge badge-primary" style="font-size:12px;padding:2px 10px;">{{ users.count }}</span>
+      </div>
+      <div class="card-header-right">
+        <div class="d-flex gap-2 flex-wrap">
+          <div class="search-wrapper">
+            <input type="text" id="userSearch" placeholder=" بحث عن مستخدم..." class="form-control search-input" style="min-width:200px;">
+          </div>
+          <a href="{% url 'user_create' %}" class="btn btn-primary">
+            <span class="btn-text">مستخدم جديد</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0;overflow:hidden;">
       
-          <td>{% if u.is_active %}<span class="badge badge-success">نشط</span>{% else %}<span class="badge badge-danger">معطل</span>{% endif %}</td>
-         <td>
-  <div style="display:flex;gap:5px;">
-    <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-icon btn-sm">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
-        <path d="M4 20h16"></path>
-      </svg>
-    </a>
-    {% if u != request.user %}
-    <a href="{% url 'user_delete' u.pk %}" class="btn btn-danger btn-icon btn-sm">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        <line x1="10" y1="11" x2="10" y2="17"></line>
-        <line x1="14" y1="11" x2="14" y2="17"></line>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-      </svg>
-    </a>
-    {% endif %}
-  </div>
-</td>
-        </tr>
+      <div class="mobile-users-view" id="mobileUsersView">
+        {% for u in users %}
+        <div class="user-card-mobile" data-username="{{ u.username|lower }}" data-role="{{ u.role }}" data-branch="{{ u.branch.name|default:''|lower }}">
+          <div class="user-card-header">
+            <div class="user-avatar-mobile">
+              <span>{{ u.username|first|upper }}</span>
+            </div>
+            <div class="user-card-info">
+              <div class="user-card-name">{{ u.username }}</div>
+              <div class="user-card-details">
+                <span class="badge {% if u.role == 'super_admin' or u.role == 'admin' %}badge-primary{% elif u.role == 'accountant' %}badge-info{% elif u.role == 'loyalty_employee' %}badge-warning{% else %}badge-secondary{% endif %}">
+                  {{ u.get_role_display }}
+                </span>
+                <span class="user-branch">{{ u.branch.name|default:"-" }}</span>
+              </div>
+            </div>
+            <div class="user-card-status">
+              {% if u.is_active %}
+              <span class="status-dot active"></span>
+              {% else %}
+              <span class="status-dot inactive"></span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="user-card-actions">
+            <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
+                <path d="M4 20h16"></path>
+              </svg>
+              تعديل
+            </a>
+            {% if u != request.user %}
+            <a href="{% url 'user_delete' u.pk %}" class="btn btn-danger btn-sm" data-confirm="هل أنت متأكد من حذف هذا المستخدم؟">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+              </svg>
+              حذف
+            </a>
+            {% endif %}
+          </div>
+        </div>
         {% empty %}
-        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><h5>لا يوجد مستخدمون</h5></div></td></tr>
+        <div class="empty-state">
+          <div class="empty-icon">👥</div>
+          <h5>لا يوجد مستخدمون</h5>
+          <a href="{% url 'user_create' %}" class="btn btn-primary mt-3"> إضافة مستخدم</a>
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
+      </div>
+
+      <div class="table-responsive desktop-users-view">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>المستخدم</th>
+              <th>الدور</th>
+              <th>الفرع</th>
+              <th>البريد الإلكتروني</th>
+              <th>الحالة</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            {% for u in users %}
+            <tr data-username="{{ u.username|lower }}" data-role="{{ u.role }}" data-branch="{{ u.branch.name|default:''|lower }}">
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar-table">{{ u.username|first|upper }}</div>
+                  <div>
+                    <div class="fw-bold">{{ u.username }}</div>
+                    <div class="text-muted" style="font-size:12px;">{{ u.email|default:"-" }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge {% if u.role == 'super_admin' or u.role == 'admin' %}badge-primary{% elif u.role == 'accountant' %}badge-info{% elif u.role == 'loyalty_employee' %}badge-warning{% else %}badge-secondary{% endif %}">
+                  {{ u.get_role_display }}
+                </span>
+              </td>
+              <td>{{ u.branch.name|default:"-" }}</td>
+              <td>{{ u.email|default:"-" }}</td>
+              <td>
+                {% if u.is_active %}
+                <span class="badge badge-success">نشط</span>
+                {% else %}
+                <span class="badge badge-danger">معطل</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-icon btn-sm" title="تعديل">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
+                      <path d="M4 20h16"></path>
+                    </svg>
+                  </a>
+                  {% if u != request.user %}
+                  <a href="{% url 'user_delete' u.pk %}" class="btn btn-danger btn-icon btn-sm" title="حذف" data-confirm="هل أنت متأكد من حذف هذا المستخدم؟">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                    </svg>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-icon">--</div>
+                  <h5>لا يوجد مستخدمون</h5>
+                  <p class="text-muted" style="font-size:14px;">قم بإضافة مستخدم جديد للبدء</p>
+                  <a href="{% url 'user_create' %}" class="btn btn-primary mt-3"> إضافة مستخدم</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
+
+<style>
+ 
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.2s;
+  }
+  
+  .stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  
+  .stat-icon.primary { background: #fef3ed; color: #E8793A; }
+  .stat-icon.success { background: #dcfce7; color: #16a34a; }
+  .stat-icon.warning { background: #fef3c7; color: #d97706; }
+  
+  .stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a2236;
+    line-height: 1.2;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eaecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2236;
+    margin: 0;
+  }
+  
+  .search-wrapper {
+    position: relative;
+  }
+  
+  .search-input {
+    padding: 8px 14px;
+    border: 1.5px solid #eaecf0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    min-width: 200px;
+  }
+  
+  .search-input:focus {
+    outline: none;
+    border-color: #E8793A;
+    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.1);
+  }
+  
+  .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .user-avatar-table {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #E8793A;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+  }
+  
+  .mobile-users-view {
+    display: none;
+    padding: 12px;
+    gap: 12px;
+    flex-direction: column;
+  }
+  
+  .user-card-mobile {
+    background: #fff;
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+  }
+  
+  .user-card-mobile:hover {
+    border-color: #E8793A;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  
+  .user-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .user-avatar-mobile {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #E8793A;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  
+  .user-card-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .user-card-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: #1a2236;
+  }
+  
+  .user-card-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  
+  .user-branch {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  .user-card-status {
+    flex-shrink: 0;
+  }
+  
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  .status-dot.active {
+    background: #16a34a;
+  }
+  
+  .status-dot.inactive {
+    background: #dc2626;
+  }
+  
+  .user-card-actions {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #f1f3f5;
+    padding-top: 12px;
+    justify-content: flex-end;
+  }
+  
+  .user-card-actions .btn {
+    flex: 1;
+    min-height: 36px;
+    font-size: 13px;
+  }
+  
+  .user-card-actions .btn svg {
+    margin-left: 4px;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  
+  .empty-state h5 {
+    font-size: 18px;
+    color: #1a2236;
+    margin-bottom: 4px;
+  }
+  
+  @media (max-width: 1024px) {
+    .stats-grid {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    
+    .stat-card {
+      padding: 12px 14px;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+    }
+    
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+    }
+    
+    .desktop-users-view {
+      display: none !important;
+    }
+    
+    .mobile-users-view {
+      display: flex !important;
+    }
+    
+    .card-header {
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 12px;
+    }
+    
+    .card-header-right {
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .search-wrapper {
+      width: 100%;
+    }
+    
+    .search-input {
+      width: 100%;
+      min-width: unset;
+    }
+    
+    .card-header-right .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .btn-text {
+      display: inline;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .stat-card {
+      padding: 10px 12px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+    }
+    
+    .stat-label {
+      font-size: 10px;
+    }
+    
+    .stat-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
+    }
+    
+    .user-card-mobile {
+      padding: 12px;
+    }
+    
+    .user-avatar-mobile {
+      width: 38px;
+      height: 38px;
+      font-size: 16px;
+    }
+    
+    .user-card-name {
+      font-size: 14px;
+    }
+    
+    .user-card-actions .btn {
+      font-size: 12px;
+      padding: 6px 10px;
+      min-height: 32px;
+    }
+    
+    .card-header {
+      padding: 12px 14px;
+    }
+    
+    .card-body {
+      padding: 0;
+    }
+  }
+  
+  @media (min-width: 769px) {
+    .desktop-users-view {
+      display: block !important;
+    }
+    
+    .mobile-users-view {
+      display: none !important;
+    }
+  }
+  
+  @media print {
+    .stats-grid {
+      display: none;
+    }
+    
+    .search-wrapper,
+    .card-header-right .btn {
+      display: none;
+    }
+    
+    .action-buttons {
+      display: none;
+    }
+    
+    .user-card-actions {
+      display: none;
+    }
+    
+    .mobile-users-view {
+      display: none !important;
+    }
+    
+    .desktop-users-view {
+      display: block !important;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    'use strict';
+    
+    const searchInput = document.getElementById('userSearch');
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        const tableRows = document.querySelectorAll('#usersTableBody tr');
+        tableRows.forEach(function(row) {
+          const username = row.getAttribute('data-username') || '';
+          const role = row.getAttribute('data-role') || '';
+          const branch = row.getAttribute('data-branch') || '';
+          
+          const matches = username.includes(query) || 
+                         role.includes(query) || 
+                         branch.includes(query);
+          
+          row.style.display = matches ? '' : 'none';
+        });
+        
+        const mobileCards = document.querySelectorAll('.user-card-mobile');
+        mobileCards.forEach(function(card) {
+          const username = card.getAttribute('data-username') || '';
+          const role = card.getAttribute('data-role') || '';
+          const branch = card.getAttribute('data-branch') || '';
+          
+          const matches = username.includes(query) || 
+                         role.includes(query) || 
+                         branch.includes(query);
+          
+          card.style.display = matches ? '' : 'none';
+        });
+      });
+    }
+    
+    document.querySelectorAll('[data-confirm]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        const message = this.getAttribute('data-confirm');
+        if (!confirm(message)) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    });
+    
+    document.querySelectorAll('.user-card-mobile .btn').forEach(function(btn) {
+      btn.addEventListener('touchstart', function() {
+        this.style.transform = 'scale(0.97)';
+      }, { passive: true });
+      
+      btn.addEventListener('touchend', function() {
+        this.style.transform = 'scale(1)';
+      }, { passive: true });
+    });
+    
+  })();
+</script>
 {% endblock %}

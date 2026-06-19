@@ -665,21 +665,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
     .page-content { padding: 0 !important; }
     .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
 }
-.table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.scroll-hint{display:none;font-size:11px;color:#64748b;text-align:center;padding:5px 0 8px;direction:rtl}
-@media(max-width:640px){
-  .scroll-hint{display:block}
-  .filter-bar{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important}
-  .filter-bar .form-control,.filter-bar .form-select,.filter-bar input,.filter-bar select,.filter-bar button,.filter-bar a{width:100%!important;max-width:100%!important}
-  .card-header{flex-wrap:wrap;gap:8px}
-  .stat-grid-4{grid-template-columns:repeat(2,1fr)!important}
-  .detail-grid{grid-template-columns:1fr!important}
-  .pricing-grid{grid-template-columns:1fr 1fr!important}
-  .form-grid-3{grid-template-columns:1fr!important}
-}
-@media(max-width:400px){
-  .stat-grid-4{grid-template-columns:1fr!important}
-}
+
 </style>
     {% block extra_css %}{% endblock %}
 </head>

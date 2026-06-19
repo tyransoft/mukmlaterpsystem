@@ -422,12 +422,18 @@ def user_edit(request, pk):
 @login_required
 def user_delete(request, pk):
     if not request.user.is_main_admin():
-        return JsonResponse({'error': 'غير مصرح'}, status=403)
+        messages.error(request, 'غير مصرح لك بهذه العملية')
+        return redirect('users_list')
+    
     user = get_object_or_404(CustomUser, pk=pk)
+    
     if user == request.user:
-        return JsonResponse({'error': 'لا يمكنك حذف حسابك الخاص'}, status=400)
+        messages.error(request, 'لا يمكنك حذف حسابك الخاص')
+        return redirect('users_list')
+    
     user.delete()
-
+    messages.success(request, f'تم حذف المستخدم {user.get_full_name() or user.username} بنجاح')
+    return redirect('users_list')
 
 @login_required
 def profile(request):

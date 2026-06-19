@@ -24,10 +24,15 @@
 <div class="stat-card" style="margin-bottom:20px;max-width:300px;">
   <div class="stat-info">
     <div class="stat-value">{{ total_value|floatformat:2|intcomma }}</div>
-    <div class="stat-label">إجمالي قيمة المخزون </div>
+    <div class="stat-label"> قيمة  تكلفة المخزون </div>
   </div>
 </div>
-
+<div class="stat-card" style="margin-bottom:20px;max-width:300px;">
+  <div class="stat-info">
+    <div class="stat-value">{{ total_sale|floatformat:2|intcomma }}</div>
+    <div class="stat-label"> قيمة  بيع المخزون </div>
+  </div>
+</div>
 <div class="card">
   <div class="card-header"><span class="card-title"> تفاصيل المخزون</span></div>
   <div class="card-body" style="padding:0;">

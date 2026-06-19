@@ -1203,11 +1203,13 @@ def inventory_report(request):
         inventory = inventory.filter(branch_id=branch_id)
     branches = user.get_accessible_branches()
     total_value = sum(i.stock_value for i in inventory)
+    total_sale =  sum(i.sale_stock_value for i in inventory)
     return render(request, 'inventory/report.html', {
         'inventory': inventory,
         'branches': branches,
         'selected_branch': branch_id,
         'total_value': total_value,
+        'total_sale':total_sale,
     })
 
 

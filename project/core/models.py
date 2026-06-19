@@ -253,7 +253,9 @@ class BranchInventory(models.Model):
     def stock_value(self):
         return self.quantity * self.product.cost_price
 
-
+    @property
+    def sale_stock_value(self):
+        return self.quantity * self.product.selling_price
 
 
 class LoyaltyTransfer(models.Model):

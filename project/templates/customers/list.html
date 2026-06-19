@@ -10,17 +10,17 @@
     <span class="card-title">قائمة العملاء</span>
     <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">عميل جديد</a>
   </div>
-  <div class="card-body" style="padding:10px 16px;border-bottom:1px solid #eaecf0;">
-    <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:200px;">
-        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder=" بحث بالاسم أو الهاتف...">
+  <div class="card-body search-bar">
+    <form method="get" class="search-form">
+      <div style="flex:1;min-width:180px;">
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="بحث بالاسم أو الهاتف...">
       </div>
       <button type="submit" class="btn btn-primary">بحث</button>
       <a href="{% url 'customers_list' %}" class="btn btn-outline">إعادة</a>
     </form>
   </div>
   <div class="card-body" style="padding:0;">
-    <div class="table-responsive">
+    <div class="table-wrap">
       <table class="erp-table">
         <thead>
           <tr>
@@ -35,56 +35,41 @@
         <tbody>
           {% for customer in customers %}
           <tr>
-            <td>
-              <a href="{% url 'customers_detail' customer.pk %}" class="fw-600 text-primary">{{ customer.full_name }}</a>
-            </td>
+            <td><a href="{% url 'customers_detail' customer.pk %}" class="fw-600 text-primary">{{ customer.full_name }}</a></td>
             <td dir="ltr">{{ customer.customer_id }}</td>
-            <td> {{ customer.loyalty_points }}</td>
+            <td>{{ customer.loyalty_points }}</td>
             <td>
               {% if customer.debt_balance > 0 %}
-                <span class="badge badge-danger">{{ customer.debt_balance|floatformat:2|intcomma }} د.ل</span>
+              <span class="badge badge-danger">{{ customer.debt_balance|floatformat:2|intcomma }} د.ل</span>
               {% else %}
-                <span class="badge badge-success"> لا دين</span>
+              <span class="badge badge-success">لا دين</span>
               {% endif %}
             </td>
-            <td>{{ customer.created_at|date:"Y-m-d" }}</td>
+            <td style="white-space:nowrap;">{{ customer.created_at|date:"Y-m-d" }}</td>
             <td>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">
+              <div class="actions-cell">
                 <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تفاصيل">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </a>
                 <a href="{% url 'customers_edit' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="تعديل">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
-                    <path d="M4 20h16"></path>
-                  </svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-7 7H10v-4l7-7z"></path><path d="M4 20h16"></path></svg>
                 </a>
                 {% if customer.debt_balance > 0 %}
                 <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-icon btn-sm" title="تسديد دين">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </a>
                 {% endif %}
                 <a href="{% url 'customer_payments_history' customer.pk %}" class="btn btn-outline btn-icon btn-sm" title="سجل التسديدات">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                 </a>
               </div>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:60px;">
-              <div style="font-size:48px;margin-bottom:10px;">--</div>
-              <h5>لا يوجد عملاء</h5>
+            <td colspan="6" class="text-center text-muted" style="padding:50px;">
+              <div style="font-size:40px;margin-bottom:10px;">--</div>
+              <h5 style="margin-bottom:12px;">لا يوجد عملاء</h5>
               <a href="{% url 'customers_create' %}" class="btn btn-primary btn-sm">إضافة عميل جديد</a>
             </td>
           </tr>
@@ -96,231 +81,53 @@
 </div>
 
 <style>
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
-  }
-  
-  .erp-table {
-    min-width: 600px;
-    width: 100%;
-    font-size: 14px;
-    border-collapse: collapse;
-  }
-  
-  .erp-table th {
-    background: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 2px solid #eaecf0;
-    white-space: nowrap;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .erp-table td {
-    padding: 10px 14px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-    vertical-align: middle;
-  }
-  
-  .erp-table tbody tr:hover {
-    background: #fafbfc;
-  }
-  
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    min-height: 44px;
-    touch-action: manipulation;
-  }
-  
-  .btn-primary {
-    background: #E8793A;
-    color: #fff;
-  }
-  
-  .btn-primary:hover {
-    background: #d4682e;
-    color: #fff;
-  }
-  
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #eaecf0;
-    color: #374151;
-  }
-  
-  .btn-outline:hover {
-    background: #f8f9fb;
-  }
-  
-  .btn-success {
-    background: #16a34a;
-    color: #fff;
-  }
-  
-  .btn-success:hover {
-    background: #15803d;
-    color: #fff;
-  }
-  
-  .btn-sm {
-    padding: 6px 14px;
-    font-size: 12px;
-    min-height: 34px;
-  }
-  
-  .btn-icon {
-    padding: 6px 10px;
-    min-height: 34px;
-  }
-  
-  .form-control {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid #eaecf0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    background: #fff;
-    color: #1a2236;
-  }
-  
-  .form-control:focus {
-    outline: none;
-    border-color: #E8793A;
-    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.12);
-  }
-  
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #eaecf0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
-  }
-  
-  .card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaecf0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a2236;
-    margin: 0;
-  }
-  
-  .card-body {
-    padding: 20px;
-  }
-  
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  
+  .search-bar { padding: 10px 16px; border-bottom: 1px solid #eaecf0; }
+  .search-form { display: flex; gap: 10px; flex-wrap: wrap; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
+  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+  .table-wrap.has-scroll::after { opacity: 1; }
+  .erp-table { min-width: 560px; width: 100%; font-size: 14px; border-collapse: collapse; }
+  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
+  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
+  .erp-table tbody tr:hover { background: #fafbfc; }
+  .actions-cell { display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
+  .btn-primary { background: #E8793A; color: #fff; }
+  .btn-primary:hover { background: #d4682e; color: #fff; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
+  .btn-icon { padding: 6px 9px; min-height: 34px; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
+  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
+  .card-body { padding: 16px; }
+  .form-control { width: 100%; padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
+  .form-control:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
   .badge-danger { background: #fee2e2; color: #dc2626; }
   .badge-success { background: #dcfce7; color: #16a34a; }
-  
   .text-muted { color: #6b7280; }
   .text-primary { color: #E8793A; }
   .fw-600 { font-weight: 600; }
   .text-center { text-align: center; }
-  
-  @media (max-width: 768px) {
-    .card-header {
-      flex-direction: column;
-      align-items: stretch !important;
-    }
-    
-    .card-header .btn {
-      width: 100%;
-      justify-content: center;
-    }
-    
-    .card-body form {
-      flex-direction: column;
-    }
-    
-    .card-body form > div {
-      min-width: unset !important;
-    }
-    
-    .card-body form .btn {
-      width: 100%;
-    }
-    
-    .erp-table {
-      min-width: 450px;
-      font-size: 13px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 8px 10px;
-    }
+
+  @media (max-width: 600px) {
+    .card-header { flex-direction: column; align-items: stretch; }
+    .card-header .btn { width: 100%; justify-content: center; }
+    .search-form { flex-direction: column; }
+    .search-form .btn { width: 100%; justify-content: center; }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
   }
-  
-  @media (max-width: 480px) {
-    .erp-table {
-      min-width: 350px;
-      font-size: 12px;
-    }
-    
-    .erp-table th,
-    .erp-table td {
-      padding: 6px 8px;
-    }
-    
-    .card-body {
-      padding: 0;
-    }
-    
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 11px;
-      min-height: 30px;
-    }
-    
-    .btn-icon {
-      padding: 4px 8px;
-    }
-  }
-  
-  @media print {
-    .table-responsive {
-      overflow: visible;
-    }
-    .btn {
-      display: none;
-    }
-  }
+  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
 </style>
+<script>
+  document.querySelectorAll('.table-wrap').forEach(function(w) {
+    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+    c(); window.addEventListener('resize', c);
+  });
+</script>
 {% endblock %}

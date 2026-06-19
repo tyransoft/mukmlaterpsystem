@@ -1,12 +1,11 @@
 {% extends 'base.html' %}
 {% load humanize %}
-
 {% block title %}سجل دفعات المورد{% endblock %}
-{% block page_title %}سجل دفعات: {{ supplier.name }}{% endblock %}
+{% block page_title %}سجل دفعات المورد{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
 
 {% block content %}
-
-<div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+<div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
   <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline btn-sm">رجوع للمورد</a>
   <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة جديدة</a>
 </div>
@@ -16,91 +15,137 @@
     <span class="card-title">إجمالي المدفوع: {{ total_paid|floatformat:2|intcomma }}</span>
   </div>
   <div class="card-body">
-    
-    <form method="get" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
-      <input type="date" name="from_date" class="form-control" style="width:auto;" placeholder="من تاريخ" value="{{ from_date }}">
-      <input type="date" name="to_date" class="form-control" style="width:auto;" placeholder="إلى تاريخ" value="{{ to_date }}">
-      <button type="submit" class="btn btn-primary btn-sm">فلترة</button>
-      {% if from_date or to_date %}
-      <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-outline btn-sm">إلغاء</a>
-      {% endif %}
+
+    <form method="get" class="filter-form" style="margin-bottom:16px;">
+      <input type="date" name="from_date" class="form-control" placeholder="من تاريخ" value="{{ from_date }}">
+      <input type="date" name="to_date" class="form-control" placeholder="إلى تاريخ" value="{{ to_date }}">
+      <div class="filter-btns">
+        <button type="submit" class="btn btn-primary btn-sm" style="flex:1;">فلترة</button>
+        {% if from_date or to_date %}
+        <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-outline btn-sm" style="flex:1;">إلغاء</a>
+        {% endif %}
+      </div>
     </form>
-    
-    <table class="erp-table">
-      <thead>
-        <tr>
-          <th>التاريخ</th>
-          <th>المبلغ</th>
-          <th>طريقة الدفع</th>
-          <th>رقم المرجع</th>
-          <th>الفاتورة المرتبطة</th>
-          <th>ملاحظات</th>
-          <th>تم بواسطة</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for payment in page_obj %}
-        <tr>
-          <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
-          <td class="text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
-          <td>{{ payment.get_payment_method_display }}</td>
-          <td>{{ payment.reference_number|default:"-" }}</td>
-          <td>
-            {% if payment.purchase_invoice %}
-            <a href="{% url 'purchase_invoice_detail' payment.purchase_invoice.pk %}">{{ payment.purchase_invoice.invoice_number }}</a>
-            {% else %}
-            -
-            {% endif %}
-          </td>
-          <td>{{ payment.notes|default:"-"|truncatechars:30 }}</td>
-          <td>{{ payment.created_by.username|default:"-" }}</td>
-          <td>
-            <button onclick="deletePayment({{ payment.pk }})" class="btn btn-danger btn-sm">حذف</button>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="8" class="text-center text-muted">لا توجد دفعات مسجلة</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    
+
+    <div class="table-wrap">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المبلغ</th>
+            <th>طريقة الدفع</th>
+            <th>رقم المرجع</th>
+            <th>الفاتورة المرتبطة</th>
+            <th>ملاحظات</th>
+            <th>تم بواسطة</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in page_obj %}
+          <tr>
+            <td>{{ payment.payment_date|date:"Y-m-d" }}</td>
+            <td class="text-success fw-bold">{{ payment.amount|floatformat:2|intcomma }}</td>
+            <td>{{ payment.get_payment_method_display }}</td>
+            <td>{{ payment.reference_number|default:"-" }}</td>
+            <td>
+              {% if payment.purchase_invoice %}
+              <a href="{% url 'purchase_invoice_detail' payment.purchase_invoice.pk %}" class="text-primary">{{ payment.purchase_invoice.invoice_number }}</a>
+              {% else %}-{% endif %}
+            </td>
+            <td>{{ payment.notes|default:"-"|truncatechars:30 }}</td>
+            <td>{{ payment.created_by.username|default:"-" }}</td>
+            <td>
+              <button onclick="deletePayment({{ payment.pk }})" class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:5px 10px;min-height:30px;">حذف</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted" style="padding:40px;">لا توجد دفعات مسجلة</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
     {% if page_obj.has_other_pages %}
-    <div style="margin-top:20px; display:flex; justify-content:center; gap:5px;">
+    <div class="pagination-row">
       {% if page_obj.has_previous %}
-      <a href="?page=1{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">الأولى</a>
-      <a href="?page={{ page_obj.previous_page_number }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">السابقة</a>
+      <a href="?page=1{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-outline btn-sm">الأولى</a>
+      <a href="?page={{ page_obj.previous_page_number }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-outline btn-sm">السابقة</a>
       {% endif %}
-      <span class="btn btn-sm btn-primary disabled">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+      <span class="btn btn-sm" style="background:#2563eb;color:#fff;">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
       {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">التالية</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-sm btn-outline">الأخيرة</a>
+      <a href="?page={{ page_obj.next_page_number }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-outline btn-sm">التالية</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-outline btn-sm">الأخيرة</a>
       {% endif %}
     </div>
     {% endif %}
+
   </div>
 </div>
 
-<script>
-function deletePayment(paymentId) {
-  if (confirm('هل تريد حذف هذه الدفعة؟')) {
-    fetch(`/suppliers/payment/${paymentId}/delete/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': '{{ csrf_token }}',
-      },
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        location.reload();
-      } else {
-        alert(data.error || 'حدث خطأ');
-      }
-    });
+<style>
+  .filter-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .filter-form .form-control { flex: 1; min-width: 140px; }
+  .filter-btns { display: flex; gap: 6px; min-width: 130px; }
+  .pagination-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 20px; flex-wrap: wrap; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
+  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+  .table-wrap.has-scroll::after { opacity: 1; }
+  .erp-table { min-width: 680px; width: 100%; font-size: 14px; border-collapse: collapse; }
+  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
+  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
+  .erp-table tbody tr:hover { background: #fafbfc; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
+  .btn-primary { background: #E8793A; color: #fff; }
+  .btn-primary:hover { background: #d4682e; color: #fff; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
+  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
+  .card-body { padding: 16px; }
+  .form-control { padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
+  .form-control:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
+  .text-muted { color: #6b7280; }
+  .text-primary { color: #E8793A; }
+  .text-success { color: #16a34a; }
+  .fw-bold { font-weight: 700; }
+  .text-center { text-align: center; }
+
+  @media (max-width: 600px) {
+    .filter-form { flex-direction: column; }
+    .filter-form .form-control { min-width: unset; }
+    .filter-btns { width: 100%; }
+    .card-body { padding: 12px; }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
   }
-}
+  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
+</style>
+
+<script>
+  document.querySelectorAll('.table-wrap').forEach(function(w) {
+    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+    c(); window.addEventListener('resize', c);
+  });
+
+  function deletePayment(paymentId) {
+    if (confirm('هل تريد حذف هذه الدفعة؟')) {
+      fetch(`/suppliers/payment/${paymentId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) { location.reload(); }
+        else { alert(data.error || 'حدث خطأ'); }
+      });
+    }
+  }
 </script>
 {% endblock %}

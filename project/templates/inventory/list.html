@@ -1,7 +1,5 @@
-
 {% extends 'base.html' %}
 {% load humanize %}
-
 {% block title %}المخزون{% endblock %}
 {% block page_title %}إدارة المخزون{% endblock %}
 {% block nav_inventory %}active{% endblock %}
@@ -10,16 +8,14 @@
 <div class="card">
   <div class="card-header">
     <span class="card-title">المخزون</span>
-    <div style="display:flex;gap:8px;">
+    <div class="header-actions">
       <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline btn-sm">المنخفض</a>
       <a href="{% url 'inventory_report' %}" class="btn btn-outline btn-sm">تقرير</a>
       <a href="{% url 'inventory_stocktake' %}" class="btn btn-outline btn-sm">جرد</a>
       {% if user.can_see_all_data %}
-      <select id="printBranchSelect" class="form-select form-select-sm" style="width:auto;">
+      <select id="printBranchSelect" class="form-select form-select-sm">
         <option value="">اختر فرع للطباعة</option>
-        {% for b in branches %}
-        <option value="{{ b.pk }}">{{ b.name }}</option>
-        {% endfor %}
+        {% for b in branches %}<option value="{{ b.pk }}">{{ b.name }}</option>{% endfor %}
       </select>
       <button onclick="printBranch()" class="btn btn-outline btn-sm">طباعة</button>
       {% else %}
@@ -27,55 +23,39 @@
       {% endif %}
     </div>
   </div>
-  
-  <div class="card-body" style="padding:12px 16px;border-bottom:1px solid var(--border-color);">
-    <form method="get" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+
+  <div class="card-body filter-bar">
+    <form method="get" class="filter-form">
       {% if user.can_see_all_data %}
       <select name="branch" class="form-select">
         <option value="">كل الفروع</option>
-        {% for b in branches %}
-        <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
-        {% endfor %}
+        {% for b in branches %}<option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
       </select>
       {% else %}
-      <div class="form-control" style="background:#f3f4f6;">
-        الفرع: {{ user.branch.name }}
-      </div>
+      <div class="form-control" style="background:#f3f4f6;">الفرع: {{ user.branch.name }}</div>
       {% endif %}
-      
       <select name="category" class="form-select">
         <option value="">كل الفئات</option>
-        {% for cat in categories %}
-        <option value="{{ cat.id }}" {% if selected_category|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>
-          {{ cat.name }}
-        </option>
-        {% endfor %}
+        {% for cat in categories %}<option value="{{ cat.id }}" {% if selected_category|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
       </select>
-      
-      <input type="text" name="product" class="form-control" 
-             placeholder="بحث بالمنتج أو الباركود..." 
-             value="{{ product_query }}">
-      
+      <input type="text" name="product" class="form-control" placeholder="بحث بالمنتج أو الباركود..." value="{{ product_query }}">
       <select name="low_stock" class="form-select">
         <option value="">كل المنتجات</option>
         <option value="1" {% if low_stock_filter %}selected{% endif %}>المخزون المنخفض فقط</option>
       </select>
-      
-      <div style="display:flex;gap:5px;">
+      <div class="filter-btns">
         <button type="submit" class="btn btn-primary" style="flex:1;">بحث</button>
-        <a href="{% url 'inventory_list' %}" class="btn btn-outline" style="flex:1;">إعادة تعيين</a>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline" style="flex:1;">إعادة</a>
       </div>
     </form>
   </div>
-  
+
   <div class="card-body" style="padding:0;">
-    <div class="table-responsive">
+    <div class="table-wrap">
       <table class="erp-table">
         <thead>
           <tr>
-            {% if user.can_see_all_data %}
-            <th>الفرع</th>
-            {% endif %}
+            {% if user.can_see_all_data %}<th>الفرع</th>{% endif %}
             <th>المنتج</th>
             <th>الباركود</th>
             <th>الفئة</th>
@@ -89,21 +69,15 @@
           {% for inv in inventory %}
           <tr>
             {% if user.can_see_all_data %}
-            <td class="fw-600">{{ inv.branch.name }}
-              {% if inv.branch.is_main %}
-                <span class="badge badge-primary" style="font-size:10px;">رئيسي</span>
-              {% endif %}
-            </td>
+            <td class="fw-600">{{ inv.branch.name }}{% if inv.branch.is_main %} <span class="badge badge-primary" style="font-size:10px;">رئيسي</span>{% endif %}</td>
             {% endif %}
             <td>
               <div class="fw-600">{{ inv.product.name }}</div>
               <div class="text-muted" style="font-size:11px;">كود: {{ inv.product.barcode|default:"-" }}</div>
             </td>
-            <td><code style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-size:12px;">{{ inv.product.barcode|default:"-" }}</code></td>
+            <td><code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:12px;">{{ inv.product.barcode|default:"-" }}</code></td>
             <td>{{ inv.product.category.name|default:"-" }}</td>
-            <td class="{% if inv.is_low_stock %}text-danger fw-bold{% endif %}" style="font-size:16px;font-weight:800;">
-              {{ inv.quantity }}
-            </td>
+            <td class="{% if inv.is_low_stock %}text-danger fw-bold{% endif %}" style="font-size:16px;font-weight:800;">{{ inv.quantity }}</td>
             <td class="text-primary fw-bold">{{ inv.stock_value|floatformat:2|intcomma }} د.ل</td>
             <td>
               {% if inv.is_low_stock %}
@@ -113,19 +87,16 @@
               {% endif %}
             </td>
             <td>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                {% if user.can_see_all_data or user.branch == inv.branch %}
-                <a href="{% url 'inventory_damage' inv.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">تلف</a>
-                {% endif %}
-              </div>
+              {% if user.can_see_all_data or user.branch == inv.branch %}
+              <a href="{% url 'inventory_damage' inv.pk %}" class="btn btn-sm" style="border:1.5px solid #dc2626;color:#dc2626;background:transparent;padding:5px 10px;min-height:30px;">تلف</a>
+              {% endif %}
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="{% if user.can_see_all_data %}9{% else %}8{% endif %}" class="text-center text-muted" style="padding:60px;">
-              <div style="font-size:48px;margin-bottom:10px;">--</div>
-              <h5>لا توجد بيانات مخزون</h5>
-              <p class="text-muted">لم يتم العثور على منتجات تطابق معايير البحث</p>
+            <td colspan="{% if user.can_see_all_data %}9{% else %}8{% endif %}" class="text-center text-muted" style="padding:50px;">
+              <div style="font-size:36px;margin-bottom:10px;">--</div>
+              <h5 style="margin-bottom:6px;">لا توجد بيانات مخزون</h5>
               <a href="{% url 'inventory_list' %}" class="btn btn-primary btn-sm">عرض الكل</a>
             </td>
           </tr>
@@ -138,23 +109,62 @@
 
 <script>
 function printBranch() {
-    var branchId = document.getElementById('printBranchSelect').value;
-    if (branchId) {
-        window.open('/inventory/print/' + branchId + '/', '_blank');
-    } else {
-        alert('الرجاء اختيار فرع للطباعة');
-    }
+  var id = document.getElementById('printBranchSelect').value;
+  if (id) { window.open('/inventory/print/' + id + '/', '_blank'); }
+  else { alert('الرجاء اختيار فرع للطباعة'); }
 }
 </script>
 
 <style>
-.low-stock-badge {
-  background: #fee2e2;
-  color: #dc2626;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-}
+  .header-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .filter-bar { padding: 12px 16px; border-bottom: 1px solid #eaecf0; }
+  .filter-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .filter-btns { display: flex; gap: 6px; }
+  .low-stock-badge { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
+  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+  .table-wrap.has-scroll::after { opacity: 1; }
+  .erp-table { min-width: 600px; width: 100%; font-size: 14px; border-collapse: collapse; }
+  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
+  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
+  .erp-table tbody tr:hover { background: #fafbfc; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
+  .btn-primary { background: #E8793A; color: #fff; }
+  .btn-primary:hover { background: #d4682e; color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
+  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
+  .card-body { padding: 16px; }
+  .form-control, .form-select { width: 100%; padding: 10px 14px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2236; box-sizing: border-box; }
+  .form-select-sm { padding: 6px 10px; font-size: 12px; min-height: 34px; }
+  .form-control:focus, .form-select:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-primary { background: #fef3ed; color: #E8793A; }
+  .text-muted { color: #6b7280; font-size: 12px; }
+  .text-primary { color: #E8793A; }
+  .text-danger { color: #dc2626; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+
+  @media (max-width: 600px) {
+    .card-header { flex-direction: column; align-items: stretch; }
+    .header-actions { justify-content: flex-start; }
+    .filter-form { grid-template-columns: 1fr; }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
+    .card-body { padding: 12px; }
+  }
+  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
 </style>
+<script>
+  document.querySelectorAll('.table-wrap').forEach(function(w) {
+    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+    c(); window.addEventListener('resize', c);
+  });
+</script>
 {% endblock %}

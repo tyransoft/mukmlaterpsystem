@@ -6,6 +6,11 @@
 
 {% block content %}
 <style>
+  .invoice-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+  }
   .sale-type-selector {
     display: flex;
     gap: 10px;
@@ -49,10 +54,17 @@
     padding: 12px;
     text-align: center;
     border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
   }
   .products-table th {
     background: #f9fafb;
     font-weight: 600;
+  }
+  .products-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: auto;
+    margin-top: 20px;
   }
   .search-container {
     position: relative;
@@ -150,35 +162,44 @@
     font-size: 16px;
     letter-spacing: 1px;
   }
-  .paid-amount-wrapper {
-    position: relative;
+
+  @media (max-width: 900px) {
+    .invoice-layout {
+      grid-template-columns: 1fr;
+    }
   }
-  .paid-amount-wrapper input {
-    padding-left: 30px;
+  @media (max-width: 600px) {
+    .sale-type-selector {
+      flex-direction: column;
+    }
+    .products-table th, .products-table td {
+      padding: 8px;
+    }
+    .price-input {
+      width: 75px;
+    }
   }
 </style>
 
 <form method="post" id="sale-invoice-form">
   {% csrf_token %}
-  <div style="display:grid; grid-template-columns:1fr 380px; gap:20px;">
-    
+  <div class="invoice-layout">
+
     <div class="card">
       <div class="card-header">
         <span class="card-title">إضافة منتجات</span>
       </div>
       <div class="card-body">
-        
         <div class="search-container">
-          <input type="text" id="product-search" class="form-control search-input" 
+          <input type="text" id="product-search" class="form-control search-input"
                  placeholder="ابحث عن منتج بالاسم أو امسح الباركود..." autocomplete="off" autofocus>
           <div id="product-results" class="search-results-dropdown"></div>
         </div>
-        
         <div class="form-group" style="margin-top:10px;">
           <select id="product-select" class="form-select">
             <option value="">-- اختر منتج --</option>
             {% for product in products %}
-            <option value="{{ product.id }}" 
+            <option value="{{ product.id }}"
                     data-name="{{ product.name }}"
                     data-price="{{ product.selling_price }}"
                     data-points="{{ product.loyalty_points }}"
@@ -188,12 +209,10 @@
             {% endfor %}
           </select>
         </div>
-
-        <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
-          إضافة  
+        <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top:10px;width:100%;">
+          إضافة
         </button>
-        
-        <div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">
+        <div class="products-scroll">
           <table class="products-table">
             <thead>
               <tr>
@@ -206,7 +225,7 @@
             </thead>
             <tbody id="products-tbody">
               <tr id="empty-row">
-                <td colspan="5" style="text-align:center; padding:40px; color:#9ca3af;">
+                <td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">
                   ابحث عن منتج أو اختر من القائمة
                 </td>
               </tr>
@@ -215,23 +234,21 @@
         </div>
       </div>
     </div>
-    
+
     <div>
       <div class="card">
         <div class="card-header">
           <span class="card-title">بيانات الفاتورة</span>
         </div>
         <div class="card-body">
-          
           <div class="info-branch">
             {{ user_branch.name }}
             {% if user_branch.is_main %}
-              <span class="badge badge-success">رئيسي</span>
+            <span class="badge badge-success">رئيسي</span>
             {% else %}
-              <span class="badge badge-info">فرعي</span>
+            <span class="badge badge-info">فرعي</span>
             {% endif %}
           </div>
-          
           <div class="form-group">
             <label class="form-label">نوع البيع</label>
             <div class="sale-type-selector">
@@ -242,19 +259,17 @@
             </div>
             <input type="hidden" name="sale_type" id="sale_type" value="customer">
           </div>
-          
           <div id="target_branch_group" class="form-group" style="display:none;">
             <label class="form-label">الفرع المستلم</label>
             <select name="target_branch" id="target_branch" class="form-select">
               <option value="">-- اختر الفرع --</option>
               {% for branch in branches %}
-                {% if branch.id != user_branch.id %}
-                <option value="{{ branch.id }}">{{ branch.name }}</option>
-                {% endif %}
+              {% if branch.id != user_branch.id %}
+              <option value="{{ branch.id }}">{{ branch.name }}</option>
+              {% endif %}
               {% endfor %}
             </select>
           </div>
-          
           <div id="customer_section">
             <div class="form-group">
               <label>
@@ -262,32 +277,28 @@
                 عميل نقدي
               </label>
             </div>
-            
             <div id="registered_customer_fields">
               <div class="form-group">
                 <label class="form-label">اختر عميل من القائمة</label>
                 <select name="customer_select" id="customer_select" class="form-select">
                   <option value="">-- اختر عميل --</option>
                   {% for customer in customers %}
-                  <option value="{{ customer.id }}" 
+                  <option value="{{ customer.id }}"
                           data-name="{{ customer.full_name }}"
                           data-customer-id="{{ customer.customer_id }}"
-                          data-points="{{ customer.loyalty_points }}" 
+                          data-points="{{ customer.loyalty_points }}"
                           data-debt="{{ customer.debt_balance }}">
                     {{ customer.full_name }} - رقم العضوية: {{ customer.customer_id|default:"-" }} - {{ customer.phone }}
                   </option>
                   {% endfor %}
                 </select>
               </div>
-              
               <div class="search-container" style="margin-bottom:10px;">
-                <input type="text" id="customer-search" class="form-control" 
+                <input type="text" id="customer-search" class="form-control"
                        placeholder="ابحث باسم العميل أو رقم العضوية..." autocomplete="off">
                 <div id="customer-results" class="search-results-dropdown"></div>
               </div>
-              
               <input type="hidden" name="customer" id="customer_id" value="">
-              
               <div id="customer_details" class="customer-card" style="display:none;">
                 <div><strong id="customer_name"></strong></div>
                 <div>رقم العضوية: <strong id="customer_membership"></strong></div>
@@ -296,7 +307,6 @@
               </div>
             </div>
           </div>
-          
           <div class="form-group">
             <label class="form-label">طريقة الدفع</label>
             <select name="payment_method" id="payment_method" class="form-select">
@@ -308,12 +318,10 @@
               {% endfor %}
             </select>
           </div>
-          
           <div class="form-group">
             <label class="form-label">الخصم</label>
             <input type="number" name="discount" id="discount" class="form-control" step="0.01" value="0">
           </div>
-          
           <div id="payment_group">
             <div class="form-group">
               <label class="form-label">المبلغ المدفوع</label>
@@ -324,45 +332,44 @@
               <input type="date" name="due_date" id="due_date" class="form-control">
             </div>
           </div>
-          
           <div class="form-group">
             <label class="form-label">ملاحظات</label>
             <textarea name="notes" class="form-control" rows="2"></textarea>
           </div>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:15px;">
         <div class="card-body">
-          <div style="display:flex; justify-content:space-between; padding:5px 0;">
-            <span>المجموع الفرعي</span> <span id="subtotal">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>المجموع الفرعي</span><span id="subtotal">0.00</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:5px 0;">
-            <span>الخصم</span> <span class="text-danger" id="discount_display">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>الخصم</span><span class="text-danger" id="discount_display">0.00</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:5px 0;">
-            <span>الرسوم الإضافية</span> <span class="text-warning" id="additional_fees">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>الرسوم الإضافية</span><span class="text-warning" id="additional_fees">0.00</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid #e5e7eb;">
-            <strong>الإجمالي</strong> <strong class="text-primary" style="font-size:18px;" id="total">0.00</strong>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #e5e7eb;">
+            <strong>الإجمالي</strong><strong class="text-primary" style="font-size:18px;" id="total">0.00</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:5px 0;">
-            <span>المدفوع</span> <span class="text-success" id="paid_display">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>المدفوع</span><span class="text-success" id="paid_display">0.00</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:5px 0;">
-            <span>المتبقي</span> <span class="text-danger" id="remaining">0.00</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span>المتبقي</span><span class="text-danger" id="remaining">0.00</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:1px solid #e5e7eb; margin-top:5px; padding-top:10px;">
-            <span>نقاط</span> <span id="points">0</span>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #e5e7eb;margin-top:5px;padding-top:10px;">
+            <span>نقاط</span><span id="points">0</span>
           </div>
-          
-          <div style="margin-top:15px; display:flex; gap:10px;">
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
             <button type="submit" class="btn btn-primary" style="flex:1;">حفظ الفاتورة</button>
             <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إلغاء</a>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </form>
 {% endblock %}
@@ -374,7 +381,7 @@ $(document).ready(function() {
     let selectedProducts = [];
     let productSearchTimeout;
     let customerSearchTimeout;
-    
+
     function showToast(message, type) {
         let bgColor = type === 'success' ? '#22c55e' : '#ef4444';
         let toast = $('<div>')
@@ -397,46 +404,40 @@ $(document).ready(function() {
             toast.fadeOut(function() { $(this).remove(); });
         }, 2500);
     }
-    
+
     function updatePaidAmountAndRemaining() {
         let totalText = $('#total').text();
         let total = parseFloat(totalText);
-        
         if (!isNaN(total)) {
             $('#paid_amount').val(total.toFixed(2));
             $('#paid_display').text(total.toFixed(2));
             $('#remaining').text('0.00');
         }
     }
-    
+
     $('#add-product-btn').on('click', function() {
         let select = $('#product-select');
         let selectedOption = select.find(':selected');
-        
         if (selectedOption.val() === '') {
             alert('الرجاء اختيار منتج من القائمة');
             return;
         }
-        
         let productId = parseInt(selectedOption.val());
         let productName = selectedOption.data('name');
         let productPrice = parseFloat(selectedOption.data('price'));
         let productPoints = parseInt(selectedOption.data('points'));
         let productStock = parseInt(selectedOption.data('stock'));
-        
         addProductToTable(productId, productName, productPrice, productPoints, productStock);
         select.val('');
     });
-    
+
     $('#product-search').on('input', function() {
         clearTimeout(productSearchTimeout);
         let query = $(this).val().trim();
-        
         if (query.length < 2) {
             $('#product-results').hide();
             return;
         }
-        
         productSearchTimeout = setTimeout(function() {
             $.ajax({
                 url: '/api/products-stock/',
@@ -455,23 +456,19 @@ $(document).ready(function() {
             });
         }, 300);
     });
-    
+
     function displayProductResults(products) {
         let $results = $('#product-results');
-        
         if (!products || products.length === 0) {
             $results.hide();
             return;
         }
-        
         $results.empty();
         $results.show();
-        
         for (let i = 0; i < products.length; i++) {
             let product = products[i];
             let stockText = '';
             let stockColor = '';
-            
             if (product.stock > 0) {
                 stockText = 'المخزون: ' + product.stock;
                 stockColor = '#4b5563';
@@ -479,7 +476,6 @@ $(document).ready(function() {
                 stockText = 'غير متوفر';
                 stockColor = '#dc2626';
             }
-            
             let resultItem = $('<div>')
                 .addClass('search-result-item')
                 .attr('data-id', product.id)
@@ -487,46 +483,33 @@ $(document).ready(function() {
                 .attr('data-price', product.price)
                 .attr('data-points', product.points)
                 .attr('data-stock', product.stock);
-            
-            let nameDiv = $('<div>')
-                .addClass('product-name')
-                .text(product.name);
-            
-            let detailsDiv = $('<div>')
-                .addClass('product-details')
-                .html('السعر: ' + product.price + ' د.ل | النقاط: ' + product.points + ' | <span style="color:' + stockColor + '">' + stockText + '</span>');
-            
+            let nameDiv = $('<div>').addClass('product-name').text(product.name);
+            let detailsDiv = $('<div>').addClass('product-details').html('السعر: ' + product.price + ' د.ل | النقاط: ' + product.points + ' | <span style="color:' + stockColor + '">' + stockText + '</span>');
             resultItem.append(nameDiv);
             resultItem.append(detailsDiv);
-            
             resultItem.on('click', function() {
                 let productId = $(this).data('id');
                 let productName = $(this).data('name');
                 let productPrice = $(this).data('price');
                 let productPoints = $(this).data('points');
                 let productStock = $(this).data('stock');
-                
                 addProductToTable(productId, productName, productPrice, productPoints, productStock);
-                
                 $('#product-search').val('');
                 $('#product-results').hide();
                 $('#product-search').focus();
             });
-            
             $results.append(resultItem);
         }
     }
-    
+
     $('#customer_select').on('change', function() {
         let selectedOption = $(this).find(':selected');
         let customerId = $(this).val();
-        
         if (customerId) {
             let customerName = selectedOption.data('name');
             let customerMembership = selectedOption.data('customer-id');
             let customerPoints = selectedOption.data('points') || 0;
             let customerDebt = selectedOption.data('debt') || 0;
-            
             $('#customer_id').val(customerId);
             $('#customer_name').text(customerName);
             $('#customer_membership').text(customerMembership || '-');
@@ -541,16 +524,14 @@ $(document).ready(function() {
             $('#customer-search').val('');
         }
     });
-    
+
     $('#customer-search').on('input', function() {
         clearTimeout(customerSearchTimeout);
         let query = $(this).val().trim();
-        
         if (query.length < 2) {
             $('#customer-results').hide();
             return;
         }
-        
         customerSearchTimeout = setTimeout(function() {
             $.ajax({
                 url: '/customers/search/',
@@ -569,21 +550,17 @@ $(document).ready(function() {
             });
         }, 300);
     });
-    
+
     function displayCustomerResults(customers) {
         let $results = $('#customer-results');
-        
         if (!customers || customers.length === 0) {
             $results.hide();
             return;
         }
-        
         $results.empty();
         $results.show();
-        
         for (let i = 0; i < customers.length; i++) {
             let customer = customers[i];
-            
             let resultItem = $('<div>')
                 .addClass('search-result-item')
                 .attr('data-id', customer.id)
@@ -591,25 +568,16 @@ $(document).ready(function() {
                 .attr('data-customer-id', customer.customer_id)
                 .attr('data-points', customer.loyalty_points)
                 .attr('data-debt', customer.debt_balance);
-            
-            let nameDiv = $('<div>')
-                .addClass('customer-name')
-                .text(customer.full_name);
-            
-            let detailsDiv = $('<div>')
-                .addClass('customer-details')
-                .html('رقم العضوية: ' + (customer.customer_id || '-') + ' | الهاتف: ' + (customer.phone || '-'));
-            
+            let nameDiv = $('<div>').addClass('customer-name').text(customer.full_name);
+            let detailsDiv = $('<div>').addClass('customer-details').html('رقم العضوية: ' + (customer.customer_id || '-') + ' | الهاتف: ' + (customer.phone || '-'));
             resultItem.append(nameDiv);
             resultItem.append(detailsDiv);
-            
             resultItem.on('click', function() {
                 let customerId = $(this).data('id');
                 let customerName = $(this).data('name');
                 let customerMembership = $(this).data('customer-id');
                 let customerPoints = $(this).data('points');
                 let customerDebt = $(this).data('debt');
-                
                 $('#customer_id').val(customerId);
                 $('#customer_name').text(customerName);
                 $('#customer_membership').text(customerMembership || '-');
@@ -620,34 +588,28 @@ $(document).ready(function() {
                 $('#customer-search').val(customerName);
                 $('#customer-results').hide();
             });
-            
             $results.append(resultItem);
         }
     }
-    
+
     function addProductToTable(productId, productName, productPrice, productPoints, productStock) {
         if (productStock <= 0) {
             showToast('هذا المنتج غير متوفر حاليا', 'error');
             return false;
         }
-        
         let existingProduct = null;
-        
         for (let i = 0; i < selectedProducts.length; i++) {
             if (selectedProducts[i].id === productId) {
                 existingProduct = selectedProducts[i];
                 break;
             }
         }
-        
         if (existingProduct) {
             let newQuantity = existingProduct.quantity + 1;
-            
             if (newQuantity > existingProduct.maxStock) {
                 showToast('لا يمكن إضافة كمية أكبر من المخزون المتوفر. المتوفر: ' + existingProduct.maxStock, 'error');
                 return false;
             }
-            
             existingProduct.quantity = newQuantity;
             existingProduct.total = existingProduct.quantity * existingProduct.price;
             updateProductRow(existingProduct);
@@ -661,131 +623,69 @@ $(document).ready(function() {
                 total: productPrice,
                 maxStock: productStock
             };
-            
             selectedProducts.push(newProduct);
             addProductRowToTable(newProduct);
         }
-        
         updateTotals();
         return true;
     }
-    
+
     function addProductRowToTable(product) {
         let emptyRow = $('#empty-row');
         if (emptyRow.is(':visible')) {
             emptyRow.hide();
         }
-        
         let rowId = 'product-row-' + product.id;
-        
         if ($('#' + rowId).length === 0) {
             let newRow = $('<tr>').attr('id', rowId);
-            
             let nameCell = $('<td>').attr('style', 'text-align:right;').html('<strong>' + product.name + '</strong>');
-            
-            let quantityCell = $('<tr>');
-            
-            let decButton = $('<button>')
-                .addClass('btn-sm dec-qty')
-                .attr('type', 'button')
-                .attr('data-id', product.id)
-                .text('-');
-            
-            let quantityInput = $('<input>')
-                .addClass('quantity-input')
-                .attr('type', 'number')
-                .attr('value', product.quantity)
-                .attr('min', '1')
-                .attr('max', product.maxStock)
-                .attr('data-id', product.id);
-            
-            let incButton = $('<button>')
-                .addClass('btn-sm inc-qty')
-                .attr('type', 'button')
-                .attr('data-id', product.id)
-                .text('+');
-            
+            let quantityCell = $('<td>');
+            let decButton = $('<button>').addClass('btn-sm dec-qty').attr('type', 'button').attr('data-id', product.id).text('-');
+            let quantityInput = $('<input>').addClass('quantity-input').attr('type', 'number').attr('value', product.quantity).attr('min', '1').attr('max', product.maxStock).attr('data-id', product.id);
+            let incButton = $('<button>').addClass('btn-sm inc-qty').attr('type', 'button').attr('data-id', product.id).text('+');
             quantityCell.append(decButton);
             quantityCell.append(quantityInput);
             quantityCell.append(incButton);
-            
             let priceCell = $('<td>');
-            
-            let priceInput = $('<input>')
-                .addClass('price-input')
-                .attr('type', 'number')
-                .attr('value', product.price)
-                .attr('step', '0.01')
-                .attr('data-id', product.id);
-            
+            let priceInput = $('<input>').addClass('price-input').attr('type', 'number').attr('value', product.price).attr('step', '0.01').attr('data-id', product.id);
             priceCell.append(priceInput);
-            
-            let totalCell = $('<td>')
-                .addClass('total-' + product.id)
-                .text(product.total.toFixed(2));
-            
-            let actionCell = $('</table>');
-            
-            let removeButton = $('<button>')
-                .addClass('remove-btn')
-                .attr('type', 'button')
-                .attr('data-id', product.id)
-                .text('✕');
-            
+            let totalCell = $('<td>').addClass('total-' + product.id).text(product.total.toFixed(2));
+            let actionCell = $('<td>');
+            let removeButton = $('<button>').addClass('remove-btn').attr('type', 'button').attr('data-id', product.id).text('✕');
             actionCell.append(removeButton);
-            
             newRow.append(nameCell);
             newRow.append(quantityCell);
             newRow.append(priceCell);
             newRow.append(totalCell);
             newRow.append(actionCell);
-            
             $('#products-tbody').append(newRow);
-            
-            let hiddenId = $('<input>')
-                .attr('type', 'hidden')
-                .attr('name', 'product_' + product.id + '_id')
-                .val(product.id);
-            
-            let hiddenQuantity = $('<input>')
-                .attr('type', 'hidden')
-                .attr('name', 'product_' + product.id + '_quantity')
-                .addClass('hidden-qty-' + product.id)
-                .val(product.quantity);
-            
-            let hiddenPrice = $('<input>')
-                .attr('type', 'hidden')
-                .attr('name', 'product_' + product.id + '_price')
-                .addClass('hidden-price-' + product.id)
-                .val(product.price);
-            
+            let hiddenId = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_id').val(product.id);
+            let hiddenQuantity = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_quantity').addClass('hidden-qty-' + product.id).val(product.quantity);
+            let hiddenPrice = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_price').addClass('hidden-price-' + product.id).val(product.price);
             $('#products-tbody').append(hiddenId);
             $('#products-tbody').append(hiddenQuantity);
             $('#products-tbody').append(hiddenPrice);
         }
     }
-    
+
     function updateProductRow(product) {
         let quantityInput = $('.quantity-input[data-id="' + product.id + '"]');
         let priceInput = $('.price-input[data-id="' + product.id + '"]');
         let totalCell = $('.total-' + product.id);
         let hiddenQuantity = $('.hidden-qty-' + product.id);
         let hiddenPrice = $('.hidden-price-' + product.id);
-        
         quantityInput.val(product.quantity);
         priceInput.val(product.price);
         totalCell.text(product.total.toFixed(2));
         hiddenQuantity.val(product.quantity);
         hiddenPrice.val(product.price);
     }
-    
+
     $(document).on('click', '.inc-qty', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
-        
         if (product) {
             let newQuantity = product.quantity + 1;
-            
             if (newQuantity <= product.maxStock) {
                 product.quantity = newQuantity;
                 product.total = product.quantity * product.price;
@@ -796,11 +696,10 @@ $(document).ready(function() {
             }
         }
     });
-    
+
     $(document).on('click', '.dec-qty', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
-        
         if (product && product.quantity > 1) {
             product.quantity = product.quantity - 1;
             product.total = product.quantity * product.price;
@@ -808,17 +707,14 @@ $(document).ready(function() {
             updateTotals();
         }
     });
-    
+
     $(document).on('change', '.quantity-input', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
-        
         if (product) {
             let newQuantity = parseInt($(this).val());
-            
             if (isNaN(newQuantity)) newQuantity = 1;
             if (newQuantity < 1) newQuantity = 1;
-            
             if (newQuantity > product.maxStock) {
                 showToast('الحد الأقصى المتوفر للمنتج ' + product.name + ' هو ' + product.maxStock, 'error');
                 $(this).val(product.quantity);
@@ -830,87 +726,72 @@ $(document).ready(function() {
             }
         }
     });
-    
+
     $(document).on('change', '.price-input', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
-        
         if (product) {
             let newPrice = parseFloat($(this).val());
             if (isNaN(newPrice)) newPrice = 0;
             if (newPrice < 0) newPrice = 0;
-            
             product.price = newPrice;
             product.total = product.quantity * product.price;
             updateProductRow(product);
             updateTotals();
         }
     });
-    
+
     $(document).on('click', '.remove-btn', function() {
         let productId = $(this).data('id');
-        
         selectedProducts = selectedProducts.filter(p => p.id !== productId);
-        
         $('#product-row-' + productId).remove();
         $('input[name="product_' + productId + '_id"]').remove();
         $('input[name="product_' + productId + '_quantity"]').remove();
         $('input[name="product_' + productId + '_price"]').remove();
-        
         if (selectedProducts.length === 0) {
             $('#empty-row').show();
         }
-        
         updateTotals();
     });
-    
+
     function updateTotals() {
         let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
         let discount = parseFloat($('#discount').val()) || 0;
         let total = subtotal - discount;
-        
         let selectedPaymentMethod = $('#payment_method').find(':selected');
         let increasePercent = parseFloat(selectedPaymentMethod.data('increase')) || 0;
-        
         let fees = total * increasePercent / 100;
         let finalTotal = total + fees;
-        
         let points = selectedProducts.reduce((s, p) => s + (p.points * p.quantity), 0);
-        
         $('#subtotal').text(subtotal.toFixed(2));
         $('#discount_display').text(discount.toFixed(2));
         $('#additional_fees').text(fees.toFixed(2));
         $('#total').text(finalTotal.toFixed(2));
         $('#points').text(points);
-        
         updatePaidAmountAndRemaining();
-        
         if ($('#sale_type').val() === 'branch') {
             $('#paid_amount').val(finalTotal.toFixed(2));
             $('#paid_display').text(finalTotal.toFixed(2));
             $('#remaining').text('0.00');
         }
     }
-    
+
     $(document).on('click', function(event) {
         let isProductClick = $(event.target).closest('#product-results, #product-search').length > 0;
         if (!isProductClick) {
             $('#product-results').hide();
         }
-        
         let isCustomerClick = $(event.target).closest('#customer-results, #customer-search').length > 0;
         if (!isCustomerClick) {
             $('#customer-results').hide();
         }
     });
-    
+
     $('.sale-type-btn').on('click', function() {
         $('.sale-type-btn').removeClass('active');
         $(this).addClass('active');
-        
         let saleType = $(this).data('type');
         $('#sale_type').val(saleType);
-        
         if (saleType === 'customer') {
             $('#target_branch_group').hide();
             $('#customer_section').show();
@@ -922,10 +803,9 @@ $(document).ready(function() {
             updateTotals();
         }
     });
-    
+
     $('#is_cash_customer').on('change', function() {
         let isChecked = $(this).is(':checked');
-        
         if (isChecked) {
             $('#registered_customer_fields').hide();
             $('#customer_id').val('');
@@ -938,16 +818,15 @@ $(document).ready(function() {
             updateTotals();
         }
     });
-    
+
     $('#discount, #payment_method').on('input change', function() {
         updateTotals();
     });
-    
+
     $('#paid_amount').on('input', function() {
         let finalTotal = parseFloat($('#total').text()) || 0;
         let paid = parseFloat($(this).val()) || 0;
         let isCashCustomer = $('#is_cash_customer').is(':checked');
-        
         if (!isCashCustomer) {
             if (paid > finalTotal) {
                 $(this).val(finalTotal.toFixed(2));
@@ -958,14 +837,13 @@ $(document).ready(function() {
         }
         $('#paid_display').text(paid.toFixed(2));
     });
-    
+
     $('#sale-invoice-form').on('submit', function(event) {
         if (selectedProducts.length === 0) {
             event.preventDefault();
             alert('الرجاء إضافة منتجات للفاتورة');
             return false;
         }
-        
         for (let i = 0; i < selectedProducts.length; i++) {
             let product = selectedProducts[i];
             if (product.quantity > product.maxStock) {
@@ -974,10 +852,8 @@ $(document).ready(function() {
                 return false;
             }
         }
-        
         let saleType = $('#sale_type').val();
         let isCashCustomer = $('#is_cash_customer').is(':checked');
-        
         if (saleType === 'customer' && !isCashCustomer) {
             let customerId = $('#customer_id').val();
             if (!customerId) {
@@ -986,7 +862,6 @@ $(document).ready(function() {
                 return false;
             }
         }
-        
         if (saleType === 'branch') {
             let targetBranch = $('#target_branch').val();
             if (!targetBranch) {
@@ -995,7 +870,6 @@ $(document).ready(function() {
                 return false;
             }
         }
-        
         return true;
     });
 });

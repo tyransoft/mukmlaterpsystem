@@ -6,135 +6,56 @@
 
 {% block content %}
 <style>
-  .supplier-card {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 10px;
+  .invoice-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+  .supplier-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-top: 10px; }
+  .products-table { width: 100%; border-collapse: collapse; }
+  .products-table th, .products-table td { padding: 12px; text-align: center; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+  .products-table th { background: #f9fafb; font-weight: 600; }
+  .products-scroll { max-height: 400px; overflow-y: auto; overflow-x: auto; margin-top: 20px; }
+  .search-container { position: relative; margin-bottom: 20px; }
+  .search-results-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 300px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .search-result-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+  .search-result-item:hover { background: #f3f4f6; }
+  .search-result-item .product-name { font-weight: 600; font-size: 14px; }
+  .search-result-item .product-details { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .quantity-input { width: 65px; text-align: center; margin: 0 5px; border: 1px solid #d1d5db; border-radius: 6px; padding: 4px; }
+  .price-input { width: 100px; text-align: center; border: 1px solid #d1d5db; border-radius: 6px; padding: 4px; }
+  .qty-btn { width: 28px; height: 28px; padding: 0; font-size: 16px; font-weight: bold; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; }
+  .qty-btn:hover { background: #f3f4f6; }
+  .remove-btn { background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; }
+  .remove-btn:hover { color: #b91c1c; }
+  .search-input { font-size: 16px; letter-spacing: 1px; }
+  .alert-toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 10px 20px; border-radius: 8px; }
+  @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+
+  @media (max-width: 900px) {
+    .invoice-layout { grid-template-columns: 1fr; }
   }
-  .products-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .products-table th, .products-table td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  .products-table th {
-    background: #f9fafb;
-    font-weight: 600;
-  }
-  .search-container {
-    position: relative;
-    margin-bottom: 20px;
-  }
-  .search-results-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    z-index: 1000;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-  .search-result-item {
-    padding: 12px 15px;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-  }
-  .search-result-item:hover {
-    background: #f3f4f6;
-  }
-  .search-result-item .product-name {
-    font-weight: 600;
-    font-size: 14px;
-  }
-  .search-result-item .product-details {
-    font-size: 12px;
-    color: #6b7280;
-    margin-top: 4px;
-  }
-  .quantity-input {
-    width: 65px;
-    text-align: center;
-    margin: 0 5px;
-  }
-  .price-input {
-    width: 100px;
-    text-align: center;
-  }
-  .btn-sm {
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    font-size: 16px;
-    font-weight: bold;
-    border: 1px solid #d1d5db;
-    background: white;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  .btn-sm:hover {
-    background: #f3f4f6;
-  }
-  .remove-btn {
-    background: none;
-    border: none;
-    color: #dc2626;
-    font-size: 18px;
-    cursor: pointer;
-  }
-  .remove-btn:hover {
-    color: #b91c1c;
-  }
-  .search-input {
-    font-size: 16px;
-    letter-spacing: 1px;
-  }
-  .alert-toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    padding: 10px 20px;
-    border-radius: 8px;
-    animation: fadeOut 2.5s ease-in-out forwards;
-  }
-  @keyframes fadeOut {
-    0% { opacity: 1; }
-    70% { opacity: 1; }
-    100% { opacity: 0; display: none; }
+  @media (max-width: 600px) {
+    .products-table th, .products-table td { padding: 8px 10px; }
+    .price-input { width: 80px; }
   }
 </style>
 
 <form method="post" id="purchase-invoice-form">
   {% csrf_token %}
-  <div style="display:grid; grid-template-columns:1fr 380px; gap:20px;">
-    
+  <div class="invoice-layout">
+
     <div class="card">
       <div class="card-header">
         <span class="card-title">إضافة منتجات</span>
       </div>
       <div class="card-body">
-        
         <div class="search-container">
-          <input type="text" id="product-search" class="form-control search-input" 
+          <input type="text" id="product-search" class="form-control search-input"
                  placeholder="ابحث عن منتج بالاسم أو امسح الباركود..." autocomplete="off" autofocus>
           <div id="product-results" class="search-results-dropdown"></div>
         </div>
-        
         <div class="form-group" style="margin-top:10px;">
           <select id="product-select" class="form-select">
             <option value="">-- اختر منتج --</option>
             {% for product in products %}
-            <option value="{{ product.id }}" 
+            <option value="{{ product.id }}"
                     data-name="{{ product.name }}"
                     data-price="{{ product.cost_price }}"
                     data-barcode="{{ product.barcode|default:'' }}">
@@ -143,12 +64,10 @@
             {% endfor %}
           </select>
         </div>
-
-        <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+        <button type="button" id="add-product-btn" class="btn btn-primary" style="margin-top:10px;width:100%;">
           إضافة المنتج المختار
         </button>
-        
-        <div style="max-height: 400px; overflow-y: auto; margin-top: 20px;">
+        <div class="products-scroll">
           <table class="products-table">
             <thead>
               <tr>
@@ -161,7 +80,7 @@
             </thead>
             <tbody id="products-tbody">
               <tr id="empty-row">
-                <td colspan="5" style="text-align:center; padding:40px; color:#9ca3af;">
+                <td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">
                   ابحث عن منتج أو اختر من القائمة
                 </td>
               </tr>
@@ -170,73 +89,65 @@
         </div>
       </div>
     </div>
-    
+
     <div>
       <div class="card">
         <div class="card-header">
           <span class="card-title">بيانات الفاتورة</span>
         </div>
         <div class="card-body">
-          
           <div class="form-group" style="position:relative;">
             <label class="form-label">البحث عن مورد</label>
-            <input type="text" id="supplier-search" class="form-control" 
+            <input type="text" id="supplier-search" class="form-control"
                    placeholder="ابحث باسم المورد...">
             <div id="supplier-results" style="position:absolute;background:white;border:1px solid #e5e7eb;border-radius:8px;width:calc(100% - 40px);max-height:200px;overflow-y:auto;display:none;z-index:1000;"></div>
           </div>
-          
           <div class="form-group">
             <label class="form-label">اختر مورد</label>
             <select name="supplier" id="supplier_select" class="form-select">
               <option value="">-- اختر مورد --</option>
               {% for supplier in suppliers %}
-                <option value="{{ supplier.id }}" data-name="{{ supplier.name }}">
-                  {{ supplier.name }}
-                </option>
+              <option value="{{ supplier.id }}" data-name="{{ supplier.name }}">{{ supplier.name }}</option>
               {% endfor %}
             </select>
           </div>
-          
           <div id="supplier_details" class="supplier-card" style="display:none;">
             <div class="fw-600" id="supplier_info"></div>
           </div>
-          
           <div class="form-group">
             <label class="form-label">المبلغ المدفوع</label>
             <input type="number" name="paid_amount" id="paid_amount" class="form-control" step="0.01" value="0">
           </div>
-          
           <div class="form-group">
             <label class="form-label">الخصم</label>
             <input type="number" name="discount" id="discount" class="form-control" step="0.01" value="0">
           </div>
-          
           <div class="form-group">
             <label class="form-label">ملاحظات</label>
             <textarea name="notes" class="form-control" rows="3"></textarea>
           </div>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:15px;">
         <div class="card-body">
           <div style="display:flex;justify-content:space-between;padding:5px 0;">
-            <span>المجموع الفرعي</span> <span id="subtotal">0.00</span>
+            <span>المجموع الفرعي</span><span id="subtotal">0.00</span>
           </div>
           <div style="display:flex;justify-content:space-between;padding:5px 0;">
-            <span>الخصم</span> <span class="text-danger" id="discount_display">0.00</span>
+            <span>الخصم</span><span class="text-danger" id="discount_display">0.00</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0; border-top:1px solid #e5e7eb;">
-            <strong>الإجمالي</strong> <strong class="text-primary" style="font-size:18px;" id="total">0.00</strong>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #e5e7eb;">
+            <strong>الإجمالي</strong><strong class="text-primary" style="font-size:18px;" id="total">0.00</strong>
           </div>
-          
-          <div style="margin-top:15px; display:flex; gap:10px;">
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
             <button type="submit" class="btn btn-primary" style="flex:1;" id="submit-btn">حفظ الفاتورة</button>
             <a href="{% url 'purchase_invoices_list' %}" class="btn btn-outline">إلغاء</a>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </form>
 {% endblock %}
@@ -249,99 +160,57 @@ $(document).ready(function() {
     let productSearchTimeout;
     let supplierTimeout;
     let paidEditedManually = false;
-    
+
     const searchInput = $('#product-search');
-    let barcodeBuffer = '';
     let lastKeyTime = 0;
     let isBarcodeScanning = false;
-    
+
     function showToast(message, type) {
         let bgColor = type === 'success' ? '#22c55e' : '#ef4444';
-        let toast = $('<div>')
-            .addClass('alert-toast')
-            .css({
-                'background': bgColor,
-                'color': 'white',
-                'position': 'fixed',
-                'top': '20px',
-                'right': '20px',
-                'zIndex': '9999',
-                'padding': '10px 20px',
-                'borderRadius': '8px',
-                'fontSize': '14px',
-                'boxShadow': '0 4px 12px rgba(0,0,0,0.15)'
-            })
-            .text(message);
+        let toast = $('<div>').css({'background':bgColor,'color':'white','position':'fixed','top':'20px','right':'20px','zIndex':'9999','padding':'10px 20px','borderRadius':'8px','fontSize':'14px','boxShadow':'0 4px 12px rgba(0,0,0,0.15)'}).text(message);
         $('body').append(toast);
-        setTimeout(function() {
-            toast.fadeOut(function() { $(this).remove(); });
-        }, 2500);
+        setTimeout(function() { toast.fadeOut(function() { $(this).remove(); }); }, 2500);
     }
-    
+
     searchInput.on('input', function() {
         let value = $(this).val();
         let currentTime = Date.now();
-        
-        if (currentTime - lastKeyTime < 50 && value.length > 3) {
-            isBarcodeScanning = true;
-        }
-        
+        if (currentTime - lastKeyTime < 50 && value.length > 3) { isBarcodeScanning = true; }
         lastKeyTime = currentTime;
-        
         clearTimeout(productSearchTimeout);
-        
-        if (value.length < 1) {
-            $('#product-results').hide();
-            return;
-        }
-        
+        if (value.length < 1) { $('#product-results').hide(); return; }
         if (/^\d+$/.test(value) && value.length >= 5) {
-            productSearchTimeout = setTimeout(function() {
-                searchByBarcode(value);
-            }, 200);
+            productSearchTimeout = setTimeout(function() { searchByBarcode(value); }, 200);
         } else if (value.length >= 2) {
-            productSearchTimeout = setTimeout(function() {
-                searchProducts(value);
-            }, 300);
+            productSearchTimeout = setTimeout(function() { searchProducts(value); }, 300);
         }
     });
-    
+
     searchInput.on('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             let value = $(this).val().trim();
             if (value) {
-                if (/^\d+$/.test(value) && value.length >= 5) {
-                    searchByBarcode(value);
-                } else {
-                    searchProducts(value);
-                }
+                if (/^\d+$/.test(value) && value.length >= 5) { searchByBarcode(value); }
+                else { searchProducts(value); }
             }
         }
     });
-    
+
     searchInput.on('keydown', function(e) {
         let currentTime = Date.now();
-        
         if (e.key === 'Enter' && isBarcodeScanning) {
             e.preventDefault();
             let value = $(this).val().trim();
-            if (value) {
-                searchByBarcode(value);
-            }
+            if (value) { searchByBarcode(value); }
             isBarcodeScanning = false;
         }
-        
-        if (currentTime - lastKeyTime > 200) {
-            isBarcodeScanning = false;
-        }
+        if (currentTime - lastKeyTime > 200) { isBarcodeScanning = false; }
     });
-    
+
     function searchByBarcode(barcode) {
         if (!barcode || barcode.length < 3) return;
-        
         $('#product-results').hide();
-        
         $.ajax({
             url: '/products/get-by-barcode/' + encodeURIComponent(barcode) + '/',
             method: 'GET',
@@ -351,360 +220,167 @@ $(document).ready(function() {
                     addProductToTable(product.id, product.name, parseFloat(product.cost_price));
                     searchInput.val('');
                     showToast('تم إضافة المنتج: ' + product.name, 'success');
-                } else {
-                    searchProducts(barcode);
-                }
+                } else { searchProducts(barcode); }
             },
-            error: function() {
-                searchProducts(barcode);
-            }
+            error: function() { searchProducts(barcode); }
         });
     }
-    
+
     function searchProducts(query) {
-        if (query.length < 2) {
-            $('#product-results').hide();
-            return;
-        }
-        
+        if (query.length < 2) { $('#product-results').hide(); return; }
         $.ajax({
             url: '/products/search/',
             method: 'GET',
             data: { q: query },
             success: function(data) {
-                if (data.products && data.products.length > 0) {
-                    displayProductResults(data.products);
-                } else {
-                    $('#product-results').hide();
-                }
+                if (data.products && data.products.length > 0) { displayProductResults(data.products); }
+                else { $('#product-results').hide(); }
             },
-            error: function() {
-                $('#product-results').hide();
-            }
+            error: function() { $('#product-results').hide(); }
         });
     }
-    
+
     function displayProductResults(products) {
         let $results = $('#product-results');
         $results.empty().show();
-        
         for (let i = 0; i < products.length; i++) {
             let product = products[i];
-            $results.append(`
-                <div class="search-result-item" 
-                     data-id="${product.id}" 
-                     data-name="${product.name}" 
-                     data-price="${product.cost_price}">
-                    <div>
-                        <div class="product-name">${escapeHtml(product.name)}</div>
-                        <div class="product-details">سعر الشراء: ${product.cost_price} د.ل</div>
-                    </div>
-                    <div style="font-size:11px; color:#9ca3af; direction:ltr;">${product.barcode || '-'}</div>
-                </div>
-            `);
+            $results.append(`<div class="search-result-item" data-id="${product.id}" data-name="${product.name}" data-price="${product.cost_price}"><div><div class="product-name">${escapeHtml(product.name)}</div><div class="product-details">سعر الشراء: ${product.cost_price} د.ل</div></div><div style="font-size:11px;color:#9ca3af;direction:ltr;">${product.barcode || '-'}</div></div>`);
         }
-        
         $('.search-result-item').off('click').on('click', function() {
-            let productId = $(this).data('id');
-            let productName = $(this).data('name');
-            let productPrice = $(this).data('price');
-            
-            addProductToTable(productId, productName, productPrice);
-            
+            addProductToTable($(this).data('id'), $(this).data('name'), $(this).data('price'));
             $('#product-search').val('');
             $('#product-results').hide();
         });
     }
-    
+
     $('#add-product-btn').on('click', function() {
         let select = $('#product-select');
         let selectedOption = select.find(':selected');
-        
-        if (selectedOption.val() === '') {
-            alert('الرجاء اختيار منتج من القائمة');
-            return;
-        }
-        
-        let productId = parseInt(selectedOption.val());
-        let productName = selectedOption.data('name');
-        let productPrice = parseFloat(selectedOption.data('price'));
-        
-        addProductToTable(productId, productName, productPrice);
+        if (selectedOption.val() === '') { alert('الرجاء اختيار منتج من القائمة'); return; }
+        addProductToTable(parseInt(selectedOption.val()), selectedOption.data('name'), parseFloat(selectedOption.data('price')));
         select.val('');
     });
-    
+
     function addProductToTable(productId, productName, productPrice) {
         let existing = null;
         for (let i = 0; i < selectedProducts.length; i++) {
-            if (selectedProducts[i].id === productId) {
-                existing = selectedProducts[i];
-                break;
-            }
+            if (selectedProducts[i].id === productId) { existing = selectedProducts[i]; break; }
         }
-        
         if (existing) {
             existing.quantity++;
             existing.total = existing.quantity * existing.price;
             updateProductRow(existing);
         } else {
-            selectedProducts.push({
-                id: productId,
-                name: productName,
-                quantity: 1,
-                price: productPrice,
-                total: productPrice
-            });
+            selectedProducts.push({ id: productId, name: productName, quantity: 1, price: productPrice, total: productPrice });
             addProductRow(selectedProducts[selectedProducts.length - 1]);
         }
-        
         updateTotals();
         searchInput.focus();
     }
-    
+
     function addProductRow(product) {
-        let emptyRow = $('#empty-row');
-        if (emptyRow.is(':visible')) {
-            emptyRow.hide();
-        }
-        
+        if ($('#empty-row').is(':visible')) { $('#empty-row').hide(); }
         let rowId = 'product-row-' + product.id;
-        
         if ($('#' + rowId).length === 0) {
             let newRow = $('<tr>').attr('id', rowId);
-            
-            let nameCell = $('<td>').attr('style', 'text-align:right;').html('<strong>' + escapeHtml(product.name) + '</strong>');
-            newRow.append(nameCell);
-            
-            let quantityCell = $('<td>');
-            
-            let decButton = $('<button>')
-                .addClass('btn-sm dec-qty')
-                .attr('type', 'button')
-                .attr('data-id', product.id)
-                .text('-');
-            
-            let quantityInput = $('<input>')
-                .addClass('quantity-input')
-                .attr('type', 'number')
-                .attr('value', product.quantity)
-                .attr('min', '1')
-                .attr('data-id', product.id);
-            
-            let incButton = $('<button>')
-                .addClass('btn-sm inc-qty')
-                .attr('type', 'button')
-                .attr('data-id', product.id)
-                .text('+');
-            
-            quantityCell.append(decButton);
-            quantityCell.append(quantityInput);
-            quantityCell.append(incButton);
-            newRow.append(quantityCell);
-            
-            let priceCell = $('<td>');
-            
-            let priceInput = $('<input>')
-                .addClass('price-input')
-                .attr('type', 'number')
-                .attr('value', product.price)
-                .attr('step', '0.01')
-                .attr('data-id', product.id);
-            
-            priceCell.append(priceInput);
-            newRow.append(priceCell);
-            
-            let totalCell = $('<td>')
-                .addClass('total-' + product.id)
-                .text(product.total.toFixed(2));
-            newRow.append(totalCell);
-            
-            let actionCell = $('<td>');
-            
-            let removeButton = $('<button>')
-                .addClass('remove-btn')
-                .attr('type', 'button')
-                .attr('data-id', product.id)
-                .text('✕');
-            
-            actionCell.append(removeButton);
-            newRow.append(actionCell);
-            
+            newRow.append($('<td>').attr('style', 'text-align:right;').html('<strong>' + escapeHtml(product.name) + '</strong>'));
+            let qCell = $('<td>');
+            qCell.append($('<button>').addClass('qty-btn dec-qty').attr({'type':'button','data-id':product.id}).text('-'));
+            qCell.append($('<input>').addClass('quantity-input').attr({'type':'number','value':product.quantity,'min':'1','data-id':product.id}));
+            qCell.append($('<button>').addClass('qty-btn inc-qty').attr({'type':'button','data-id':product.id}).text('+'));
+            newRow.append(qCell);
+            let pCell = $('<td>');
+            pCell.append($('<input>').addClass('price-input').attr({'type':'number','value':product.price,'step':'0.01','data-id':product.id}));
+            newRow.append(pCell);
+            newRow.append($('<td>').addClass('total-' + product.id).text(product.total.toFixed(2)));
+            let aCell = $('<td>');
+            aCell.append($('<button>').addClass('remove-btn').attr({'type':'button','data-id':product.id}).text('✕'));
+            newRow.append(aCell);
             $('#products-tbody').append(newRow);
-            
-            let hiddenId = $('<input>')
-                .attr('type', 'hidden')
-                .attr('name', 'product_' + product.id + '_id')
-                .val(product.id);
-            
-            let hiddenQuantity = $('<input>')
-                .attr('type', 'hidden')
-                .attr('name', 'product_' + product.id + '_quantity')
-                .addClass('hidden-qty-' + product.id)
-                .val(product.quantity);
-            
-            let hiddenPrice = $('<input>')
-                .attr('type', 'hidden')
-                .attr('name', 'product_' + product.id + '_price')
-                .addClass('hidden-price-' + product.id)
-                .val(product.price);
-            
-            $('#products-tbody').append(hiddenId);
-            $('#products-tbody').append(hiddenQuantity);
-            $('#products-tbody').append(hiddenPrice);
+            $('#products-tbody').append($('<input>').attr({'type':'hidden','name':'product_' + product.id + '_id'}).val(product.id));
+            $('#products-tbody').append($('<input>').attr({'type':'hidden','name':'product_' + product.id + '_quantity'}).addClass('hidden-qty-' + product.id).val(product.quantity));
+            $('#products-tbody').append($('<input>').attr({'type':'hidden','name':'product_' + product.id + '_price'}).addClass('hidden-price-' + product.id).val(product.price));
         }
     }
-    
+
     function updateProductRow(product) {
-        let quantityInput = $('.quantity-input[data-id="' + product.id + '"]');
-        let priceInput = $('.price-input[data-id="' + product.id + '"]');
-        let totalCell = $('.total-' + product.id);
-        let hiddenQuantity = $('.hidden-qty-' + product.id);
-        let hiddenPrice = $('.hidden-price-' + product.id);
-        
-        quantityInput.val(product.quantity);
-        priceInput.val(product.price);
-        totalCell.text(product.total.toFixed(2));
-        hiddenQuantity.val(product.quantity);
-        hiddenPrice.val(product.price);
+        $('.quantity-input[data-id="' + product.id + '"]').val(product.quantity);
+        $('.price-input[data-id="' + product.id + '"]').val(product.price);
+        $('.total-' + product.id).text(product.total.toFixed(2));
+        $('.hidden-qty-' + product.id).val(product.quantity);
+        $('.hidden-price-' + product.id).val(product.price);
     }
-    
+
     $(document).on('click', '.inc-qty', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        
-        if (product) {
-            product.quantity++;
-            product.total = product.quantity * product.price;
-            updateProductRow(product);
-            updateTotals();
-        }
+        let product = selectedProducts.find(p => p.id === $(this).data('id'));
+        if (product) { product.quantity++; product.total = product.quantity * product.price; updateProductRow(product); updateTotals(); }
     });
-    
     $(document).on('click', '.dec-qty', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        
-        if (product && product.quantity > 1) {
-            product.quantity--;
-            product.total = product.quantity * product.price;
-            updateProductRow(product);
-            updateTotals();
-        }
+        let product = selectedProducts.find(p => p.id === $(this).data('id'));
+        if (product && product.quantity > 1) { product.quantity--; product.total = product.quantity * product.price; updateProductRow(product); updateTotals(); }
     });
-    
     $(document).on('change', '.quantity-input', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        
-        if (product) {
-            let newQuantity = parseInt($(this).val());
-            if (isNaN(newQuantity) || newQuantity < 1) newQuantity = 1;
-            product.quantity = newQuantity;
-            product.total = product.quantity * product.price;
-            updateProductRow(product);
-            updateTotals();
-        }
+        let product = selectedProducts.find(p => p.id === $(this).data('id'));
+        if (product) { let q = parseInt($(this).val()); if (isNaN(q) || q < 1) q = 1; product.quantity = q; product.total = product.quantity * product.price; updateProductRow(product); updateTotals(); }
     });
-    
     $(document).on('change', '.price-input', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        
-        if (product) {
-            let newPrice = parseFloat($(this).val());
-            if (isNaN(newPrice)) newPrice = 0;
-            product.price = newPrice;
-            product.total = product.quantity * product.price;
-            updateProductRow(product);
-            updateTotals();
-        }
+        let product = selectedProducts.find(p => p.id === $(this).data('id'));
+        if (product) { let pr = parseFloat($(this).val()); if (isNaN(pr)) pr = 0; product.price = pr; product.total = product.quantity * product.price; updateProductRow(product); updateTotals(); }
     });
-    
     $(document).on('click', '.remove-btn', function() {
         let productId = $(this).data('id');
-        
         selectedProducts = selectedProducts.filter(p => p.id !== productId);
         $('#product-row-' + productId).remove();
         $('input[name="product_' + productId + '_id"]').remove();
         $('input[name="product_' + productId + '_quantity"]').remove();
         $('input[name="product_' + productId + '_price"]').remove();
-        
-        if (selectedProducts.length === 0) {
-            $('#empty-row').show();
-        }
-        
+        if (selectedProducts.length === 0) { $('#empty-row').show(); }
         updateTotals();
     });
-    
+
     function updateTotals() {
         let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
         let discount = parseFloat($('#discount').val()) || 0;
         let total = subtotal - discount;
-        
         $('#subtotal').text(subtotal.toFixed(2));
         $('#discount_display').text(discount.toFixed(2));
         $('#total').text(total.toFixed(2));
-        
-        updatePaidAmount(total);
+        if (!paidEditedManually) { $('#paid_amount').val(total.toFixed(2)); }
     }
-    
-    function updatePaidAmount(total) {
-        if (!paidEditedManually) {
-            $('#paid_amount').val(total.toFixed(2));
-        }
-    }
-    
+
     $('#paid_amount').on('input', function() {
         let paid = parseFloat($(this).val()) || 0;
         let total = parseFloat($('#total').text()) || 0;
-
         paidEditedManually = true;
-
-        if (paid > total) {
-            paid = total;
-            $(this).val(total.toFixed(2));
-        }
-
-        if (paid === 0) {
-            paidEditedManually = false;
-        }
+        if (paid > total) { paid = total; $(this).val(total.toFixed(2)); }
+        if (paid === 0) { paidEditedManually = false; }
     });
-    
+
     $('#discount').on('input', function() {
         let discount = parseFloat($(this).val()) || 0;
         let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
-        
-        if (discount > subtotal) {
-            $(this).val(subtotal.toFixed(2));
-        }
-        
+        if (discount > subtotal) { $(this).val(subtotal.toFixed(2)); }
         updateTotals();
     });
-    
+
     $('#supplier-search').on('input', function() {
         clearTimeout(supplierTimeout);
         let query = $(this).val();
-        if (query.length < 2) {
-            $('#supplier-results').hide();
-            return;
-        }
-        
+        if (query.length < 2) { $('#supplier-results').hide(); return; }
         supplierTimeout = setTimeout(function() {
             $.get('/suppliers/search/ajax/', {q: query}, function(data) {
-                if (data.suppliers && data.suppliers.length > 0) {
-                    displaySupplierResults(data.suppliers);
-                } else {
-                    $('#supplier-results').hide();
-                }
+                if (data.suppliers && data.suppliers.length > 0) { displaySupplierResults(data.suppliers); }
+                else { $('#supplier-results').hide(); }
             });
         }, 300);
     });
-    
+
     function displaySupplierResults(results) {
         let $results = $('#supplier-results');
         $results.empty().show();
         results.forEach(s => {
-            $results.append(`<div class="supplier-result" data-id="${s.id}" data-name="${s.name}" style="padding:10px; cursor:pointer;">${escapeHtml(s.name)}</div>`);
+            $results.append(`<div class="supplier-result" data-id="${s.id}" data-name="${s.name}" style="padding:10px;cursor:pointer;">${escapeHtml(s.name)}</div>`);
         });
         $('.supplier-result').on('click', function() {
             $('#supplier_select').val($(this).data('id'));
@@ -715,45 +391,26 @@ $(document).ready(function() {
             searchInput.focus();
         });
     }
-    
+
     $('#supplier_select').on('change', function() {
         let opt = $(this).find(':selected');
         if ($(this).val()) {
             $('#supplier_details').show();
             $('#supplier_info').text(opt.data('name'));
             $('#supplier-search').val(opt.data('name'));
-        } else {
-            $('#supplier_details').hide();
-        }
+        } else { $('#supplier_details').hide(); }
         searchInput.focus();
     });
-    
- 
-    
+
     $('#purchase-invoice-form').on('submit', function(e) {
-        if (selectedProducts.length === 0) {
-            e.preventDefault();
-            alert('الرجاء إضافة منتجات للفاتورة');
-            return false;
-        }
-        if (!$('#supplier_select').val()) {
-            e.preventDefault();
-            alert('الرجاء اختيار مورد');
-            return false;
-        }
-        
+        if (selectedProducts.length === 0) { e.preventDefault(); alert('الرجاء إضافة منتجات للفاتورة'); return false; }
+        if (!$('#supplier_select').val()) { e.preventDefault(); alert('الرجاء اختيار مورد'); return false; }
         let total = parseFloat($('#total').text()) || 0;
         let paid = parseFloat($('#paid_amount').val()) || 0;
-        
-        if (paid > total) {
-            e.preventDefault();
-            alert('المبلغ المدفوع لا يمكن أن يتجاوز الإجمالي');
-            return false;
-        }
-        
+        if (paid > total) { e.preventDefault(); alert('المبلغ المدفوع لا يمكن أن يتجاوز الإجمالي'); return false; }
         return true;
     });
-    
+
     function escapeHtml(text) {
         if (!text) return '';
         return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

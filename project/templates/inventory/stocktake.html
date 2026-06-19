@@ -1,62 +1,102 @@
-
 {% extends 'base.html' %}
 {% load humanize %}
-
 {% block title %}جرد المخزون - {{ branch.name }}{% endblock %}
 {% block page_title %}جرد المخزون - {{ branch.name }}{% endblock %}
 {% block nav_inventory %}active{% endblock %}
 
 {% block content %}
 <div class="card">
-    <div class="card-header">
-        <span class="card-title">جرد المخزون</span>
-    </div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            <div class="table-responsive">
-                <table class="erp-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>المنتج</th>
-                            <th>الباركود</th>
-                            <th>الكمية الحالية</th>
-                            <th>الكمية بعد الجرد</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in inventory_items %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>
-                                <div class="fw-600">{{ item.product.name }}</div>
-                            </td>
-                            <td>{{ item.product.barcode|default:"-" }}</td>
-                            <td class="fw-bold">{{ item.quantity }}</td>
-                            <td>
-                                <input type="number" name="quantity_{{ item.pk }}" 
-                                       class="form-control" 
-                                       value="{{ item.quantity }}"
-                                       style="width:120px;" 
-                                       min="0">
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted" style="padding:40px;">
-                                لا توجد منتجات في مخزون هذا الفرع
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div style="display:flex;gap:10px;margin-top:20px;">
-                <button type="submit" class="btn btn-primary">حفظ الجرد</button>
-                <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
-            </div>
-        </form>
-    </div>
+  <div class="card-header">
+    <span class="card-title">جرد المخزون</span>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>المنتج</th>
+              <th>الباركود</th>
+              <th>الكمية الحالية</th>
+              <th>الكمية بعد الجرد</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in inventory_items %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>
+                <div class="fw-600">{{ item.product.name }}</div>
+              </td>
+              <td><code class="barcode-code">{{ item.product.barcode|default:"-" }}</code></td>
+              <td class="fw-bold">{{ item.quantity }}</td>
+              <td>
+                <input type="number" name="quantity_{{ item.pk }}"
+                       class="qty-input"
+                       value="{{ item.quantity }}"
+                       min="0">
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted" style="padding:40px;">
+                لا توجد منتجات في مخزون هذا الفرع
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">حفظ الجرد</button>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
 </div>
+
+<style>
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
+  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+  .table-wrap.has-scroll::after { opacity: 1; }
+  .erp-table { min-width: 460px; width: 100%; font-size: 14px; border-collapse: collapse; }
+  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
+  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
+  .erp-table tbody tr:hover { background: #fafbfc; }
+  .qty-input { width: 110px; padding: 8px 12px; border: 1.5px solid #eaecf0; border-radius: 8px; font-size: 14px; text-align: center; box-sizing: border-box; }
+  .qty-input:focus { outline: none; border-color: #E8793A; box-shadow: 0 0 0 4px rgba(232,121,58,0.12); }
+  .barcode-code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+  .form-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
+  .btn-primary { background: #E8793A; color: #fff; }
+  .btn-primary:hover { background: #d4682e; color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
+  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
+  .card-body { padding: 16px; }
+  .text-muted { color: #6b7280; }
+  .fw-bold { font-weight: 700; }
+  .fw-600 { font-weight: 600; }
+  .text-center { text-align: center; }
+
+  @media (max-width: 600px) {
+    .form-actions { flex-direction: column; }
+    .form-actions .btn { width: 100%; justify-content: center; }
+    .card-body { padding: 12px; }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
+    .qty-input { width: 90px; }
+  }
+  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
+</style>
+<script>
+  document.querySelectorAll('.table-wrap').forEach(function(w) {
+    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+    c(); window.addEventListener('resize', c);
+  });
+</script>
 {% endblock %}

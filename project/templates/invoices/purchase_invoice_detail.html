@@ -5,107 +5,103 @@
 {% block page_title %}تفاصيل فاتورة مشتريات{% endblock %}
 
 {% block content %}
-<div style="margin-bottom:20px;">
+<div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
   <a href="{% url 'purchase_invoices_list' %}" class="btn btn-outline btn-sm">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
     رجوع
   </a>
   <a href="{% url 'purchase_invoice_print' invoice.pk %}" class="btn btn-outline btn-sm" target="_blank">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;">
-      <path d="M6 9V2h12v7"></path>
-      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-      <rect x="6" y="14" width="12" height="8"></rect>
-    </svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
     طباعة
   </a>
   {% if invoice.status == 'draft' and not invoice.is_auto_generated %}
-    <a href="{% url 'purchase_invoice_confirm' invoice.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟ سيتم إضافة المنتجات للمخزون.')">
-      تأكيد الفاتورة
-    </a>
+  <a href="{% url 'purchase_invoice_confirm' invoice.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟ سيتم إضافة المنتجات للمخزون.')">
+    تأكيد الفاتورة
+  </a>
   {% endif %}
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 350px;gap:20px;">
-  
+<div class="detail-layout">
+
   <div class="card">
     <div class="card-header">
-      <span class="card-title"> معلومات الفاتورة</span>
+      <span class="card-title">معلومات الفاتورة</span>
     </div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px;">
+      <div class="info-grid">
         <div>
-          <div class="text-muted" style="font-size:12px;">رقم الفاتورة</div>
+          <div class="text-muted">رقم الفاتورة</div>
           <div class="fw-bold" style="font-size:18px;">{{ invoice.invoice_number }}</div>
         </div>
         <div>
-          <div class="text-muted" style="font-size:12px;">التاريخ</div>
+          <div class="text-muted">التاريخ</div>
           <div>{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
         </div>
         <div>
-          <div class="text-muted" style="font-size:12px;">الحالة</div>
+          <div class="text-muted">الحالة</div>
           <span class="badge {% if invoice.status == 'confirmed' %}badge-success{% elif invoice.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
             {{ invoice.get_status_display }}
           </span>
           {% if invoice.is_auto_generated %}
-            <span class="badge badge-info">تم إنشاؤها تلقائياً</span>
+          <span class="badge badge-info">تم إنشاؤها تلقائياً</span>
           {% endif %}
         </div>
         <div>
-          <div class="text-muted" style="font-size:12px;">الفرع</div>
+          <div class="text-muted">الفرع</div>
           <div>{{ invoice.branch.name }}</div>
         </div>
         <div>
-          <div class="text-muted" style="font-size:12px;">المورد</div>
+          <div class="text-muted">المورد</div>
           <div>
-            {% if invoice.supplier %}
-              {{ invoice.supplier.name }}<br>
-              <small>{{ invoice.supplier.phone }}</small>
-            {% elif invoice.supplier_name %}
-              {{ invoice.supplier_name }}
-            {% else %}
-              <span class="text-muted">-</span>
-            {% endif %}
+            {% if invoice.supplier %}{{ invoice.supplier.name }}<br><small>{{ invoice.supplier.phone }}</small>
+            {% elif invoice.supplier_name %}{{ invoice.supplier_name }}
+            {% else %}<span class="text-muted">-</span>{% endif %}
           </div>
         </div>
         {% if invoice.source_sale_invoice %}
         <div>
-          <div class="text-muted" style="font-size:12px;">مصدر الفاتورة</div>
+          <div class="text-muted">مصدر الفاتورة</div>
           <div>توريد من فرع: {{ invoice.source_sale_invoice.branch.name }}</div>
           <div><small>الفاتورة الأصلية: {{ invoice.source_sale_invoice.invoice_number }}</small></div>
         </div>
         {% endif %}
       </div>
-      
-      <table class="erp-table">
-        <thead>
-          <tr><th>المنتج</th><th>الكمية</th><th>سعر الشراء</th><th>الإجمالي</th></tr>
-        </thead>
-        <tbody>
-          {% for item in invoice.items.all %}
-          <tr>
-            <td>{{ item.product.name }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.unit_price|floatformat:2|intcomma }}</td>
-            <td class="fw-bold">{{ item.total_price|floatformat:2|intcomma }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-       </table>
-      
+
+      <div class="table-wrap" style="margin-top:20px;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>المنتج</th>
+              <th>الكمية</th>
+              <th>سعر الشراء</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in invoice.items.all %}
+            <tr>
+              <td>{{ item.product.name }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.unit_price|floatformat:2|intcomma }}</td>
+              <td class="fw-bold">{{ item.total_price|floatformat:2|intcomma }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
       {% if invoice.notes %}
       <div style="margin-top:15px;padding:10px;background:#f8fafc;border-radius:8px;">
-        <div class="text-muted" style="font-size:12px;">ملاحظات</div>
+        <div class="text-muted">ملاحظات</div>
         <div>{{ invoice.notes }}</div>
       </div>
       {% endif %}
     </div>
   </div>
-  
+
   <div class="card">
     <div class="card-header">
-      <span class="card-title"> الإجماليات</span>
+      <span class="card-title">الإجماليات</span>
     </div>
     <div class="card-body">
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;">
@@ -122,5 +118,52 @@
       </div>
     </div>
   </div>
+
 </div>
+
+<style>
+  .detail-layout { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 0; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
+  .table-wrap::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(to right, rgba(255,255,255,0.9), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+  .table-wrap.has-scroll::after { opacity: 1; }
+  .erp-table { min-width: 380px; width: 100%; font-size: 14px; border-collapse: collapse; }
+  .erp-table th { background: #f8fafc; font-weight: 600; color: #374151; padding: 10px 14px; text-align: center; border-bottom: 2px solid #eaecf0; white-space: nowrap; font-size: 12px; }
+  .erp-table td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #f1f3f5; vertical-align: middle; white-space: nowrap; }
+  .erp-table tbody tr:hover { background: #fafbfc; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; min-height: 44px; touch-action: manipulation; white-space: nowrap; box-sizing: border-box; }
+  .btn-outline { background: transparent; border: 1.5px solid #eaecf0; color: #374151; }
+  .btn-outline:hover { background: #f8f9fb; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; color: #fff; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; min-height: 34px; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #eaecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px; }
+  .card-header { padding: 14px 16px; border-bottom: 1px solid #eaecf0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a2236; margin: 0; }
+  .card-body { padding: 16px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-warning { background: #fef9c3; color: #ca8a04; }
+  .badge-info { background: #dbeafe; color: #2563eb; }
+  .badge-secondary { background: #f1f3f5; color: #6b7280; }
+  .text-muted { color: #6b7280; font-size: 12px; }
+  .text-primary { color: #E8793A; }
+  .text-danger { color: #dc2626; }
+  .fw-bold { font-weight: 700; }
+
+  @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .card-body { padding: 12px; }
+    .erp-table { font-size: 13px; }
+    .erp-table th, .erp-table td { padding: 8px 10px; }
+  }
+  @media print { .table-wrap { overflow: visible; } .table-wrap::after { display: none; } .btn { display: none; } }
+</style>
+<script>
+  document.querySelectorAll('.table-wrap').forEach(function(w) {
+    function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
+    c(); window.addEventListener('resize', c);
+  });
+</script>
 {% endblock %}

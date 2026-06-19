@@ -4,82 +4,89 @@
 {% block page_title %}فواتير المبيعات{% endblock %}
 
 {% block content %}
+<style>
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.table-wrap .erp-table{min-width:950px;width:100%;}
+.erp-table td,.erp-table th{white-space:nowrap;}
+@media(max-width:768px){
+  .card-header{flex-direction:column;align-items:stretch;}
+  .btn-sm{min-height:40px;padding:8px 12px;}
+  form[method="get"]{flex-direction:column;}
+  form[method="get"] input,form[method="get"] select,form[method="get"] button,form[method="get"] a{width:100%;box-sizing:border-box;}
+}
+</style>
 <div class="card">
   <div class="card-header"><span class="card-title">فواتير المبيعات</span></div>
   <div class="card-body">
-    <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:10px;">
+    <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
       {% if user.can_see_all_data %}
-      <select name="branch" class="form-select" style="max-width:160px;">
+      <select name="branch" class="form-select">
         <option value="">كل الفروع</option>
         {% for b in branches %}
         <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
         {% endfor %}
       </select>
       {% endif %}
-      <select name="status" class="form-select" style="max-width:150px;">
+      <select name="status" class="form-select">
         <option value="">كل الحالات</option>
         <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>مؤكد</option>
         <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>مسودة</option>
         <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>ملغي</option>
       </select>
-      <input type="text" name="q" class="form-control" placeholder="بحث..." value="{{ query }}" style="max-width:200px;">
-      <input type="date" name="date_from" class="form-control" value="{{ date_from }}" style="max-width:160px;">
-      <input type="date" name="date_to" class="form-control" value="{{ date_to }}" style="max-width:160px;">
+      <input type="text" name="q" class="form-control" placeholder="بحث..." value="{{ query }}">
+      <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+      <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
       <button type="submit" class="btn btn-primary">بحث</button>
       <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline">إعادة تعيين</a>
     </form>
   </div>
-  <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
-  <div class="table-wrapper">
-    <table class="erp-table">
-      <thead>
-        <tr>
-          <th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>نوع البيع</th>
-          <th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for inv in invoices %}
-        <tr>
-          <td class="fw-600">{{ inv.invoice_number }}</td>
-          <td>{{ inv.created_at|date:"Y-m-d H:i" }}</td>
-          <td>{{ inv.branch.name }}</td>
-          <td>
-            {% if inv.sale_type == 'customer' %}
-              <span class="badge badge-info">بيع لعميل</span>
-            {% else %}
-              <span class="badge badge-warning">توريد لفرع</span>
-            {% endif %}
-          </td>
-          <td>{% if inv.customer %}{{ inv.customer.full_name }}{% else %}<span style="color:#64748b;">-</span>{% endif %}</td>
-          <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
-          <td>{{ inv.paid_amount|floatformat:2|intcomma }}</td>
-          <td class="{% if inv.remaining_amount > 0 %}text-danger{% endif %}">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
-          <td>
-            <span class="badge {% if inv.status == 'confirmed' %}badge-success{% elif inv.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
-              {{ inv.get_status_display }}
-            </span>
-          </td>
-          <td>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;">
-              <a href="{% url 'sale_invoice_detail' inv.pk %}" class="btn btn-outline btn-sm">عرض</a>
-              <a href="{% url 'sale_invoice_print' inv.pk %}" class="btn btn-outline btn-sm" target="_blank">طباعة</a>
-              {% if request.user.can_see_all_data %}
-              <a href="{% url 'sale_invoice_return' inv.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">مرتجع</a>
-              {% endif %}
-              {% if inv.status == 'draft' %}
-              <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')">تأكيد</a>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="10" style="text-align:center;padding:40px;color:#64748b;">لا توجد فواتير مبيعات</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>نوع البيع</th>
+            <th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td class="fw-600">{{ inv.invoice_number }}</td>
+            <td>{{ inv.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ inv.branch.name }}</td>
+            <td>
+              {% if inv.sale_type == 'customer' %}<span class="badge badge-info">بيع لعميل</span>
+              {% else %}<span class="badge badge-warning">توريد لفرع</span>{% endif %}
+            </td>
+            <td>{% if inv.customer %}{{ inv.customer.full_name }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+            <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
+            <td>{{ inv.paid_amount|floatformat:2|intcomma }}</td>
+            <td class="{% if inv.remaining_amount > 0 %}text-danger{% endif %}">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
+            <td>
+              <span class="badge {% if inv.status == 'confirmed' %}badge-success{% elif inv.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
+                {{ inv.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;gap:5px;">
+                <a href="{% url 'sale_invoice_detail' inv.pk %}" class="btn btn-outline btn-icon btn-sm">عرض</a>
+                <a href="{% url 'sale_invoice_print' inv.pk %}" class="btn btn-outline btn-icon btn-sm" target="_blank">طباعة</a>
+                {% if request.user.can_see_all_data %}
+                <a href="{% url 'sale_invoice_return' inv.pk %}" class="btn btn-outline btn-icon btn-sm" style="border-color:#dc2626;color:#dc2626;">مرتجع</a>
+                {% endif %}
+                {% if inv.status == 'draft' %}
+                <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-icon btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')">تأكيد</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="text-center text-muted" style="padding:40px;">لا توجد فواتير مبيعات</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endblock %}

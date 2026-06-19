@@ -4,49 +4,52 @@
 {% block page_title %}سجل حركات مراقبة الصلاحية{% endblock %}
 
 {% block content %}
+<style>
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.table-wrap .erp-table{min-width:620px;width:100%;}
+.erp-table td,.erp-table th{white-space:nowrap;}
+@media(max-width:768px){
+  .card-header{flex-direction:column;align-items:stretch;}
+  .btn-sm{min-height:40px;padding:8px 12px;}
+}
+</style>
 <div class="card">
   <div class="card-header">
     <span class="card-title">سجل حركات المنتج: {{ expiry.product.name }}</span>
     <a href="{% url 'product_expiry_list' %}" class="btn btn-outline btn-sm">رجوع</a>
   </div>
-  <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
-  <div class="table-wrapper">
-    <table class="erp-table">
-      <thead>
-        <tr>
-          <th>التاريخ</th><th>نوع الحركة</th><th>الكمية قبل</th>
-          <th>الكمية بعد</th><th>الملاحظات</th><th>تم بواسطة</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for movement in movements %}
-        <tr>
-          <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
-          <td>
-            {% if movement.movement_type == 'create' %}
-              <span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">إنشاء</span>
-            {% elif movement.movement_type == 'update' %}
-              <span style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">تعديل</span>
-            {% elif movement.movement_type == 'delete' %}
-              <span style="background:#fee2e2;color:#b91c1c;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">حذف</span>
-            {% elif movement.movement_type == 'consume' %}
-              <span style="background:#fef3c7;color:#b45309;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">استهلاك</span>
-            {% elif movement.movement_type == 'expire' %}
-              <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">انتهاء صلاحية</span>
-            {% endif %}
-          </td>
-          <td>{{ movement.quantity_before }}</td>
-          <td>{{ movement.quantity_after }}</td>
-          <td>{{ movement.notes|default:"-" }}</td>
-          <td>{{ movement.employee.get_full_name|default:movement.employee.username }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" style="text-align:center;padding:40px;color:#64748b;">لا توجد حركات مسجلة</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>التاريخ</th><th>نوع الحركة</th><th>الكمية قبل</th>
+            <th>الكمية بعد</th><th>الملاحظات</th><th>تم بواسطة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for movement in movements %}
+          <tr>
+            <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              {% if movement.movement_type == 'create' %}<span class="badge badge-success">إنشاء</span>
+              {% elif movement.movement_type == 'update' %}<span class="badge badge-primary">تعديل</span>
+              {% elif movement.movement_type == 'delete' %}<span class="badge badge-danger">حذف</span>
+              {% elif movement.movement_type == 'consume' %}<span class="badge badge-warning">استهلاك</span>
+              {% elif movement.movement_type == 'expire' %}<span class="badge badge-secondary">انتهاء صلاحية</span>
+              {% endif %}
+            </td>
+            <td>{{ movement.quantity_before }}</td>
+            <td>{{ movement.quantity_after }}</td>
+            <td>{{ movement.notes|default:"-" }}</td>
+            <td>{{ movement.employee.get_full_name|default:movement.employee.username }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted" style="padding:40px;">لا توجد حركات مسجلة</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endblock %}

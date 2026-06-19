@@ -4,103 +4,101 @@
 {% block page_title %}مراقبة صلاحية المنتجات{% endblock %}
 
 {% block content %}
-<div class="card" style="margin-bottom:18px;">
+<style>
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.table-wrap .erp-table{min-width:750px;width:100%;}
+.erp-table td,.erp-table th{white-space:nowrap;}
+@media(max-width:768px){
+  .card-header{flex-direction:column;align-items:stretch;}
+  .btn-sm{min-height:40px;padding:8px 12px;}
+  .ex-stats{grid-template-columns:repeat(2,1fr)!important;}
+  form[method="get"]{flex-direction:column;}
+  form[method="get"] input,form[method="get"] select,form[method="get"] button,form[method="get"] a{width:100%;box-sizing:border-box;}
+}
+</style>
+
+<div class="card" style="margin-bottom:20px;">
   <div class="card-header">
     <span class="card-title">فلترة المراقبة</span>
     <a href="{% url 'product_expiry_create' %}" class="btn btn-primary btn-sm">إضافة مراقبة جديدة</a>
   </div>
   <div class="card-body">
-    <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:10px;">
+    <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
       {% if user.can_see_all_data %}
-      <select name="branch" class="form-select" style="max-width:160px;">
+      <select name="branch" class="form-select">
         <option value="">كل الفروع</option>
         {% for b in branches %}
         <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
         {% endfor %}
       </select>
       {% endif %}
-      <select name="status" class="form-select" style="max-width:190px;">
+      <select name="status" class="form-select">
         <option value="">كل الحالات</option>
         <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>منتهي الصلاحية</option>
         <option value="warning" {% if status_filter == 'warning' %}selected{% endif %}>متبقي أقل من 3 شهور</option>
         <option value="good" {% if status_filter == 'good' %}selected{% endif %}>متبقي أكثر من 3 شهور</option>
       </select>
-      <input type="text" name="product" class="form-control" placeholder="بحث بالمنتج..." value="{{ product_query }}" style="max-width:220px;">
+      <input type="text" name="product" class="form-control" placeholder="بحث بالمنتج..." value="{{ product_query }}">
       <button type="submit" class="btn btn-primary">بحث</button>
       <a href="{% url 'product_expiry_list' %}" class="btn btn-outline">إعادة تعيين</a>
     </form>
   </div>
 </div>
 
-<div class="stat-grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
-  <div class="stat-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;">
-    <div class="stat-value" style="font-size:26px;font-weight:800;color:#dc2626;">{{ expired_count }}</div>
-    <div class="stat-label" style="font-size:12px;color:#64748b;margin-top:4px;">منتهي الصلاحية</div>
-  </div>
-  <div class="stat-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;">
-    <div class="stat-value" style="font-size:26px;font-weight:800;color:#d97706;">{{ warning_count }}</div>
-    <div class="stat-label" style="font-size:12px;color:#64748b;margin-top:4px;">متبقي أقل من 3 شهور</div>
-  </div>
-  <div class="stat-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;">
-    <div class="stat-value" style="font-size:26px;font-weight:800;color:#16a34a;">{{ good_count }}</div>
-    <div class="stat-label" style="font-size:12px;color:#64748b;margin-top:4px;">متبقي أكثر من 3 شهور</div>
-  </div>
-  <div class="stat-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;">
-    <div class="stat-value" style="font-size:26px;font-weight:800;color:#2563eb;">{{ total_quantity|floatformat:0|intcomma }}</div>
-    <div class="stat-label" style="font-size:12px;color:#64748b;margin-top:4px;">إجمالي الكميات المراقبة</div>
-  </div>
+<div class="ex-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px;">
+  <div class="stat-card"><div class="stat-info"><div class="stat-value" style="color:#dc2626;">{{ expired_count }}</div><div class="stat-label">منتهي الصلاحية</div></div></div>
+  <div class="stat-card"><div class="stat-info"><div class="stat-value" style="color:#d97706;">{{ warning_count }}</div><div class="stat-label">أقل من 3 شهور</div></div></div>
+  <div class="stat-card"><div class="stat-info"><div class="stat-value" style="color:#16a34a;">{{ good_count }}</div><div class="stat-label">أكثر من 3 شهور</div></div></div>
+  <div class="stat-card"><div class="stat-info"><div class="stat-value">{{ total_quantity|floatformat:0|intcomma }}</div><div class="stat-label">إجمالي الكميات</div></div></div>
 </div>
 
 <div class="card">
   <div class="card-header"><span class="card-title">قائمة المنتجات تحت المراقبة</span></div>
-  <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
-  <div class="table-wrapper">
-    <table class="erp-table">
-      <thead>
-        <tr>
-          {% if user.can_see_all_data %}<th>الفرع</th>{% endif %}
-          <th>المنتج</th><th>رقم الدفعة</th><th>الكمية</th>
-          <th>تاريخ الانتهاء</th><th>المتبقي (يوم)</th><th>الحالة</th><th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for record in expiry_records %}
-        <tr>
-          {% if user.can_see_all_data %}<td>{{ record.branch.name }}</td>{% endif %}
-          <td>{{ record.product.name }}</td>
-          <td>{{ record.batch_number|default:"-" }}</td>
-          <td class="fw-bold">{{ record.quantity }}</td>
-          <td>{{ record.expiry_date|date:"Y-m-d" }}</td>
-          <td class="{% if record.days_remaining < 0 %}text-danger{% elif record.days_remaining <= 90 %}text-warning{% else %}text-success{% endif %}">
-            {% if record.days_remaining < 0 %}منتهي{% else %}{{ record.days_remaining }} يوم{% endif %}
-          </td>
-          <td>
-            {% if record.days_remaining < 0 %}
-              <span class="badge badge-danger">منتهي</span>
-            {% elif record.days_remaining <= 90 %}
-              <span class="badge badge-warning">ينتهي قريباً</span>
-            {% else %}
-              <span class="badge badge-success">جيد</span>
-            {% endif %}
-          </td>
-          <td>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;">
-              <a href="{% url 'product_expiry_consume' record.pk %}" class="btn btn-outline btn-sm">استهلاك</a>
-              <a href="{% url 'product_expiry_edit' record.pk %}" class="btn btn-outline btn-sm">تعديل</a>
-              <a href="{% url 'product_expiry_movements' record.pk %}" class="btn btn-outline btn-sm">سجل</a>
-              <a href="{% url 'product_expiry_delete' record.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">حذف</a>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="{% if user.can_see_all_data %}8{% else %}7{% endif %}" style="text-align:center;padding:40px;color:#64748b;">
-            لا توجد منتجات تحت المراقبة
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            {% if user.can_see_all_data %}<th>الفرع</th>{% endif %}
+            <th>المنتج</th><th>رقم الدفعة</th><th>الكمية</th>
+            <th>تاريخ الانتهاء</th><th>المتبقي</th><th>الحالة</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in expiry_records %}
+          <tr>
+            {% if user.can_see_all_data %}<td>{{ record.branch.name }}</td>{% endif %}
+            <td>{{ record.product.name }}</td>
+            <td>{{ record.batch_number|default:"-" }}</td>
+            <td class="fw-bold">{{ record.quantity }}</td>
+            <td>{{ record.expiry_date|date:"Y-m-d" }}</td>
+            <td class="fw-bold {% if record.days_remaining < 0 %}text-danger{% elif record.days_remaining <= 90 %}text-warning{% else %}text-success{% endif %}">
+              {% if record.days_remaining < 0 %}منتهي{% else %}{{ record.days_remaining }} يوم{% endif %}
+            </td>
+            <td>
+              {% if record.days_remaining < 0 %}<span class="badge badge-danger">منتهي</span>
+              {% elif record.days_remaining <= 90 %}<span class="badge badge-warning">قريباً</span>
+              {% else %}<span class="badge badge-success">جيد</span>{% endif %}
+            </td>
+            <td>
+              <div style="display:flex;gap:5px;">
+                <a href="{% url 'product_expiry_consume' record.pk %}" class="btn btn-outline btn-sm">استهلاك</a>
+                <a href="{% url 'product_expiry_edit' record.pk %}" class="btn btn-outline btn-sm">تعديل</a>
+                <a href="{% url 'product_expiry_movements' record.pk %}" class="btn btn-outline btn-sm">سجل</a>
+                <a href="{% url 'product_expiry_delete' record.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">حذف</a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{% if user.can_see_all_data %}8{% else %}7{% endif %}" class="text-center text-muted" style="padding:40px;">
+              لا توجد منتجات تحت المراقبة
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endblock %}

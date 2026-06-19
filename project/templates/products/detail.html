@@ -5,11 +5,20 @@
 {% block nav_products %}active{% endblock %}
 
 {% block content %}
-<div class="detail-grid" style="display:grid;grid-template-columns:280px 1fr;gap:20px;">
+<style>
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.table-wrap .erp-table{min-width:500px;width:100%;}
+.erp-table td,.erp-table th{white-space:nowrap;}
+@media(max-width:768px){
+  .pd-grid{grid-template-columns:1fr!important;}
+  .btn-sm{min-height:40px;padding:8px 12px;}
+}
+</style>
+<div class="pd-grid" style="display:grid;grid-template-columns:280px 1fr;gap:20px;">
   <div class="card">
     <div class="card-body">
       <h3 style="font-size:16px;font-weight:800;margin-bottom:4px;">{{ product.name }}</h3>
-      <code>{{ product.code }}</code>
+      <code style="background:var(--bg-light);padding:3px 8px;border-radius:4px;font-size:12px;">{{ product.code }}</code>
       {% if product.loyalty_points > 0 %}
       <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:14px;border-radius:8px;margin-top:12px;text-align:center;">
         <div style="font-size:11px;opacity:.8;">نقاط الولاء لكل وحدة</div>
@@ -17,7 +26,7 @@
       </div>
       {% endif %}
       {% if user.can_modify_prices %}
-      <a href="{% url 'products_edit' product.pk %}" class="btn btn-primary" style="width:100%;margin-top:12px;justify-content:center;">تعديل</a>
+      <a href="{% url 'products_edit' product.pk %}" class="btn btn-primary" style="width:100%;margin-top:12px;display:flex;justify-content:center;">تعديل</a>
       {% endif %}
     </div>
   </div>
@@ -25,7 +34,7 @@
     <div class="card">
       <div class="card-header"><span class="card-title">معلومات التسعير</span></div>
       <div class="card-body">
-        <div class="pricing-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div style="background:var(--bg-light);padding:16px;border-radius:8px;text-align:center;">
             <div style="font-size:11px;color:var(--text-muted);">سعر التكلفة</div>
             <div style="font-size:20px;font-weight:800;color:var(--danger);">{{ product.cost_price|floatformat:2|intcomma }}</div>
@@ -39,25 +48,26 @@
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">المخزون بالفروع</span></div>
-      <div class="scroll-hint">مرر يميناً أو يساراً لرؤية باقي الأعمدة</div>
-      <div class="table-wrapper">
-        <table class="erp-table">
-          <thead>
-            <tr><th>الفرع</th><th>الكمية</th><th>الحد الأدنى</th><th>الحالة</th></tr>
-          </thead>
-          <tbody>
-            {% for stock in branch_stocks %}
-            <tr>
-              <td class="fw-600">{{ stock.branch.name }}</td>
-              <td class="fw-bold">{{ stock.quantity }}</td>
-              <td style="color:var(--text-muted);">{{ stock.min_quantity }}</td>
-              <td>{% if stock.is_low_stock %}<span class="badge badge-danger">منخفض</span>{% else %}<span class="badge badge-success">كافٍ</span>{% endif %}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4" style="text-align:center;padding:20px;color:#64748b;">لا توجد بيانات مخزون</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table class="erp-table">
+            <thead>
+              <tr><th>الفرع</th><th>الكمية</th><th>الحد الأدنى</th><th>الحالة</th></tr>
+            </thead>
+            <tbody>
+              {% for stock in branch_stocks %}
+              <tr>
+                <td class="fw-600">{{ stock.branch.name }}</td>
+                <td class="fw-bold">{{ stock.quantity }}</td>
+                <td class="text-muted">{{ stock.min_quantity }}</td>
+                <td>{% if stock.is_low_stock %}<span class="badge badge-danger">منخفض</span>{% else %}<span class="badge badge-success">كافٍ</span>{% endif %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted" style="padding:20px;">لا توجد بيانات</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>

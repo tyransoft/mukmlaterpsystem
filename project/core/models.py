@@ -161,14 +161,13 @@ class Customer(models.Model):
         return f"{self.full_name} ({self.phone})"
 
     def get_total_purchases(self):
-        from .models import Invoice
-        result = Invoice.objects.filter(
+        from .models import SaleInvoice
+        result = SaleInvoice.objects.filter(
             customer=self,
-            invoice_type='sale',
-            status__in=['confirmed', 'paid', 'partial']
+            sale_type='customer',
+            status='confirmed'
         ).aggregate(total=Sum('total'))
         return result['total'] or 0
-
     def get_pending_loyalty_points(self):
         from .models import LoyaltyTransfer
         result = LoyaltyTransfer.objects.filter(

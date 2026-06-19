@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 {% load humanize %}
 
@@ -7,119 +8,55 @@
 
 {% block content %}
 <div class="card">
-  <div class="card-header">
-    <span class="card-title">جرد المخزون</span>
-    <div style="display:flex;gap:8px;">
-      <span class="badge badge-primary">{{ branch.name }}</span>
-      <span class="badge badge-info">{{ inventory_items|length }} منتج</span>
+    <div class="card-header">
+        <span class="card-title">جرد المخزون</span>
     </div>
-  </div>
-  <div class="card-body">
-    <form method="post">
-      {% csrf_token %}
-      
-      <div style="background:#fef3c7;padding:12px;border-radius:8px;margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div>
-            <span class="text-muted">إجمالي المنتجات</span>
-            <span class="fw-bold">{{ inventory_items|length }}</span>
-          </div>
-          <div>
-            <span class="text-muted">إجمالي الكميات</span>
-            <span class="fw-bold">
-              {% with total=0 %}
-                {% for item in inventory_items %}
-                  {% with total=total|add:item.quantity %}{% endwith %}
-                {% endfor %}
-              {% endwith %}
-              {% if inventory_items %}
-                {% with total_quantity=0 %}
-                  {% for item in inventory_items %}
-                    {{ forloop.counter }}
-                  {% endfor %}
-                {% endwith %}
-              {% else %}
-                0
-              {% endif %}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="table-responsive">
-        <table class="erp-table">
-          <thead>
-            <tr>
-              <th style="width:5%">#</th>
-              <th style="width:30%">المنتج</th>
-              <th style="width:20%">الباركود</th>
-              <th style="width:15%">الكمية الحالية</th>
-              <th style="width:30%">الكمية بعد الجرد</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in inventory_items %}
-            <tr>
-              <td>{{ forloop.counter }}</td>
-              <td style="text-align:right;">
-                <div class="fw-600">{{ item.product.name }}</div>
-                <div class="text-muted" style="font-size:11px;">كود: {{ item.product.code|default:"-" }}</div>
-              </td>
-              <td>
-                <code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-size:12px;">
-                  {{ item.product.barcode|default:"-" }}
-                </code>
-              </td>
-              <td class="fw-bold" style="font-size:16px;">
-                {{ item.quantity }}
-                {% if item.is_low_stock %}
-                <span class="badge badge-danger" style="font-size:10px;">منخفض</span>
-                {% endif %}
-              </td>
-              <td>
-                <input type="number" 
-                       name="quantity_{{ item.pk }}" 
-                       class="form-control" 
-                       value="{{ item.quantity }}"
-                       style="width:150px;display:inline-block;"
-                       min="0"
-                       step="1"
-                       required>
-                <small class="text-muted" style="display:block;font-size:10px;margin-top:4px;">
-                  أدخل الكمية الجديدة
-                </small>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5" class="text-center text-muted" style="padding:60px;">
-                <div style="font-size:48px;margin-bottom:10px;">--</div>
-                <h5>لا توجد منتجات في مخزون هذا الفرع</h5>
-                <p class="text-muted">لم يتم إضافة أي منتجات للمخزون بعد</p>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      
-      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
-        <button type="submit" class="btn btn-primary" style="min-width:150px;">
-          حفظ الجرد
-        </button>
-        <a href="{% url 'inventory_list' %}" class="btn btn-outline">
-          إلغاء
-        </a>
-      </div>
-    </form>
-  </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="erp-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>المنتج</th>
+                            <th>الباركود</th>
+                            <th>الكمية الحالية</th>
+                            <th>الكمية بعد الجرد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory_items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <div class="fw-600">{{ item.product.name }}</div>
+                            </td>
+                            <td>{{ item.product.barcode|default:"-" }}</td>
+                            <td class="fw-bold">{{ item.quantity }}</td>
+                            <td>
+                                <input type="number" name="quantity_{{ item.pk }}" 
+                                       class="form-control" 
+                                       value="{{ item.quantity }}"
+                                       style="width:120px;" 
+                                       min="0">
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding:40px;">
+                                لا توجد منتجات في مخزون هذا الفرع
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn btn-primary">حفظ الجرد</button>
+                <a href="{% url 'inventory_list' %}" class="btn btn-outline">إلغاء</a>
+            </div>
+        </form>
+    </div>
 </div>
-
-<style>
-@media print {
-  .btn, .form-control, .no-print {
-    display: none !important;
-  }
-}
-</style>
 {% endblock %}

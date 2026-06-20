@@ -10,7 +10,7 @@ from django.db.models import Q , Sum ,F,Count
 from decimal import Decimal
 from django.core.paginator import Paginator
 from .utils import *
-
+from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
@@ -1054,8 +1054,8 @@ def inventory_print(request, branch_id):
         branch = user.branch
         if branch.pk != branch_id:
             messages.error(request, 'غير مصرح لك بطباعة مخزون فروع أخرى')
-            return redirect('inventory_list')
-    
+            url = reverse('inventory_list')
+            return redirect(f'{url}?branch={branch_id}')            
     inventory = BranchInventory.objects.select_related('product').filter(branch=branch).order_by('product__name')
     
     return render(request, 'inventory/print.html', {
@@ -1116,8 +1116,8 @@ def inventory_damage(request, pk):
     if not request.user.can_see_all_data():
         if not request.user.branch or request.user.branch != inv.branch:
             messages.error(request, 'ليس لديك صلاحية لتلف هذا المخزون')
-            return redirect('inventory_list')
-    
+            url = reverse('inventory_list')
+            return redirect(f'{url}?branch={inv.branch.pk}')    
     if request.method == 'POST':
         try:
             quantity = int(request.POST.get('quantity', 0))
@@ -1146,7 +1146,8 @@ def inventory_damage(request, pk):
                 inv.save()
                 
                 messages.success(request, f'تم تسجيل تلف {quantity} وحدة من {inv.product.name}')
-                return redirect('inventory_list')
+                url = reverse('inventory_list')
+                return redirect(f'{url}?branch={inv.branch.pk}') 
         except ValueError:
             messages.error(request, 'الكمية المدخلة غير صحيحة')
     
@@ -2318,9 +2319,7 @@ def sale_invoice_return(request, pk):
             messages.error(request, 'غير مصرح لك بعمل مرتجع لهذه الفاتورة')
             return redirect('sale_invoices_list')
     
-    if invoice.status != 'confirmed':
-        messages.error(request, 'لا يمكن عمل مرتجع إلا للفواتير المؤكدة')
-        return redirect('sale_invoices_list')
+
     
     if request.method == 'POST':
         return_type = request.POST.get('return_type')

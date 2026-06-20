@@ -22,18 +22,26 @@
       margin: 0 auto;
     }
 .company-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: relative;
   border-bottom: 2px solid #111;
   padding-bottom: 18px;
   margin-bottom: 20px;
-  gap: 20px;
+  min-height: 100px;
 }
 
-.company-info {
-  flex: 1;
-  text-align: left;
+.company-logo {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
+.company-center {
+  text-align: center;
+  width: 100%;
 }
 
 .company-name {
@@ -46,8 +54,14 @@
 .company-slogan {
   font-size: 14px;
   color: #6b7280;
-  letter-spacing: 1px;
+  margin-bottom: 6px;
   font-weight: 600;
+}
+
+.branch-name {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
 }
 
 .company-logo {

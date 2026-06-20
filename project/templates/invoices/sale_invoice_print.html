@@ -214,18 +214,26 @@
 <div class="invoice-container">
   
 <div class="company-header">
-  
-  <img src="{% static 'img/image.png' %}" class="company-logo">
 
-  <div class="company-info">
-    <div class="company-name">شركة الصابري للتجارة الدولية</div>
-    <div style="margin-top:8px;font-size:13px;color:#374151;">
+  <div class="company-logo-wrapper">
+    <img src="{% static 'img/image.png' %}" class="company-logo">
+  </div>
+
+  <div class="company-center">
+    <div class="company-name">
+      شركة الصابري للتجارة الدولية
+    </div>
+
+    <div class="company-slogan">
+      الثقة * التميز * الأمانة * المصداقية
+    </div>
+
+    <div class="branch-name">
       فرع: {{ invoice.branch.name }}
     </div>
-    <div class="company-slogan">
-         الثفة*التميز*الامانة*المصداقية 
-    </div>
   </div>
+
+  <div style="width:110px;"></div>
 
 </div>
 

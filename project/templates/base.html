@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{% block title %}{{ COMPANY_NAME }} - نظام ERP{% endblock %}</title>
+    <title>{% block title %}شركة الصابري للتجارة الدولية {% endblock %}</title>
   <style>
 :root {
     --primary: #E8793A;
@@ -681,10 +681,12 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 
     <aside class="sidebar" id="sidebar" role="navigation" aria-label="القائمة الجانبية">
         <div class="sidebar-brand">
-            <div class="brand-icon"></div>
+            <div class="brand-icon"> 
+               <img src="{% static 'img/image.png' %}">
+           </div>
             <div class="brand-text">
-                <h6>{{ COMPANY_NAME }}</h6>
-                <small>نظام إدارة الموارد</small>
+                <h6>شركة الصابري للتجارة الدولية</h6>
+                <small>الثقة*التميز*الامانة*المصداقية</small>
             </div>
         </div>
 

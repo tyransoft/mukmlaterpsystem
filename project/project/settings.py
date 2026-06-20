@@ -140,4 +140,4 @@ AUTH_USER_MODEL = 'core.CustomUser'
 
 
 
-COMPANY_NAME = 'شركة النخبة للتجارة'
+COMPANY_NAME = 'شركة الصابري '

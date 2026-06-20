@@ -22,26 +22,31 @@
       margin: 0 auto;
     }
 .company-header {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: 2px solid #111;
   padding-bottom: 18px;
   margin-bottom: 20px;
-  min-height: 100px;
+  min-height: 110px;
+  position: relative;
+}
+
+.company-logo-wrapper {
+  width: 110px; 
+  display: flex;
+  justify-content: flex-end;
 }
 
 .company-logo {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   width: 90px;
   height: 90px;
   object-fit: contain;
 }
 
 .company-center {
+  flex: 1;
   text-align: center;
-  width: 100%;
 }
 
 .company-name {
@@ -54,34 +59,23 @@
 .company-slogan {
   font-size: 14px;
   color: #6b7280;
-  margin-bottom: 6px;
   font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .branch-name {
   font-size: 13px;
   color: #374151;
-  font-weight: 500;
-}
-
-.company-logo {
-  width: 95px;
-  height: 95px;
-  object-fit: contain;
 }
 
 @media print {
   .company-logo {
-    width: 85px;
-    height: 85px;
+    width: 80px;
+    height: 80px;
   }
 
   .company-name {
     font-size: 22px;
-  }
-
-  .company-slogan {
-    font-size: 12px;
   }
 }
     .header {
@@ -221,18 +215,26 @@
   
  
 <div class="company-header">
-  
-  <img src="{% static 'img/image.png' %}" class="company-logo">
 
-  <div class="company-info">
-    <div class="company-name">شركة الصابري للتجارة الدولية</div>
-       <div style="margin-top:8px;font-size:13px;color:#374151;">
+  <div class="company-logo-wrapper">
+    <img src="{% static 'img/image.png' %}" class="company-logo">
+  </div>
+
+  <div class="company-center">
+    <div class="company-name">
+      شركة الصابري للتجارة الدولية
+    </div>
+
+    <div class="company-slogan">
+      الثقة * التميز * الأمانة * المصداقية
+    </div>
+
+    <div class="branch-name">
       فرع: {{ invoice.branch.name }}
     </div>
-    <div class="company-slogan">
-         الثفة*التميز*الامانة*المصداقية 
-    </div>
   </div>
+
+  <div style="width:110px;"></div>
 
 </div>
 

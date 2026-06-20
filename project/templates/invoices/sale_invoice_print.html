@@ -20,6 +20,55 @@
       max-width: 100%;
       margin: 0 auto;
     }
+.company-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #111;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.company-info {
+  flex: 1;
+  text-align: left;
+}
+
+.company-name {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.company-slogan {
+  font-size: 14px;
+  color: #6b7280;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.company-logo {
+  width: 95px;
+  height: 95px;
+  object-fit: contain;
+}
+
+@media print {
+  .company-logo {
+    width: 85px;
+    height: 85px;
+  }
+
+  .company-name {
+    font-size: 22px;
+  }
+
+  .company-slogan {
+    font-size: 12px;
+  }
+}    
     .header {
       text-align: center;
       border-bottom: 2px solid #080808;
@@ -162,12 +211,25 @@
 <body>
 <div class="invoice-container">
   
-  <div class="header">
-    <div class="logo">{{ invoice.branch.name }}</div>
-    <div class="subtitle">فاتورة مبيعات</div>
-  </div>
+<div class="company-header">
   
-  <div class="invoice-title">رقم الفاتورة: {{ invoice.invoice_number }}</div>
+  <img src="{% static 'img/image.png' %}" class="company-logo">
+
+  <div class="company-info">
+    <div class="company-name">شركة الصابري للتجارة الدولية</div>
+    <div style="margin-top:8px;font-size:13px;color:#374151;">
+      فرع: {{ invoice.branch.name }}
+    </div>
+    <div class="company-slogan">
+         الثفة*التميز*الامانة*المصداقية 
+    </div>
+  </div>
+
+</div>
+
+<div class="invoice-title">
+  فاتورة مبيعات رقم: {{ invoice.invoice_number }}
+</div>  
   
   <div class="info-row">
     <div class="info-card">

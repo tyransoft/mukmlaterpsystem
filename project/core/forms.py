@@ -142,24 +142,17 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    initial_quantity = forms.IntegerField(
-        label='الكمية ',
-        min_value=0,
-        required=False,
-        initial=0,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
+
     class Meta:
         model = Product
         fields = ['name',  'barcode', 'category', 'cost_price', 'selling_price',
-                  'loyalty_points', 'is_active']
+                 , 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'barcode': forms.TextInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'cost_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'loyalty_points': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {

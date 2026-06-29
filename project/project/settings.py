@@ -20,10 +20,10 @@ TEMP=BASE_DIR / 'templates'
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-quz(+0z6oyf$g#sema_ntb4wdo)_1vpisx*q^09eq4g$t%=ms_'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['mukmelat.tip2.libyanspider.cloud']
 
@@ -80,10 +80,10 @@ SESSION_COOKIE_SECURE = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mukemlat',
-        'USER': 'webadmin',
-        'PASSWORD': 'SLPskg91411',
-        'HOST': '10.7.6.92',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
         'PORT': '5432',
     }
 }

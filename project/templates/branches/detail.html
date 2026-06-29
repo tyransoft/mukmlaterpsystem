@@ -96,7 +96,7 @@
         <div class="filter-actions">
           <button type="submit" class="btn btn-primary" style="flex:1;">عرض</button>
           {% if date_from or date_to %}
-          <a href="{% url 'branch_detail' branch.pk %}" class="btn btn-outline">إعادة</a>
+          <a href="{% url 'branches_detail' branch.pk %}" class="btn btn-outline">إعادة</a>
           {% endif %}
         </div>
       </form>

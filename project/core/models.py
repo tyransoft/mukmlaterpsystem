@@ -367,6 +367,8 @@ class InventoryMovement(models.Model):
         ('supply_out', 'توريد صادر'),
         ('supply_in', 'توريد وارد'),
         ('adjustment', 'تعديل'),
+        ('damage','اتلاف'),
+        ('stocktake','استهلاك'),
     ]
     
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)

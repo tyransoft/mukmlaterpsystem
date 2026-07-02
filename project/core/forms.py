@@ -146,18 +146,24 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = ['name',  'barcode', 'category', 'cost_price', 'selling_price',
-                 , 'is_active']
+                 'loyalty_points', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'barcode': forms.TextInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
-            'cost_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'cost_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'loyalty_points':forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
-            'name': 'اسم المنتج', 'code': 'الكود', 'barcode': 'الباركود',
-            'category': 'الفئة', 'cost_price': 'سعر التكلفة', 'selling_price': 'سعر البيع',
+            'name': 'اسم المنتج', 
+            'code': 'الكود',
+            'barcode': 'الباركود',
+            'loyalty_points':'النقاط',
+            'category': 'الفئة', 
+            'cost_price': 'سعر التكلفة',
+            'selling_price': 'سعر البيع',
             'is_active': 'نشط',
         }
 

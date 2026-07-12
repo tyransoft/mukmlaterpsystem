@@ -124,9 +124,12 @@
       </div>
       <button onclick="printBranch()" class="btn btn-outline btn-sm">طباعة</button>
       {% else %}
-      <a href="{% url 'inventory_print' user.branch.pk %}" class="btn btn-outline btn-sm" target="_blank">طباعة</a>
+        {% if user.branch %}
+      <a href="{% url 'inventory_print' user.branch.id %}" class="btn btn-outline btn-sm" target="_blank">طباعة</a>
+        {% endif %}
       {% endif %}
-    </div>
+
+      </div>
   </div>
 
   <div class="card-body filter-bar">

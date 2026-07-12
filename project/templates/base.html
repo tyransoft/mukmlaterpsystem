@@ -732,7 +732,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
                 الفئات
             </a>
             {% endif %}
-
+            {% if user.is_loyalty_employee %}
             <div class="nav-section">المخزون</div>
             <a href="{% url 'inventory_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_inventory %}{% endblock %}">
                 المخزون
@@ -767,7 +767,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             <a href="{% url 'customers_create' %}" class="nav-link {% block nav_customer_create %}{% endblock %}">
                 عميل جديد
             </a>
-
+            {% endif %}
             {% if user.can_see_all_data %}
             <div class="nav-section">الموردين</div>
             <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">

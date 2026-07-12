@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block title %}التحويلات المعلقة{% endblock %}
-{% block page_title %}نقاط الولاء المعلقة{% endblock %}
+{% block page_title %}النقاط المعلقة{% endblock %}
 {% block nav_loyalty %}active{% endblock %}
 
 {% block content %}
@@ -202,7 +202,7 @@
             <td><button onclick="markTransferred({{ t.pk }})" class="btn btn-success btn-sm">تم التحويل</button></td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع نقاط الولاء تم تحويلها</p></td></tr>
+          <tr><td colspan="6" class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع نقاط  تم تحويلها</p></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -233,7 +233,7 @@
         </div>
       </div>
       {% empty %}
-      <div class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع نقاط الولاء تم تحويلها</p></div>
+      <div class="text-center text-muted" style="padding:40px;"><div style="font-size:32px;margin-bottom:8px;">--</div><h5>لا توجد نقاط معلقة</h5><p>جميع النقاط  تم تحويلها</p></div>
       {% endfor %}
     </div>
     
@@ -279,7 +279,7 @@ function showLoading() { document.getElementById('loadingOverlay').style.display
 function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
 async function markTransferred(pk) {
-  if (!confirm('هل تم تحويل نقاط الولاء هذه إلى النظام الخارجي؟')) return;
+  if (!confirm('هل تم تحويل  النقاط إلى النظام الخارجي؟')) return;
   showLoading();
   var btn = event.target;
   btn.disabled = true;

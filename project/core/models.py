@@ -61,7 +61,7 @@ class Role(models.TextChoices):
     BRANCH_MANAGER = 'branch_manager', 'مدير فرع'
     BRANCH_EMPLOYEE = 'branch_employee', 'موظف فرع'
     ACCOUNTANT = 'accountant', 'محاسب'
-    LOYALTY_EMPLOYEE = 'loyalty_employee', 'موظف نقاط الولاء'
+    LOYALTY_EMPLOYEE = 'loyalty_employee', 'موظف نقاط '
 
 
 class CustomUser(AbstractUser):
@@ -135,7 +135,7 @@ class Customer(models.Model):
     phone = models.CharField(max_length=20, unique=True, verbose_name='رقم الهاتف')
     address = models.TextField(blank=True, verbose_name='العنوان')
 
-    loyalty_points = models.IntegerField(default=0, verbose_name='نقاط الولاء')
+    loyalty_points = models.IntegerField(default=0, verbose_name='النقاط')
     debt_balance = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
         verbose_name='رصيد الدين'
@@ -306,7 +306,7 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='سعر التكلفة')
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='سعر البيع')
 
-    loyalty_points = models.IntegerField(default=0, verbose_name='نقاط الولاء لكل وحدة')
+    loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0.0, verbose_name='النقاط لكل وحدة')
     is_active = models.BooleanField(default=True, verbose_name='نشط')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -476,7 +476,7 @@ class PurchaseInvoice(models.Model):
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='المبلغ المدفوع')
     debt_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='المبلغ المتبقي')
     
-    total_loyalty_points = models.IntegerField(default=0, verbose_name='إجمالي نقاط الولاء')
+    total_loyalty_points = models.IntegerField(default=0, verbose_name='إجمالي النقاط ')
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     notes = models.TextField(blank=True)
@@ -584,7 +584,7 @@ class PurchaseInvoice(models.Model):
                 purchase_invoice=self,
                 points=self.total_loyalty_points,
                 transaction_type='earn',
-                notes=f'نقاط ولاء من فاتورة مشتريات {self.invoice_number} - المورد: {self.supplier.name if self.supplier else ""}'
+                notes=f'نقاط  من فاتورة مشتريات {self.invoice_number} - المورد: {self.supplier.name if self.supplier else ""}'
             )
 
 class PurchaseInvoiceItem(models.Model):
@@ -593,7 +593,7 @@ class PurchaseInvoiceItem(models.Model):
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    loyalty_points = models.IntegerField(default=0, verbose_name='نقاط الولاء')
+    loyalty_points = models.IntegerField(default=0, verbose_name='النقاط')
     
     class Meta:
         verbose_name = 'بند فاتورة مشتريات'
@@ -658,8 +658,8 @@ class LoyaltyTransaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        verbose_name = 'معاملة نقاط ولاء'
-        verbose_name_plural = 'معاملات نقاط الولاء'
+        verbose_name = 'معاملة النقاط '
+        verbose_name_plural = 'معاملات النقاط '
         ordering = ['-created_at']
     
     def __str__(self):
@@ -791,7 +791,7 @@ class SaleInvoice(models.Model):
             sale_invoice=self,
             points=self.total_loyalty_points,
             transaction_type='earn',
-            notes=f'نقاط ولاء من توريد من فرع {self.branch.name} - فاتورة {self.invoice_number}'
+            notes=f'نقاط  من توريد من فرع {self.branch.name} - فاتورة {self.invoice_number}'
         )
 
     def _deduct_loyalty_points_from_branch(self):

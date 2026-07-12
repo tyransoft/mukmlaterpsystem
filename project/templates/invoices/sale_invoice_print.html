@@ -250,35 +250,27 @@
 </div>  
   
   <div class="info-row">
+    {% if invoice.customer %}
     <div class="info-card">
-      <div class="info-label">التاريخ</div>
-      <div class="info-value">{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+      <div class="info-label">العميل</div>
+      <div class="info-value">{{ invoice.customer.full_name }}الاسم:</div>
+      <div class="info-value">{{ invoice.customer.customer_id }}رقم العضوية:</div>
+      <div class="subtitle" style="font-size:10px;">{{ invoice.customer.phone }}رقم الهاتف:</div>
     </div>
+    {% endif %}
     
     <div class="info-card">
       <div class="info-label">الفرع</div>
       <div class="info-value">{{ invoice.branch.name }}</div>
     </div>
-    {% if invoice.customer %}
+
     <div class="info-card">
-      <div class="info-label">العميل</div>
-      <div class="info-value">{{ invoice.customer.full_name }}</div>
-      <div class="info-value">{{ invoice.customer.customer_id }}</div>
-      <div class="subtitle" style="font-size:10px;">{{ invoice.customer.phone }}</div>
+      <div class="info-label">التاريخ</div>
+      <div class="info-value">{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
     </div>
-    {% endif %}
-    <div class="info-card">
-      <div class="info-label">تم بواسطة</div>
-      <div class="info-value">{{ invoice.employee.get_full_name|default:invoice.employee.username }}</div>
-    </div>
+
   </div>
-  
-  {% if invoice.notes %}
-  <div style="margin-bottom:15px;padding:8px 12px;background:#fef3c7;border-radius:8px;">
-    <span class="info-label">ملاحظات:</span>
-    <span style="font-size:12px;">{{ invoice.notes }}</span>
-  </div>
-  {% endif %}
+
   
   <table class="products-table">
     <thead>
@@ -288,7 +280,7 @@
         <th>الكمية</th>
         <th>السعر</th>
         <th>الإجمالي</th>
-        <th>نقاط</th>
+        <th>اجمالي النقاط</th>
       </tr>
     </thead>
     <tbody>
@@ -336,13 +328,23 @@
       {% endif %}
       {% if invoice.total_loyalty_points > 0 %}
       <div class="totals-row">
-        <span>نقاط الولاء</span>
+        <span>اجمالي النقاط</span>
         <span>{{ invoice.total_loyalty_points }}</span>
       </div>
       {% endif %}
     </div>
   </div>
-  
+    <div class="info-card">
+      <div class="info-label">تم بواسطة</div>
+      <div class="info-value">{{ invoice.employee.get_full_name|default:invoice.employee.username }}</div>
+    </div>  
+      
+  {% if invoice.notes %}
+  <div style="margin-bottom:15px;padding:8px 12px;background:#fef3c7;border-radius:8px;">
+    <span class="info-label">ملاحظات:</span>
+    <span style="font-size:12px;">{{ invoice.notes }}</span>
+  </div>
+  {% endif %}
   <div class="footer">
     <div>شكراً لتعاملكم معنا</div>
   </div>

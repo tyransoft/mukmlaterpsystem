@@ -406,18 +406,23 @@ def user_edit(request, pk):
     if not request.user.can_see_all_data():
         messages.error(request, 'ليس لديك صلاحية للوصول لهذه الصفحة')
         return redirect('dashboard_home')
+    
     user = get_object_or_404(CustomUser, pk=pk)
+    
     if request.method == 'POST':
-        form = UserEditForm(request.POST, instance=user)
+        form = UserEditForm(request.POST, instance=user, request=request)
         if form.is_valid():
             form.save()
-          
             messages.success(request, 'تم تحديث بيانات المستخدم بنجاح')
             return redirect('users_list')
     else:
-        form = UserEditForm(instance=user)
-    return render(request, 'accounts/user_form.html', {'form': form, 'title': 'تعديل المستخدم', 'user_obj': user})
-
+        form = UserEditForm(instance=user, request=request)
+    
+    return render(request, 'accounts/user_form.html', {
+        'form': form, 
+        'title': 'تعديل المستخدم', 
+        'user_obj': user
+    })
 
 @login_required
 def user_delete(request, pk):
@@ -792,7 +797,7 @@ def purchase_invoice_create(request):
                 
                 if request.POST.get('confirm') == 'yes':
                     invoice.confirm()
-                    messages.info(request, 'تم تأكيد الفاتورة وإضافة نقاط الولاء للفرع الرئيسي')
+                    messages.info(request, 'تم تأكيد الفاتورة وإضافة النقاط  للفرع الرئيسي')
                 
                 return redirect('purchase_invoice_detail', pk=invoice.pk)
                 
@@ -1236,7 +1241,7 @@ def get_branch_stock_ajax(request):
 @login_required
 def pending_transfers(request):
     if not (request.user.is_loyalty_employee() or request.user.can_see_all_data()):
-        messages.error(request, 'هذه الصفحة مخصصة لموظفي نقاط الولاء فقط')
+        messages.error(request, 'هذه الصفحة مخصصة لموظفي النقاط  فقط')
         return redirect('dashboard_home')
     
     branch_id = request.GET.get('branch', '')
@@ -2093,11 +2098,19 @@ def products_bulk_price_update(request):
         if not selected_products:
             messages.error(request, 'الرجاء اختيار منتج واحد على الأقل')
             return redirect('products_bulk_price_update')
-        
-        if increase_value <= 0:
-            messages.error(request, 'الرجاء إدخال قيمة زيادة أكبر من صفر')
+        if not increase_value:
+            messages.error(request, 'الرجاء إدخال قيمة الزيادة')
             return redirect('products_bulk_price_update')
         
+        try:
+            increase_value = Decimal(increase_value)
+        except (ValueError, TypeError):
+            messages.error(request, 'الرجاء إدخال قيمة رقمية صحيحة')
+            return redirect('products_bulk_price_update')
+        
+        if increase_value <= 0:
+            messages.error(request, ' الرجاء إدخال قيمة زيادة أكبر من صفر')
+            return redirect('products_bulk_price_update')
         updated_count = 0
         for product_id in selected_products:
             try:
@@ -2493,8 +2506,8 @@ def sale_invoice_return(request, pk):
 def branch_adjust_points(request, pk):
     branch = get_object_or_404(Branch, pk=pk)
     
-    if not request.user.can_see_all_data():
-        messages.error(request, 'غير مصرح لك بتعديل نقاط الولاء')
+    if not request.user.can_see_all_data() :
+        messages.error(request, 'غير مصرح لك بتعديل النقاط')
         return redirect('branches_detail', pk=pk)
     
     if request.method == 'POST':
@@ -2520,7 +2533,7 @@ def branch_adjust_points(request, pk):
                     transaction_type='manual_add',
                     notes=f'إضافة يدوية من قبل {request.user.get_full_name()} - {reason}'
                 )
-                messages.success(request, f'تم إضافة {points} نقطة ولاء للفرع {branch.name}')
+                messages.success(request, f'تم إضافة {points} نقطة  للفرع {branch.name}')
                 
             elif action == 'deduct':
                 if points > branch.loyalty_points_inventory:
@@ -2538,7 +2551,7 @@ def branch_adjust_points(request, pk):
                     transaction_type='manual_deduct',
                     notes=f'خصم يدوي من قبل {request.user.get_full_name()} - {reason}'
                 )
-                messages.success(request, f'تم خصم {points} نقطة ولاء من الفرع {branch.name}')
+                messages.success(request, f'تم خصم {points} نقطة من الفرع {branch.name}')
             
             else:
                 messages.error(request, 'إجراء غير صالح')

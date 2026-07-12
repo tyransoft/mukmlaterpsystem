@@ -39,6 +39,17 @@ class UserCreateForm(UserCreationForm):
 
 
 class UserEditForm(forms.ModelForm):
+    password1 = forms.CharField(
+        label='كلمة المرور الجديدة',
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
+        required=False,
+        help_text='اتركه فارغاً إذا لم ترغب في تغيير كلمة المرور'
+    )
+    password2 = forms.CharField(
+        label='تأكيد كلمة المرور الجديدة',
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
+        required=False
+    )
     class Meta:
         model = CustomUser
         fields = [ 'role', 'branch', 'is_active']
@@ -54,11 +65,51 @@ class UserEditForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.fields['branch'].queryset = Branch.objects.filter(is_active=True)
         self.fields['branch'].required = False
         self.fields['branch'].empty_label = '-- لا فرع --'
 
+        if self.request and self.request.user.is_main_admin():
+            self.fields['username'] = forms.CharField(
+                label='اسم المستخدم',
+                widget=forms.TextInput(attrs={'class': 'form-control'}),
+                required=True,
+                initial=self.instance.username if self.instance else ''
+            )
+            self.fields['password1'].required = False
+            self.fields['password2'].required = False
+        else:
+            if 'password1' in self.fields:
+                self.fields['password1'].widget = forms.HiddenInput()
+                self.fields['password2'].widget = forms.HiddenInput()
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get('password1')
+        password2 = self.cleaned_data.get('password2')
+        
+        if password1 or password2:
+            if password1 and password2:
+                if password1 != password2:
+                    raise forms.ValidationError('كلمتا المرور غير متطابقتين')
+                if len(password1) < 8:
+                    raise forms.ValidationError('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
+                return password2
+            else:
+                raise forms.ValidationError('يرجى ملء جميع حقول كلمة المرور')
+        return password2
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('password1')
+        
+        if password:
+            user.set_password(password)
+        
+        if commit:
+            user.save()
+        return user
 
 class BranchInventoryForm(forms.ModelForm):
     class Meta:
@@ -151,9 +202,9 @@ class ProductForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'barcode': forms.TextInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
-            'cost_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
-            'loyalty_points':forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
-            'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'cost_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'loyalty_points':forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'selling_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {

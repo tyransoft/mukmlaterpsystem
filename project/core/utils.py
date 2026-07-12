@@ -8,7 +8,7 @@ from datetime import datetime
 def generate_loyalty_transfer_excel(transfers, transfer_type='single'):
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "نقاط الولاء"
+    ws.title = "النقاط"
     
     headers = ['رقم العضوية', 'اسم العميل', 'النقاط المحولة','تاريخ التحويل']
     header_fill = PatternFill(start_color="2563eb", end_color="2563eb", fill_type="solid")

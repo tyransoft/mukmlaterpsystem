@@ -413,7 +413,7 @@
     {% if invoice.customer %}
     <div class="info-card">
       <div class="info-label">العميل</div>
-      <div class="info-value">{{ invoice.customer.full_name|default:invoice.customer.name }}</div>
+      <div class="info-value">{{ invoice.customer.full_name}}</div>
       <div class="info-value" style="font-size:12px;font-weight:400;color:#6b7280;">
          {{ invoice.customer.customer_id|default:"-" }}
       </div>

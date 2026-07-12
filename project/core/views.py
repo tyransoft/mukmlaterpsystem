@@ -2906,3 +2906,35 @@ def product_expiry_dashboard(request):
         'selected_branch': branch_id if user.can_see_all_data() else '',
     }
     return render(request, 'products/expiry_dashboard.html', context)          
+
+
+@login_required
+def company_settings_view(request):
+    settings = CompanySettings.get_settings()  
+    return render(request, 'settings_view.html', {
+        'settings': settings
+    })
+
+@login_required
+def company_settings_edit(request):
+    if not request.user.is_main_admin():
+        messages.error(request, 'ليس لديك صلاحية لتعديل إعدادات الشركة')
+        return redirect('company_settings_view')
+    
+    settings = CompanySettings.get_settings()
+    
+    if request.method == 'POST':
+        form = CompanySettingsForm(request.POST, request.FILES, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, ' تم تحديث إعدادات الشركة بنجاح')
+            return redirect('company_settings_view')
+        else:
+            messages.error(request, ' يرجى تصحيح الأخطاء في النموذج')
+    else:
+        form = CompanySettingsForm(instance=settings)
+    
+    return render(request, 'settings_edit.html', {
+        'form': form,
+        'settings': settings
+    })    

@@ -1098,3 +1098,74 @@ class ProductExpiryMovement(models.Model):
         verbose_name = 'حركة مراقبة صلاحية'
         verbose_name_plural = 'حركات مراقبة الصلاحية'
         ordering = ['-created_at']        
+
+
+class CompanySettings(models.Model):
+
+    logo = models.ImageField(
+        upload_to='company_logos/',
+        blank=True,
+        null=True,
+        verbose_name='شعار الشركة'
+    )
+    company_name = models.CharField(
+        max_length=200,
+        verbose_name='اسم الشركة',
+        default='شركتي'
+    )
+    phone1 = models.CharField(
+        max_length=20,
+        verbose_name='رقم الهاتف 1',
+        blank=True,
+        default=''
+    )
+    phone2 = models.CharField(
+        max_length=20,
+        verbose_name='رقم الهاتف 2',
+        blank=True,
+        default=''
+    )
+
+    address = models.TextField(
+        verbose_name='العنوان',
+        blank=True,
+        default=''
+    )
+    slogen = models.CharField(
+        max_length=200,
+        verbose_name='عبارة',
+        blank=True,
+        default=''
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'إعدادات الشركة'
+        verbose_name_plural = 'إعدادات الشركة'
+
+    def __str__(self):
+        return f'إعدادات {self.company_name}'
+
+    def save(self, *args, **kwargs):
+        if not self.pk and CompanySettings.objects.exists():
+            raise ValueError('لا يمكن إضافة أكثر من  واحد لإعدادات الشركة')
+        
+        super().save(*args, **kwargs)
+        
+
+
+
+    @classmethod
+    def get_settings(cls):
+        settings = cls.objects.first()
+        if not settings:
+            settings = cls.objects.create(
+                company_name='شركتي',
+                phone1='',
+                phone2='',
+                slogen='',
+                address=''
+            )
+        return settings
+  

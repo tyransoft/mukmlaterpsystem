@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل إعدادات الشركة{% endblock %}
+{% block page_title %}تعديل إعدادات الشركة{% endblock %}
+
+{% block content %}
+<style>
+.settings-form {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+}
+.form-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.form-header {
+    padding: 20px 30px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #e9ecef;
+}
+.form-header h3 {
+    margin: 0;
+    color: #1a2236;
+}
+.form-body {
+    padding: 30px;
+}
+.logo-preview {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+.logo-preview img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.logo-preview .logo-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: #adb5bd;
+}
+.logo-preview .logo-info {
+    flex: 1;
+}
+.logo-preview .logo-info .current-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+}
+.logo-preview .logo-info .file-name {
+    font-size: 14px;
+    color: #6b7280;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group .form-label {
+    font-weight: 600;
+    color: #1a2236;
+    margin-bottom: 6px;
+    display: block;
+}
+.form-group .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+.form-group .form-control:focus {
+    outline: none;
+    border-color: #E8793A;
+    box-shadow: 0 0 0 4px rgba(232, 121, 58, 0.1);
+}
+.form-group .form-control-file {
+    display: block;
+    padding: 10px 0;
+    width: 100%;
+}
+.form-group .help-text {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+.form-group .error-text {
+    font-size: 13px;
+    color: #dc2626;
+    margin-top: 4px;
+}
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+.form-actions .btn {
+    padding: 10px 30px;
+    font-weight: 600;
+    min-width: 120px;
+}
+.alert-danger {
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    margin-bottom: 20px;
+}
+.alert-danger p {
+    margin: 4px 0;
+}
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .settings-form {
+        padding: 10px;
+    }
+    .form-header {
+        padding: 16px 20px;
+    }
+    .form-body {
+        padding: 20px;
+    }
+    .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .logo-preview {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+@media (max-width: 480px) {
+    .form-body {
+        padding: 16px;
+    }
+    .form-group .form-control {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    .form-group .form-label {
+        font-size: 14px;
+    }
+    .form-actions .btn {
+        padding: 8px 20px;
+        font-size: 14px;
+    }
+}
+</style>
+
+<div class="settings-form">
+    <div class="form-card">
+        <div class="form-header">
+            <h3> تعديل إعدادات الشركة</h3>
+        </div>
+        
+        <div class="form-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="logo-preview">
+                    {% if settings.logo %}
+                        <img src="{{ settings.logo.url }}" alt="{{ settings.company_name }}">
+                    {% else %}
+                        <div class="logo-placeholder"></div>
+                    {% endif %}
+                    <div class="logo-info">
+                        <div class="current-label">الشعار الحالي</div>
+                        <div class="file-name">
+                            {% if settings.logo %}
+                                {{ settings.logo.name|slice:"20" }}{% if settings.logo.name|length > 20 %}...{% endif %}
+                            {% else %}
+                                لا يوجد شعار
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.logo.label }}</label>
+                    {{ form.logo }}
+                    {% if form.logo.errors %}
+                        <div class="error-text">{{ form.logo.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.company_name.label }} *</label>
+                    {{ form.company_name }}
+                    {% if form.company_name.errors %}
+                        <div class="error-text">{{ form.company_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.slogen.label }}</label>
+                    {{ form.slogen }}
+                    {% if form.slogen.errors %}
+                        <div class="error-text">{{ form.slogen.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">{{ form.phone1.label }}</label>
+                        {{ form.phone1 }}
+                        {% if form.phone1.errors %}
+                            <div class="error-text">{{ form.phone1.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">{{ form.phone2.label }}</label>
+                        {{ form.phone2 }}
+                        {% if form.phone2.errors %}
+                            <div class="error-text">{{ form.phone2.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.address.label }}</label>
+                    {{ form.address }}
+                    {% if form.address.errors %}
+                        <div class="error-text">{{ form.address.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {% if form.non_field_errors %}
+                <div class="alert-danger">
+                    <strong> يرجى تصحيح الأخطاء التالية:</strong>
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                         حفظ التغييرات
+                    </button>
+                    <a href="{% url 'company_settings_view' %}" class="btn btn-outline">
+                         إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -103,6 +103,8 @@ urlpatterns = [
     path('payment-methods/<int:pk>/delete/', payment_method_delete, name='payment_method_delete'),
     path('payment-methods/<int:pk>/toggle-status/', payment_method_toggle_status, name='payment_method_toggle_status'),
 
+    path('company/settings/', company_settings_view, name='company_settings_view'),
+    path('company/settings/edit/', company_settings_edit, name='company_settings_edit'),
 ]
 
 

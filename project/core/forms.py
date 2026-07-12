@@ -251,3 +251,47 @@ class PaymentMethodForm(forms.ModelForm):
             'is_active': 'نشط',
             'is_default': 'الطريقة الافتراضية',
         }        
+
+
+
+class CompanySettingsForm(forms.ModelForm):
+    class Meta:
+        model = CompanySettings
+        fields = [
+            'logo', 'company_name', 'phone1', 'phone2', 'slogen',
+            'address'
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={
+                'class': 'form-control',
+            }),
+            'phone1': forms.TextInput(attrs={
+                'class': 'form-control',
+                'dir': 'ltr'
+            }),
+            'phone2': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'مثال: 0507654321',
+                'dir': 'ltr'
+            }),
+            'slogen': forms.TextInput(attrs={
+                'class': 'form-control',
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+            }),
+
+            'logo': forms.ClearableFileInput(attrs={
+                'class': 'form-control-file',
+                'accept': 'image/*'
+            })
+        }
+        labels = {
+            'logo': 'شعار الشركة',
+            'company_name': 'اسم الشركة',
+            'phone1': 'رقم الهاتف 1',
+            'phone2': 'رقم الهاتف 2',
+            'address': 'العنوان',
+            'slogen':'عبارة الشركة'
+        }        

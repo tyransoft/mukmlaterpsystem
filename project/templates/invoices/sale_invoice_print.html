@@ -398,18 +398,6 @@
     فاتورة مبيعات رقم: {{ invoice.invoice_number }}
   </div>  
 
-  <div class="info-row">
-    <div class="info-card">
-      <div class="info-label">رقم الفاتورة</div>
-      <div class="info-value">#{{ invoice.invoice_number }}</div>
-    </div>
-    
-    <div class="info-card">
-      <div class="info-label">التاريخ</div>
-      <div class="info-value">{{ invoice.created_at|date:"Y-m-d" }}</div>
-      <div class="info-value" style="font-size:12px;font-weight:400;color:#6b7280;">{{ invoice.created_at|date:"h:i A" }}</div>
-    </div>
-
     {% if invoice.customer %}
     <div class="info-card">
       <div class="info-label">العميل</div>
@@ -424,6 +412,17 @@
       {% endif %}
     </div>
     {% endif %}
+    <div class="info-card">
+      <div class="info-label">الفرع</div>
+      <div class="info-value">{{ invoice.branch.name }}</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">التاريخ</div>
+      <div class="info-value">{{ invoice.created_at|date:"Y-m-d" }}</div>
+      <div class="info-value" style="font-size:12px;font-weight:400;color:#6b7280;">{{ invoice.created_at|date:"h:i A" }}</div>
+    </div>
+
+
 
   
   </div>
@@ -493,7 +492,7 @@
   </div>
 
   <div class="extra-info">
-    <div class="info-card">
+    <div class="info-card"  style="text-align: right; min-width: 200px; max-width: 300px;">
       <div class="info-label"> تم بواسطة</div>
       <div class="info-value">{{ invoice.employee.get_full_name|default:invoice.employee.username }}</div>
       <div class="info-value" style="font-size:11px;font-weight:400;color:#6b7280;">

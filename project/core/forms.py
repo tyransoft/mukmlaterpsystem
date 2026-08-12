@@ -193,7 +193,13 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-
+    initial_quantity = forms.IntegerField(
+        required=False,
+        min_value=0,
+        initial=0,
+        label='الكمية',
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
     class Meta:
         model = Product
         fields = ['name',  'barcode', 'category', 'cost_price', 'selling_price',
@@ -209,7 +215,6 @@ class ProductForm(forms.ModelForm):
         }
         labels = {
             'name': 'اسم المنتج', 
-            'code': 'الكود',
             'barcode': 'الباركود',
             'loyalty_points':'النقاط',
             'category': 'الفئة', 

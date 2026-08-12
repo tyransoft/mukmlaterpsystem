@@ -768,6 +768,12 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             </a>
 
             <div class="nav-section">المشتريات</div>
+            {% if user.can_see_all_data %}
+            <div class="nav-section">الموردين</div>
+            <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">
+                إدارة الموردين
+            </a>
+            {% endif %}
             <a href="{% url 'purchase_invoices_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_purchase_invoices %}{% endblock %}">
                 فواتير المشتريات
             </a>
@@ -783,12 +789,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
                 عميل جديد
             </a>
             {% endif %}
-            {% if user.can_see_all_data %}
-            <div class="nav-section">الموردين</div>
-            <a href="{% url 'supplier_list' %}" class="nav-link {% block nav_suppliers %}{% endblock %}">
-                إدارة الموردين
-            </a>
-            {% endif %}
+
 
             {% if user.is_loyalty_employee or user.can_see_all_data %}
             <div class="nav-section">النقاط</div>
@@ -805,14 +806,24 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             <a href="{% url 'dashboard_accountant' %}" class="nav-link {% block nav_accounting %}{% endblock %}">
                 المحاسبة
             </a>
-            <a href="{% url 'inventory_report' %}" class="nav-link {% block nav_inv_report %}{% endblock %}">
-                تقرير المخزون
-            </a>
+ 
             <a href="{% url 'payment_methods_list' %}" class="nav-link {% block nav_payment %}{% endblock %}">
                 طرق الدفع
             </a>
 
-            <div class="nav-section">مراقبة الصلاحية</div>
+            <div class="nav-section">مراقبة الصلاحية
+
+             {% if warning_records > 0 %}
+               <span class="badge-pill badge-danger" style="background-color: #dc3545; color: white; border-radius: 20px; padding: 2px 10px; margin-right: 5px; font-size: 11px; font-weight: bold; animation: pulse 1.5s infinite;">
+                 {{ warning_records }}
+               </span>
+             {% else %}
+                <span class="badge-pill badge-success" style="background-color: #28a745; color: white; border-radius: 20px; padding: 2px 10px; margin-right: 5px; font-size: 11px; font-weight: bold;">
+                  0
+                </span>
+             {% endif %}
+
+            </div>
             <a href="{% url 'product_expiry_dashboard' %}" class="nav-link {% block nav_expiry_dashboard %}{% endblock %}">
                 لوحة تحكم الصلاحية
             </a>

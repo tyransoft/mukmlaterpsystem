@@ -12,3 +12,17 @@ admin.site.register(PurchaseInvoiceItem)
 admin.site.register(BranchInventory)
 admin.site.register(BranchSalesDelivery)
 admin.site.register(InventoryMovement)
+admin.site.register(ProductExpiry)
+admin.site.register(CompanySettings)
+admin.site.register(Customer)
+admin.site.register(ProductExpiryMovement)
+admin.site.register(SupplierPayment)
+admin.site.register(LoyaltyTransaction)
+admin.site.register(PaymentMethod)
+admin.site.register(Supplier)
+admin.site.register(Category)
+admin.site.register(LoyaltyTransfer)
+admin.site.register(CustomerPayment)
+
+
+

@@ -1360,7 +1360,7 @@ def product_list(request):
     category_id = request.GET.get('category', '')
     products = Product.objects.select_related('category').filter(is_active=True)
     if query:
-        products = products.filter(Q(name__icontains=query) | Q(code__icontains=query) | Q(barcode__icontains=query))
+        products = products.filter(Q(name__icontains=query)  | Q(barcode__icontains=query))
     if category_id:
         products = products.filter(category_id=category_id)
     categories = Category.objects.filter(is_active=True)

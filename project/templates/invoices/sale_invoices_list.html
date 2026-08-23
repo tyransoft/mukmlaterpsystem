@@ -232,6 +232,7 @@
                     <div class="divider"></div>
                     <a href="{% url 'sale_invoice_confirm' inv.pk %}" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')" style="color:#16a34a;"> تأكيد</a>
                     {% endif %}
+          
                   </div>
                 </div>
               </td>
@@ -302,6 +303,7 @@
           {% if inv.status == 'draft' %}
           <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')"> تأكيد</a>
           {% endif %}
+
         </div>
       </div>
       {% empty %}

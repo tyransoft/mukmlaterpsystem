@@ -16,7 +16,6 @@ from datetime import timedelta
 from decimal import Decimal
 import logging ,  traceback
 
-@login_required
 def home(request):
     user = request.user
     if not request.user.is_authenticated:

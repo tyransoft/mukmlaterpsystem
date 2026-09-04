@@ -11,6 +11,10 @@ def product_expiry_dashboard(request):
     user = request.user
     today = timezone.now().date()
     three_months_later = today + timedelta(days=90)
+    if not user.is_authenticated:
+        return {
+            'warning_records': 0
+        }
     if user.can_see_all_data():
         branch_id = request.GET.get('branch', '')
         if branch_id:

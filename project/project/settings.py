@@ -67,7 +67,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.company_settings',
-
+                'core.context_processors.product_expiry_dashboard',
             ],
         },
     },

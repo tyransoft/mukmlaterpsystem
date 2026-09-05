@@ -711,7 +711,7 @@ class SaleInvoice(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"SALE-{self.invoice_number}"
+        return f"SALE-{self.invoice_number}-{self.sale_type}-{self.branch.name}"
     def calculate_additional_fees(self):
     
       if self.payment_method and self.payment_method.increase_percentage > 0:

@@ -384,7 +384,8 @@ class InventoryMovement(models.Model):
     notes = models.TextField(blank=True)
     employee = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    def __str__(self):
+        return f"{self.branch.name} - {self.product.name} - {self.get_movement_type_display()} - {self.quantity} (قبل: {self.quantity_before}, بعد: {self.quantity_after})"
 
 class Supplier(models.Model):
     name = models.CharField(max_length=200, verbose_name='اسم المورد')
@@ -493,7 +494,7 @@ class PurchaseInvoice(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.invoice_number}"
+        return f"{self.invoice_number}-{self.branch.name}-s[{self.supplier.name if self.supplier else 'N/A'}]-{self.total}"
     
 
     def save(self, *args, **kwargs):
@@ -711,7 +712,7 @@ class SaleInvoice(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"SALE-{self.invoice_number}-{self.sale_type}-{self.branch.name}"
+        return f"SALE-{self.invoice_number}-{self.sale_type}-{self.branch.name}-t[{self.target_branch.name if self.target_branch else 'N/A'}]-c[{self.customer.full_name if self.customer else 'N/A'}]-{self.total}"
     def calculate_additional_fees(self):
     
       if self.payment_method and self.payment_method.increase_percentage > 0:

@@ -11,7 +11,6 @@ admin.site.register(PurchaseInvoice)
 admin.site.register(PurchaseInvoiceItem)
 admin.site.register(BranchInventory)
 admin.site.register(BranchSalesDelivery)
-admin.site.register(InventoryMovement)
 admin.site.register(ProductExpiry)
 admin.site.register(CompanySettings)
 admin.site.register(Customer)
@@ -24,5 +23,7 @@ admin.site.register(Category)
 admin.site.register(LoyaltyTransfer)
 admin.site.register(CustomerPayment)
 
-
+@admin.register(InventoryMovement)
+class InventoryMovementAdmin(admin.ModelAdmin):
+    list_filter = ('branch',)
 

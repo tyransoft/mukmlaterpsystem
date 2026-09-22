@@ -20,7 +20,8 @@ class Branch(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='نشط')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    loyalty_points_inventory=models.FloatField(default=0.0)
+    loyalty_points_inventory=models.DecimalField(
+        max_digits=5, decimal_places=2, default=0)
     class Meta:
         verbose_name = 'فرع'
         verbose_name_plural = 'الفروع'
@@ -135,7 +136,7 @@ class Customer(models.Model):
     phone = models.CharField(max_length=20, blank=True,null=True, verbose_name='رقم الهاتف')
     address = models.TextField(blank=True,null=True ,verbose_name='العنوان')
 
-    loyalty_points = models.IntegerField(default=0, verbose_name='النقاط')
+    loyalty_points = models.DecimalField( max_digits=12, decimal_places=2, default=0, verbose_name='النقاط')
     debt_balance = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
         verbose_name='رصيد الدين'
@@ -265,7 +266,7 @@ class LoyaltyTransfer(models.Model):
     
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='loyalty_transfers')
     sale_invoice = models.ForeignKey('core.SaleInvoice', on_delete=models.SET_NULL, null=True, blank=True, related_name='loyalty_transfers')
-    points = models.IntegerField()
+    points = models.DecimalField( max_digits=12, decimal_places=2, default=0)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transferred_by = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_loyalty_transfers')
@@ -306,7 +307,7 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='سعر التكلفة')
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='سعر البيع')
 
-    loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0.0, verbose_name='النقاط لكل وحدة')
+    loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0, verbose_name='النقاط لكل وحدة')
     is_active = models.BooleanField(default=True, verbose_name='نشط')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

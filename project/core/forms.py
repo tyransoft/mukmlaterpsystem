@@ -180,6 +180,32 @@ class CustomerForm(forms.ModelForm):
             'is_active': 'نشط',
         }
 
+    def clean_customer_id(self):
+        customer_id = self.cleaned_data.get('customer_id')
+
+        if not customer_id:
+            return None
+
+        exists = Customer.objects.filter(
+            customer_id=customer_id
+        ).exclude(
+            pk=self.instance.pk
+        ).exists()
+
+        if exists:
+            raise forms.ValidationError(
+                'رقم العضوية مستخدم بالفعل.'
+            )
+
+        return customer_id
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+
+        if not phone:
+            return ''
+
+        return phone
         
 class CategoryForm(forms.ModelForm):
     class Meta:

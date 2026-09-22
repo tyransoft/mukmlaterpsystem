@@ -224,10 +224,8 @@
                   <div class="dropdown-menu">
                     <a href="{% url 'sale_invoice_detail' inv.pk %}"> عرض التفاصيل</a>
                     <a href="{% url 'sale_invoice_print' inv.pk %}" target="_blank"> طباعة</a>
-                    {% if request.user.can_see_all_data %}
                     <div class="divider"></div>
                     <a href="{% url 'sale_invoice_return' inv.pk %}" style="color:#dc2626;">↩ مرتجع</a>
-                    {% endif %}
                     {% if inv.status == 'draft' %}
                     <div class="divider"></div>
                     <a href="{% url 'sale_invoice_confirm' inv.pk %}" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')" style="color:#16a34a;"> تأكيد</a>
@@ -297,9 +295,7 @@
         <div class="mobile-invoice-actions">
           <a href="{% url 'sale_invoice_detail' inv.pk %}" class="btn btn-outline btn-sm"> عرض</a>
           <a href="{% url 'sale_invoice_print' inv.pk %}" class="btn btn-outline btn-sm" target="_blank"> طباعة</a>
-          {% if request.user.can_see_all_data %}
           <a href="{% url 'sale_invoice_return' inv.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">مرتجع</a>
-          {% endif %}
           {% if inv.status == 'draft' %}
           <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')"> تأكيد</a>
           {% endif %}

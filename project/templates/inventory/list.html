@@ -114,8 +114,9 @@
     <div class="header-actions">
       <a href="{% url 'inventory_low_stock' %}" class="btn btn-outline btn-sm">المنخفض</a>
       <a href="{% url 'inventory_report' %}" class="btn btn-outline btn-sm">تقرير</a>
-      <a href="{% url 'inventory_stocktake' %}" class="btn btn-outline btn-sm">جرد</a>
       {% if user.can_see_all_data %}
+
+      <a href="{% url 'inventory_stocktake' %}" class="btn btn-outline btn-sm">جرد</a>
       <div class="branch-select-wrap">
         <select id="printBranchSelect" class="form-select form-select-sm">
           <option value="">اختر فرع</option>

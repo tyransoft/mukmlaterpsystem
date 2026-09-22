@@ -717,7 +717,7 @@ def sale_invoice_create(request):
     
     context = {
         'branches': branches,
-        'customers': Customer.objects.filter(is_active=True),
+        'customers': Customer.objects.filter(is_active=True,created_branch=user_branch),
         'allowed_sale_types': allowed_sale_types,
         'user_branch': user_branch,
         'payment_methods': payment_methods,
@@ -907,7 +907,9 @@ def purchase_invoice_confirm(request, pk):
 @login_required
 def customer_list(request):
     query = request.GET.get('q', '')
-    customers = Customer.objects.filter(is_active=True)
+    user_branch = request.user.branch
+
+    customers = Customer.objects.filter(is_active=True, created_branch=user_branch)
     if query:
         customers = customers.filter(
             Q(full_name__icontains=query) | Q(phone__icontains=query)
@@ -920,7 +922,9 @@ def customer_create(request):
     if request.method == 'POST':
         form = CustomerForm(request.POST)
         if form.is_valid():
+            
             customer = form.save(commit=False)
+            
             customer.created_by = request.user
             customer.created_branch = request.user.branch
             customer.save()
@@ -983,10 +987,12 @@ def customer_detail(request, pk):
 
 @login_required
 def customer_search_ajax(request):
+    user_branch = request.user.branch
+
     query = request.GET.get('q', '')
     customers = Customer.objects.filter(
         Q(full_name__icontains=query) | Q(phone__icontains=query) | Q(customer_id__icontains=query),
-        is_active=True
+        is_active=True,created_branch=user_branch
     )[:10]
     data = [{
         'id': c.pk, 
@@ -2309,10 +2315,7 @@ def sale_invoice_return(request, pk):
     invoice = get_object_or_404(SaleInvoice, pk=pk)
     user = request.user
     
-    if not user.can_see_all_data():
-        if user.branch != invoice.branch:
-            messages.error(request, 'غير مصرح لك بعمل مرتجع لهذه الفاتورة')
-            return redirect('sale_invoices_list')
+    
     
     if invoice.status != 'confirmed':
         messages.error(request, 'لا يمكن عمل مرتجع إلا لفاتورة مؤكدة')

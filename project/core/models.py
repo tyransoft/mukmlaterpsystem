@@ -772,7 +772,7 @@ class SaleInvoice(models.Model):
                 if not self.is_cash_customer and self.customer:
                     self._create_loyalty_transfer()
                     self._update_customer_debt()
-                    self._deduct_loyalty_points_from_branch()
+                self._deduct_loyalty_points_from_branch()
             elif self.sale_type == 'branch' and self.target_branch:
                 self._add_loyalty_points_to_branch()
             
@@ -931,15 +931,7 @@ class SaleInvoice(models.Model):
             )
         
         return purchase
-    def _create_loyalty_transfer(self):
-        LoyaltyTransfer.objects.create(
-            customer=self.customer,
-            sale_invoice=self,
-            points=self.total_loyalty_points,
-            branch=self.branch,
-            status='pending',
-            notes=f"نقاط من فاتورة مبيعات {self.invoice_number}"
-        )
+    
     
     def _update_customer_debt(self):
         total_debt = SaleInvoice.objects.filter(

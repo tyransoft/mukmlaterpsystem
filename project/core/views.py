@@ -2461,7 +2461,7 @@ def sale_invoice_return(request, pk):
                     
                     
                 
-                if invoice.total_loyalty_points > 0 and invoice.sale_type == 'customer' :
+                if invoice.total_loyalty_points > 0 and invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
                     invoice.branch.loyalty_points_inventory += invoice.total_loyalty_points
                     invoice.branch.save()
                     

@@ -105,13 +105,20 @@
                 <th>المنتج</th>
                 <th>الباركود</th>
                 <th>الكمية</th>
+                {% if user.can_see_all_data %}
+
                 <th>سعر الشراء</th>
+                {% endif %}
                 <th>سعر البيع</th>
+                {% if user.can_see_all_data %}
+
                 <th>قيمة الشراء</th>
+                {% endif %}
                 <th>قيمة البيع</th>
                 <th>النقاط</th>
             </tr>
         </thead>
+
         <tbody>
             {% for item in inventory %}
             <tr>
@@ -119,9 +126,15 @@
                 <td>{{ item.product.name }}</td>
                 <td>{{ item.product.barcode|default:"-" }}</td>
                 <td>{{ item.quantity }}</td>
+                {% if user.can_see_all_data %}
+
                 <td>{{ item.product.cost_price|floatformat:2 }}</td>
+                {% endif %}
                 <td>{{ item.product.selling_price|floatformat:2 }}</td>
+                {% if user.can_see_all_data %}
+
                 <td>{{ item.stock_value|floatformat:2 }}</td>
+                {% endif %}
                 <td>{{ item.sale_stock_value|floatformat:2 }}</td>
                 <td>{{ item.total_loyalty_points|floatformat:2 }}</td>
             </tr>
@@ -138,25 +151,25 @@
     <div class="totals-box">
         <h3>الإجماليات</h3>
         <div class="totals-grid">
-            <div class="total-item qty">
-                <span class="label">إجمالي الكميات:</span>
-                <span class="value">{{ total_quantity }}</span>
-            </div>
+            {% if user.can_see_all_data %}
+
             <div class="total-item cost">
                 <span class="label">إجمالي قيمة الشراء:</span>
                 <span class="value">{{ total_cost_value|floatformat:2 }}</span>
-            </div>
-            <div class="total-item selling">
-                <span class="label">إجمالي قيمة البيع:</span>
-                <span class="value">{{ total_selling_value|floatformat:2 }}</span>
             </div>
             <div class="total-item profit">
                 <span class="label">الربح المتوقع:</span>
                 <span class="value">{{ total_profit|floatformat:2 }}</span>
             </div>
+
+            {% endif %}
+            <div class="total-item selling">
+                <span class="label">إجمالي قيمة البيع:</span>
+                <span class="value">{{ total_selling_value|floatformat:2 }}</span>
+            </div>
             <div class="total-item points">
                 <span class="label">إجمالي النقاط:</span>
-                <span class="value">{{ total_loyalty_points|floatformat:2 }}</span>
+                <span class="value">{{ total_loyalty_points }}</span>
             </div>
         </div>
     </div>

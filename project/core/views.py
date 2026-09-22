@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from .models import *
 from .forms import *
 from django.db import transaction
-from django.db.models import Q , Sum ,F,Count
+from django.db.models import Q , Sum ,F,Count,DecimalField, ExpressionWrapper
 from decimal import Decimal
 from django.core.paginator import Paginator
 from .utils import *
@@ -1066,15 +1066,50 @@ def inventory_print(request, branch_id):
         if branch.pk != branch_id:
             messages.error(request, 'غير مصرح لك بطباعة مخزون فروع أخرى')
             url = reverse('inventory_list')
-            return redirect(f'{url}?branch={branch_id}')            
-    inventory = BranchInventory.objects.select_related('product').filter(branch=branch).order_by('product__name')
+            return redirect(f'{url}?branch={branch_id}')
+    
+    inventory = BranchInventory.objects.select_related('product').filter(
+        branch=branch
+    ).order_by('product__name')
+    
+    totals = inventory.aggregate(
+        total_cost_value=Sum(
+            ExpressionWrapper(
+                F('quantity') * F('product__cost_price'),
+                output_field=DecimalField(max_digits=15, decimal_places=2)
+            )
+        ),
+        total_selling_value=Sum(
+            ExpressionWrapper(
+                F('quantity') * F('product__selling_price'),
+                output_field=DecimalField(max_digits=15, decimal_places=2)
+            )
+        ),
+        total_loyalty_points=Sum(
+            ExpressionWrapper(
+                F('quantity') * F('product__loyalty_points'),
+                output_field=DecimalField(max_digits=15, decimal_places=2)
+            )
+        ),
+        total_quantity=Sum('quantity'),
+    )
+    
+    total_cost_value = totals['total_cost_value'] or Decimal('0')
+    total_selling_value = totals['total_selling_value'] or Decimal('0')
+    total_loyalty_points = totals['total_loyalty_points'] or Decimal('0')
+    total_quantity = totals['total_quantity'] or 0
+    total_profit = total_selling_value - total_cost_value
     
     return render(request, 'inventory/print.html', {
         'inventory': inventory,
         'branch': branch,
         'now': timezone.now(),
+        'total_cost_value': total_cost_value,
+        'total_selling_value': total_selling_value,
+        'total_loyalty_points': total_loyalty_points,
+        'total_quantity': total_quantity,
+        'total_profit': total_profit,
     })
-
 
 @login_required
 def inventory_stocktake(request):

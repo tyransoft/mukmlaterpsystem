@@ -425,7 +425,7 @@ $(document).ready(function() {
         let productId = parseInt(selectedOption.val());
         let productName = selectedOption.data('name');
         let productPrice = parseFloat(selectedOption.data('price'));
-        let productPoints = parseInt(selectedOption.data('points'));
+        let productPoints = parseFloat(selectedOption.data('points')) || 0;
         let productStock = parseInt(selectedOption.data('stock'));
         addProductToTable(productId, productName, productPrice, productPoints, productStock);
         select.val('');

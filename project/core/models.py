@@ -480,7 +480,7 @@ class PurchaseInvoice(models.Model):
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='المبلغ المدفوع')
     debt_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='المبلغ المتبقي')
     
-    total_loyalty_points = models.IntegerField(default=0, verbose_name='إجمالي النقاط ')
+    total_loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0, verbose_name='إجمالي النقاط ')
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     notes = models.TextField(blank=True)
@@ -597,7 +597,7 @@ class PurchaseInvoiceItem(models.Model):
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    loyalty_points = models.IntegerField(default=0, verbose_name='النقاط')
+    loyalty_points = models.DecimalField(max_digits=12, decimal_places=2 , verbose_name='النقاط')
     
     class Meta:
         verbose_name = 'بند فاتورة مشتريات'
@@ -656,7 +656,11 @@ class LoyaltyTransaction(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     sale_invoice = models.ForeignKey("core.SaleInvoice", on_delete=models.SET_NULL, null=True, blank=True)
     purchase_invoice = models.ForeignKey(PurchaseInvoice, on_delete=models.SET_NULL, null=True, blank=True)
-    points = models.IntegerField()
+    points = models.DecimalField(
+    max_digits=12,
+    decimal_places=2,
+    default=0
+      )
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -699,7 +703,7 @@ class SaleInvoice(models.Model):
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True,verbose_name='طريقة الدفع')
     additional_fees = models.DecimalField(max_digits=12, decimal_places=2, default=0,verbose_name='الرسوم الإضافية')
     is_cash_customer = models.BooleanField(default=False, verbose_name='عميل نقدي ')
-    total_loyalty_points = models.IntegerField(default=0)
+    total_loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     due_date = models.DateField(null=True, blank=True)
@@ -977,7 +981,7 @@ class SaleInvoiceItem(models.Model):
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    loyalty_points = models.IntegerField(default=0)  
+    loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0)  
     
     class Meta:
         verbose_name = 'بند فاتورة مبيعات'

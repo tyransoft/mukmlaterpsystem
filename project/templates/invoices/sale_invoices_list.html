@@ -169,6 +169,20 @@
               <option value="{{ value }}" {% if sale_type_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
+          {% if is_admin %}
+<select name="target_branch" class="form-select">
+    <option value="">جميع الفروع</option>
+
+    {% for branch in branches %}
+        <option value="{{ branch.pk }}"
+            {% if target_branch_filter == branch.pk|stringformat:"s" %}
+                selected
+            {% endif %}>
+            {{ branch.name }}
+        </option>
+    {% endfor %}
+</select>
+{% endif %}
           <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
           <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
           <button type="submit" class="btn btn-primary">بحث</button>

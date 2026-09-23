@@ -1807,49 +1807,89 @@ def supplier_payment_invoice(request, payment_id):
     
     return render(request, 'suppliers/payment_invoice.html', {'payment': payment})
 
+
 @login_required
 def sale_invoices_list(request):
     user = request.user
-    invoices = SaleInvoice.objects.select_related('branch', 'customer', 'employee')
-    
+
+    invoices = SaleInvoice.objects.select_related(
+        'branch',
+        'target_branch',
+        'customer',
+        'employee'
+    )
+
     if not user.can_see_all_data():
         invoices = invoices.filter(branch=user.branch)
-    
+
+    target_branch_id = request.GET.get('target_branch', '')
+
+    if target_branch_id:
+        invoices = invoices.filter(
+            sale_type='branch',
+            target_branch_id=target_branch_id
+        )
+
     status = request.GET.get('status', '')
     if status:
         invoices = invoices.filter(status=status)
-    
+
     sale_type = request.GET.get('sale_type', '')
     if sale_type:
         invoices = invoices.filter(sale_type=sale_type)
-    
+
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+
     if date_from:
         invoices = invoices.filter(created_at__date__gte=date_from)
+
     if date_to:
         invoices = invoices.filter(created_at__date__lte=date_to)
-    
+
     invoices = invoices.order_by('-created_at')
-    
+
     stats = {
         'total_count': invoices.count(),
-        'total_amount': invoices.aggregate(total=Sum('total'))['total'] or 0,
-        'draft_count': invoices.filter(status='draft').count(),
-        'confirmed_count': invoices.filter(status='confirmed').count(),
+        'total_amount': invoices.aggregate(
+            total=Sum('total')
+        )['total'] or 0,
+
+        'draft_count': invoices.filter(
+            status='draft'
+        ).count(),
+
+        'confirmed_count': invoices.filter(
+            status='confirmed'
+        ).count(),
     }
-    
+
+    branches = Branch.objects.all().order_by('name') \
+        if user.can_see_all_data() else Branch.objects.filter(pk=user.branch_id)
+
     context = {
         'invoices': invoices,
         'stats': stats,
+
         'status_filter': status,
         'sale_type_filter': sale_type,
+        'target_branch_filter': target_branch_id,
+
         'date_from': date_from,
         'date_to': date_to,
+
         'status_choices': SaleInvoice.STATUS_CHOICES,
         'sale_type_choices': SaleInvoice.SALE_TYPE_CHOICES,
+
+        'branches': branches,
+        'is_admin': user.can_see_all_data(),
     }
-    return render(request, 'invoices/sale_invoices_list.html', context)
+
+    return render(
+        request,
+        'invoices/sale_invoices_list.html',
+        context
+    )
 
 @login_required
 def purchase_invoices_list(request):

@@ -59,7 +59,7 @@
         {% if invoice.customer %}
         <div>
           <div class="text-muted" style="font-size:12px;">العميل</div>
-          <div>{{ invoice.customer.full_name }}<br><small>{{ invoice.customer.phone }}</small></div>
+          <div>{{ invoice.customer.full_name }}<br><small>{{ invoice.customer.customer_id }}</small></div>
         </div>
         {% endif %}
         {% if invoice.due_date %}

@@ -182,6 +182,7 @@
                 <th>الإجمالي</th>
                 <th>عمولة الفرع</th>
                 <th>مستحق للرئيسي</th>
+                <th>اجمالي النقاط</th>
                 <th></th>
               </tr>
             </thead>
@@ -190,10 +191,24 @@
               <tr>
                 <td class="fw-600">{{ invoice.invoice_number }}</td>
                 <td>{{ invoice.created_at|date:"Y-m-d" }}</td>
-                <td>{{ invoice.customer.full_name|default:"-" }}</td>
+                <td>
+                {% if invoice.customer %}
+                   <div>{{ invoice.customer.full_name }}</div>
+
+                   {% if invoice.customer.customer_id %}
+                    <small style="color:#6b7280;">
+                      رقم العضوية: {{ invoice.customer.customer_id }}
+                   </small>
+                   {% endif %}
+                {% else %}
+                   -
+                {% endif %}
+                </td>
                 <td class="fw-bold">{{ invoice.total|floatformat:2|intcomma }}</td>
                 <td class="text-primary">{{ invoice.branch_commission|floatformat:2|intcomma }}</td>
                 <td class="text-warning">{{ invoice.amount_due_to_main|floatformat:2|intcomma }}</td>
+                <td class="text-warning">{{ invoice.total_loyalty_points }}</td>
+
                 <td>
                   <a href="{% url 'sale_invoice_detail' invoice.pk %}" class="btn btn-outline btn-icon btn-sm">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

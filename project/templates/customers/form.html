@@ -1,24 +1,121 @@
-{% extends 'base.html' %}
-{% block title %}{{ title }}{% endblock %}
-{% block page_title %}{{ title }}{% endblock %}
-{% block nav_customers %}active{% endblock %}
+```html
+{% extends 'base.html' %} 
+{% block title %}{{ title }}{% endblock %} 
+{% block page_title %}{{ title }}{% endblock %} 
+{% block nav_customers %}active{% endblock %} 
+ 
+{% block content %} 
+<div class="card" style="max-width:500px;"> 
+  <div class="card-header">
+    <span class="card-title">{{ title }}</span>
+  </div> 
 
-{% block content %}
-<div class="card" style="max-width:500px;">
-  <div class="card-header"><span class="card-title">{{ title }}</span></div>
-  <div class="card-body">
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-group"><label class="form-label">{{ form.customer_id.label }} <span style="color:red;">*</span></label>{{ form.customer_id }}</div>
-      <div class="form-group"><label class="form-label">{{ form.full_name.label }} <span style="color:red;">*</span></label>{{ form.full_name }}</div>
-      <div class="form-group"><label class="form-label">{{ form.phone.label }} </label>{{ form.phone }}</div>
-      <div class="form-group"><label class="form-label">{{ form.address.label }}</label>{{ form.address }}</div>
-      <div class="form-check" style="margin-bottom:16px;">{{ form.is_active }} <label class="form-label" style="display:inline;">{{ form.is_active.label }}</label></div>
-      <div style="display:flex;gap:10px;">
-        <button type="submit" class="btn btn-primary">حفظ</button>
-        <a href="{% url 'customers_list' %}" class="btn btn-outline">إلغاء</a>
+  <div class="card-body"> 
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
       </div>
-    </form>
-  </div>
-</div>
+    {% endif %}
+
+    <form method="post"> 
+      {% csrf_token %} 
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.customer_id.label }}
+          <span style="color:red;">*</span>
+        </label>
+
+        {{ form.customer_id }}
+
+        {% if form.customer_id.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.customer_id.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.full_name.label }}
+          <span style="color:red;">*</span>
+        </label>
+
+        {{ form.full_name }}
+
+        {% if form.full_name.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.full_name.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.phone.label }}
+        </label>
+
+        {{ form.phone }}
+
+        {% if form.phone.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.phone.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.address.label }}
+        </label>
+
+        {{ form.address }}
+
+        {% if form.address.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.address.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+
+      <div class="form-check" style="margin-bottom:16px;">
+        {{ form.is_active }}
+        <label class="form-label" style="display:inline;">
+          {{ form.is_active.label }}
+        </label>
+
+        {% if form.is_active.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.is_active.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+
+      <div style="display:flex;gap:10px;"> 
+        <button type="submit" class="btn btn-primary">حفظ</button> 
+        <a href="{% url 'customers_list' %}" class="btn btn-outline">إلغاء</a> 
+      </div> 
+
+    </form> 
+  </div> 
+</div> 
 {% endblock %}
+```

@@ -162,6 +162,9 @@ class BranchForm(forms.ModelForm):
 
 
 class CustomerForm(forms.ModelForm):
+    def __init__(self, *args, branch=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.branch = branch
     class Meta:
         model = Customer
         fields = ['customer_id','full_name', 'phone', 'address', 'is_active']
@@ -187,7 +190,7 @@ class CustomerForm(forms.ModelForm):
             return None
 
         exists = Customer.objects.filter(
-            customer_id=customer_id
+            customer_id=customer_id,created_branch=self.branch
         ).exclude(
             pk=self.instance.pk
         ).exists()

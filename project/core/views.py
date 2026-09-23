@@ -920,7 +920,7 @@ def customer_list(request):
 @login_required
 def customer_create(request):
     if request.method == 'POST':
-        form = CustomerForm(request.POST)
+        form = CustomerForm(request.POST,branch=request.user.branch)
         if form.is_valid():
             
             customer = form.save(commit=False)

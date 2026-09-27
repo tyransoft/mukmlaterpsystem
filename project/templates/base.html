@@ -778,10 +778,12 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             <a href="{% url 'purchase_invoices_list' %}{% if user.branch %}?branch={{ user.branch.pk }}{% endif %}" class="nav-link {% block nav_purchase_invoices %}{% endblock %}">
                 فواتير المشتريات
             </a>
+         {% if user.is_main_admin %}
+
             <a href="{% url 'purchase_invoice_create' %}" class="nav-link {% block nav_purchase_invoice_create %}{% endblock %}">
                 فاتورة مشتريات جديدة
             </a>
-
+            {% endif %}
             <div class="nav-section">العملاء</div>
             <a href="{% url 'customers_list' %}" class="nav-link {% block nav_customers %}{% endblock %}">
                 العملاء

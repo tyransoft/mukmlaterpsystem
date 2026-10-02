@@ -102,7 +102,14 @@
                 <td><code class="barcode-code">{{ item.product.barcode|default:"-" }}</code></td>
                 <td class="fw-bold">{{ item.quantity }}</td>
                 <td>
-                  <input type="number" name="quantity_{{ item.pk }}" class="qty-input" value="{{ item.quantity }}" min="0">
+<input
+    type="number"
+    name="quantity_{{ item.pk }}"
+    class="qty-input stock-qty-input"
+    data-item-id="{{ item.pk }}"
+    value="{{ item.quantity }}"
+    min="0"
+>
                 </td>
               </tr>
               {% empty %}
@@ -134,7 +141,14 @@
           <div class="mobile-stock-row">
             <span class="mobile-stock-label">الكمية بعد الجرد</span>
             <span class="mobile-stock-value">
-              <input type="number" name="quantity_{{ item.pk }}" class="qty-input" value="{{ item.quantity }}" min="0">
+<input
+    type="number"
+    name="quantity_{{ item.pk }}"
+    class="qty-input stock-qty-input"
+    data-item-id="{{ item.pk }}"
+    value="{{ item.quantity }}"
+    min="0"
+>
             </span>
           </div>
         </div>
@@ -154,9 +168,42 @@
 </div>
 
 <script>
-document.querySelectorAll('.table-wrap').forEach(function(w) {
-  function c() { w.classList.toggle('has-scroll', w.scrollWidth > w.clientWidth); }
-  c(); window.addEventListener('resize', c);
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.querySelectorAll('.stock-qty-input').forEach(function (input) {
+
+        input.addEventListener('input', function () {
+
+            const itemId = this.dataset.itemId;
+            const value = this.value;
+
+            document.querySelectorAll(
+                '.stock-qty-input[data-item-id="' + itemId + '"]'
+            ).forEach(function (otherInput) {
+
+                if (otherInput !== input) {
+                    otherInput.value = value;
+                }
+
+            });
+        });
+    });
+
+
+    document.querySelectorAll('.table-wrap').forEach(function (w) {
+
+        function checkScroll() {
+            w.classList.toggle(
+                'has-scroll',
+                w.scrollWidth > w.clientWidth
+            );
+        }
+
+        checkScroll();
+
+        window.addEventListener('resize', checkScroll);
+    });
+
 });
 </script>
 {% endblock %}

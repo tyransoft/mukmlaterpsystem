@@ -1394,6 +1394,91 @@ def transfer_history(request):
         'selected_branch': branch_id,
     })
 
+@login_required
+def export_pending_transfers(request):
+    if not (request.user.is_loyalty_employee() or request.user.can_see_all_data()):
+        messages.error(request, 'هذه الصفحة مخصصة لموظفي النقاط فقط')
+        return redirect('dashboard_home')
+
+    branch_id = request.GET.get('branch', '')
+
+    transfers = LoyaltyTransfer.objects.filter(
+        status='pending'
+    ).select_related(
+        'customer',
+        'branch',
+        'sale_invoice'
+    ).order_by('-created_at')
+
+    if branch_id:
+        transfers = transfers.filter(branch_id=branch_id)
+
+    transfers = list(transfers)
+
+    if not transfers:
+        messages.warning(request, 'لا توجد نقاط معلقة للتصدير')
+        return redirect('loyalty_pending')
+
+    wb = generate_loyalty_transfer_excel(
+        transfers,
+        'pending'
+    )
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    if branch_id:
+        filename = f'النقاط_المعلقة_فرع_{branch_id}_{timestamp}.xlsx'
+    else:
+        filename = f'النقاط_المعلقة_كل_الفروع_{timestamp}.xlsx'
+
+    with transaction.atomic():
+        for transfer in transfers:
+            transfer.mark_as_transferred(request.user)
+
+    return create_excel_response(wb, filename)
+
+
+@login_required
+def export_transfer_history(request):
+    if not (request.user.is_loyalty_employee() or request.user.can_see_all_data()):
+        messages.error(request, 'هذه الصفحة مخصصة لموظفي النقاط فقط')
+        return redirect('dashboard_home')
+
+    branch_id = request.GET.get('branch', '')
+
+    transfers = LoyaltyTransfer.objects.filter(
+        status='transferred'
+    ).select_related(
+        'customer',
+        'branch',
+        'transferred_by',
+        'sale_invoice'
+    ).order_by('-transfer_date')
+
+    if branch_id:
+        transfers = transfers.filter(branch_id=branch_id)
+
+    transfers = list(transfers)
+
+    if not transfers:
+        messages.warning(request, 'لا يوجد سجل تحويلات للتصدير')
+        return redirect('loyalty_history')
+
+    wb = generate_loyalty_transfer_excel(
+        transfers,
+        'history'
+    )
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    if branch_id:
+        filename = f'سجل_تحويلات_فرع_{branch_id}_{timestamp}.xlsx'
+    else:
+        filename = f'سجل_تحويلات_كل_الفروع_{timestamp}.xlsx'
+
+    return create_excel_response(wb, filename)
+
+
 
 @login_required
 def product_list(request):

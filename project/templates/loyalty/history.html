@@ -77,6 +77,10 @@
         </select>
         <button type="submit" class="btn btn-outline btn-sm">تصفية</button>
       </form>
+      <a href="{% url 'export_transfer_history' %}{% if selected_branch %}?branch={{ selected_branch }}{% endif %}"
+   class="btn btn-success btn-sm">
+    تنزيل Excel
+</a>
       <a href="{% url 'loyalty_pending' %}" class="btn btn-primary btn-sm">المعلقة</a>
     </div>
   </div>

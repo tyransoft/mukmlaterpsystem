@@ -53,7 +53,8 @@ urlpatterns = [
     path('loyalty/<int:pk>/mark-transferred/', mark_transferred, name='loyalty_mark_transferred'),
     path('loyalty/mark-all/', mark_all_transferred, name='loyalty_mark_all'),
     path('loyalty/history/', transfer_history, name='loyalty_history'),
-
+    path('loyalty/pending/export/',export_pending_transfers,name='export_pending_transfers'),
+    path('loyalty/history/export/',export_transfer_history,name='export_transfer_history'),
     path('products/', product_list, name='products_list'),
     path('products/create/', product_create, name='products_create'),
     path('products/<int:pk>/', product_detail, name='products_detail'),

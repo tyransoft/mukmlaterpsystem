@@ -178,10 +178,11 @@
         </select>
         <button type="submit" class="btn btn-outline btn-sm">تصفية</button>
       </form>
-      <a href="{% url 'export_pending_transfers' %}{% if selected_branch %}?branch={{ selected_branch }}{% endif %}"
-      class="btn btn-success btn-sm">
-      تنزيل Excel
-     </a>
+      <button type="button"
+        onclick="exportPendingTransfers()"
+        class="btn btn-success btn-sm">
+    تنزيل Excel
+</button>
       <a href="{% url 'loyalty_history' %}" class="btn btn-outline btn-sm">السجل</a>
     </div>
   </div>
@@ -342,6 +343,62 @@ async function markAllTransferred(customerId, branchId) {
   } catch(error) {
     showToast(error.message, 'error');
   } finally { hideLoading(); }
+}
+async function exportPendingTransfers() {
+    showLoading();
+
+    try {
+        const url = "{% url 'export_pending_transfers' %}{% if selected_branch %}?branch={{ selected_branch }}{% endif %}";
+
+        const response = await fetch(url, {
+            method: 'GET'
+        });
+
+        if (!response.ok) {
+            let errorMsg = 'فشل تصدير الملف';
+
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.error || errorData.message || errorMsg;
+            } catch (e) {}
+
+            throw new Error(errorMsg);
+        }
+
+        const cd = response.headers.get('Content-Disposition');
+        let filename = 'النقاط_المعلقة.xlsx';
+
+        if (cd) {
+            const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+
+            if (match && match[1]) {
+                filename = match[1].replace(/['"]/g, '');
+            }
+        }
+
+        const blob = await response.blob();
+
+        downloadBlob(blob, filename);
+
+        showToast(
+            'تم تنزيل الملف وتحويل النقاط بنجاح',
+            'success'
+        );
+
+        setTimeout(function() {
+            location.reload();
+        }, 1000);
+
+    } catch (error) {
+
+        showToast(
+            error.message || 'حدث خطأ أثناء التصدير',
+            'error'
+        );
+
+    } finally {
+        hideLoading();
+    }
 }
 </script>
 {% endblock %}

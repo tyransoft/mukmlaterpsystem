@@ -132,7 +132,7 @@ class CustomUser(AbstractUser):
 
 class Customer(models.Model):
     customer_id=models.CharField(max_length=20, verbose_name="رقم العضوية",null=True,blank=True)
-    full_name = models.CharField(max_length=20, verbose_name='الاسم الكامل')
+    full_name = models.CharField(max_length=30, verbose_name='الاسم الكامل')
     phone = models.CharField(max_length=20, blank=True,null=True, verbose_name='رقم الهاتف')
     address = models.TextField(blank=True,null=True ,verbose_name='العنوان')
 

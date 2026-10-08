@@ -498,141 +498,184 @@ def branch_edit(request, pk):
         form = BranchForm(instance=branch)
     return render(request, 'branches/form.html', {'form': form, 'title': f'تعديل الفرع: {branch.name}', 'branch': branch})
 
+
+
 @login_required
 def branch_detail(request, pk):
 
     branch = get_object_or_404(Branch, pk=pk)
     employees = branch.employees.filter(is_active=True)
-    
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
-    
+
+    today = date.today()
+
+    date_from = request.GET.get('date_from') or today.replace(day=1).isoformat()
+    date_to = request.GET.get('date_to') or today.isoformat()
+
     sales_query = SaleInvoice.objects.filter(
         branch=branch,
         sale_type='customer',
-        status='confirmed'
+        status='confirmed',
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to
     )
-    
-    if date_from:
-        sales_query = sales_query.filter(created_at__date__gte=date_from)
-    if date_to:
-        sales_query = sales_query.filter(created_at__date__lte=date_to)
-    
-    total_sales = sales_query.aggregate(total=Sum('total'))['total'] or 0
-    total_commission = sales_query.aggregate(total=Sum('branch_commission'))['total'] or 0
-    
+
+    total_sales = sales_query.aggregate(
+        total=Sum('total')
+    )['total'] or 0
+
+    total_commission = sales_query.aggregate(
+        total=Sum('branch_commission')
+    )['total'] or 0
+
     amount_due_to_main = total_sales - total_commission
-    
-    deliveries_query = BranchSalesDelivery.objects.filter(branch=branch)
-    if date_from:
-        deliveries_query = deliveries_query.filter(delivery_date__date__gte=date_from)
-    if date_to:
-        deliveries_query = deliveries_query.filter(delivery_date__date__lte=date_to)
-    
-    total_delivered = deliveries_query.aggregate(total=Sum('amount'))['total'] or 0
-    remaining_to_deliver = amount_due_to_main - total_delivered
-    
-    period_invoices = sales_query.order_by('-created_at')[:50]
-    recent_deliveries = BranchSalesDelivery.objects.filter(branch=branch).order_by('-delivery_date')[:10]
-    last_delivery = BranchSalesDelivery.objects.filter(branch=branch).order_by('-delivery_date').first()
-    
-    
-    movement_filter = Q(branch=branch) & Q(
-        Q(movement_type__in=['sale', 'supply_in', 'supply_out', 'purchase', 'adjustment', 'damage', 'stocktake'])
+
+    deliveries_query = BranchSalesDelivery.objects.filter(
+        branch=branch,
+        delivery_date__date__gte=date_from,
+        delivery_date__date__lte=date_to
     )
-    
-    movements_qs = InventoryMovement.objects.filter(branch=branch)
-    
-    if date_from:
-        movements_qs = movements_qs.filter(created_at__date__gte=date_from)
-    if date_to:
-        movements_qs = movements_qs.filter(created_at__date__lte=date_to)
-    
-    product_ids = movements_qs.values_list('product_id', flat=True).distinct()
-    products_in_movements = Product.objects.filter(id__in=product_ids).order_by('name')
-    
+
+    total_delivered = deliveries_query.aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    remaining_to_deliver = amount_due_to_main - total_delivered
+
+    period_invoices = sales_query.order_by('-created_at')[:50]
+
+    recent_deliveries = BranchSalesDelivery.objects.filter(
+        branch=branch
+    ).order_by('-delivery_date')[:10]
+
+    last_delivery = BranchSalesDelivery.objects.filter(
+        branch=branch
+    ).order_by('-delivery_date').first()
+
+    movement_types = [
+        'sale',
+        'purchase',
+        'supply_in',
+        'supply_out',
+        'adjustment',
+        'damage',
+        'stocktake',
+    ]
+
+    movements_qs = InventoryMovement.objects.filter(
+        branch=branch,
+        movement_type__in=movement_types,
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
+    )
+
+    product_ids = movements_qs.values_list(
+        'product_id',
+        flat=True
+    ).distinct()
+
+    products_in_movements = Product.objects.filter(
+        id__in=product_ids
+    ).order_by('name')
+
     inventory_comparison = []
-    
+
     for product in products_in_movements:
+
         before_filter = InventoryMovement.objects.filter(
             branch=branch,
-            product=product
+            product=product,
+            created_at__date__lt=date_from,
         )
-        if date_from:
-            before_filter = before_filter.filter(created_at__date__lt=date_from)
-        else:
-            pass
-        
-        last_before_movement = before_filter.order_by('-created_at', '-id').first()
-        
+
+        last_before_movement = before_filter.order_by(
+            '-created_at',
+            '-id'
+        ).first()
+
         if last_before_movement:
             stock_before = last_before_movement.quantity_after
         else:
-            first_in_period = movements_qs.filter(product=product).order_by('created_at', 'id').first()
+            first_in_period = movements_qs.filter(
+                product=product
+            ).order_by(
+                'created_at',
+                'id'
+            ).first()
+
             if first_in_period:
                 stock_before = first_in_period.quantity_before
             else:
                 stock_before = 0
-        
-        
+
         incoming = movements_qs.filter(
             product=product,
-            movement_type__in=['supply_in', 'purchase']
-        ).aggregate(total=Sum('quantity'))['total'] or 0
-        
-        positive_adjustments = movements_qs.filter(
-            product=product,
-            movement_type='adjustment',
             quantity__gt=0
-        ).aggregate(total=Sum('quantity'))['total'] or 0
-        
-        incoming = incoming + positive_adjustments
-        
-        sold_to_customers = abs(movements_qs.filter(
+        ).aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
+
+        sold_to_customers = abs(
+            movements_qs.filter(
+                product=product,
+                movement_type='sale',
+                quantity__lt=0
+            ).aggregate(
+                total=Sum('quantity')
+            )['total'] or 0
+        )
+
+        supplied_out = abs(
+            movements_qs.filter(
+                product=product,
+                movement_type='supply_out',
+                quantity__lt=0
+            ).aggregate(
+                total=Sum('quantity')
+            )['total'] or 0
+        )
+
+        damaged_out = abs(
+            movements_qs.filter(
+                product=product,
+                movement_type__in=['damage', 'stocktake'],
+                quantity__lt=0
+            ).aggregate(
+                total=Sum('quantity')
+            )['total'] or 0
+        )
+
+        damaged_in = movements_qs.filter(
             product=product,
-            movement_type='sale'
-        ).aggregate(total=Sum('quantity'))['total'] or 0)
-        
-        supplied_out = abs(movements_qs.filter(
-            product=product,
-            movement_type='supply_out'
-        ).aggregate(total=Sum('quantity'))['total'] or 0)
-        
-        damaged = abs(movements_qs.filter(
-            product=product,
-            movement_type='damage'
-        ).aggregate(total=Sum('quantity'))['total'] or 0)
-        
-        stocktake_loss = abs(movements_qs.filter(
-            product=product,
-            movement_type='stocktake'
-        ).aggregate(total=Sum('quantity'))['total'] or 0)
-        
-        negative_adjustments = abs(movements_qs.filter(
-            product=product,
-            movement_type='adjustment',
-            quantity__lt=0
-        ).aggregate(total=Sum('quantity'))['total'] or 0)
-        
-        total_out = sold_to_customers + supplied_out + damaged + stocktake_loss + negative_adjustments
-        
-        try:
-            current_inv = BranchInventory.objects.get(branch=branch, product=product)
-            current_stock = current_inv.quantity
-        except BranchInventory.DoesNotExist:
-            current_stock = 0
-        
-        expected_stock = stock_before + incoming - total_out
-        
+            movement_type__in=['damage', 'stocktake'],
+            quantity__gt=0
+        ).aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
+
+        net_movement = movements_qs.filter(
+            product=product
+        ).aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
+
+        expected_stock = stock_before + net_movement
+
+        current_inv = BranchInventory.objects.filter(
+            branch=branch,
+            product=product
+        ).first()
+
+        current_stock = current_inv.quantity if current_inv else 0
+
         difference = current_stock - expected_stock
-        
+
         if difference == 0:
-            stock_status = 'match'  
+            stock_status = 'match'
         elif difference > 0:
-            stock_status = 'surplus'  
+            stock_status = 'surplus'
         else:
-            stock_status = 'shortage'   
-        
+            stock_status = 'shortage'
+
         inventory_comparison.append({
             'product_id': product.id,
             'product_name': product.name,
@@ -641,22 +684,36 @@ def branch_detail(request, pk):
             'incoming': incoming,
             'sold_to_customers': sold_to_customers,
             'supplied_out': supplied_out,
-            'damaged': damaged,
-            'stocktake_loss': stocktake_loss,
-            'total_out': total_out,
+            'damaged_out': damaged_out,
+            'damaged_in': damaged_in,
+            'net_movement': net_movement,
             'expected_stock': expected_stock,
             'current_stock': current_stock,
             'difference': difference,
             'stock_status': stock_status,
         })
-    
-    inventory_comparison.sort(key=lambda x: x['product_name'])
-    
+
+    inventory_comparison.sort(
+        key=lambda x: x['product_name']
+    )
+
     total_products_count = len(inventory_comparison)
-    matched_count = sum(1 for x in inventory_comparison if x['stock_status'] == 'match')
-    surplus_count = sum(1 for x in inventory_comparison if x['stock_status'] == 'surplus')
-    shortage_count = sum(1 for x in inventory_comparison if x['stock_status'] == 'shortage')
-    
+
+    matched_count = sum(
+        1 for x in inventory_comparison
+        if x['stock_status'] == 'match'
+    )
+
+    surplus_count = sum(
+        1 for x in inventory_comparison
+        if x['stock_status'] == 'surplus'
+    )
+
+    shortage_count = sum(
+        1 for x in inventory_comparison
+        if x['stock_status'] == 'shortage'
+    )
+
     context = {
         'branch': branch,
         'employees': employees,
@@ -676,7 +733,11 @@ def branch_detail(request, pk):
         'surplus_count': surplus_count,
         'shortage_count': shortage_count,
     }
+
     return render(request, 'branches/detail.html', context)
+
+
+
 @login_required
 def branch_delete(request, pk):
     if not request.user.is_main_admin():

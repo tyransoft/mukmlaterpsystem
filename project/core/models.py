@@ -707,6 +707,8 @@ class SaleInvoice(models.Model):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     due_date = models.DateField(null=True, blank=True)
+    is_delivery = models.BooleanField(default=False, verbose_name='توصيل')
+
     notes = models.TextField(blank=True)
     
     employee = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True)
@@ -972,7 +974,11 @@ class SaleInvoiceItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
     unit_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
+    cost_price = models.DecimalField(
+    max_digits=12,
+    decimal_places=2,
+    default=product.cost_price
+    )
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
     loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0)  
@@ -984,6 +990,10 @@ class SaleInvoiceItem(models.Model):
     def save(self, *args, **kwargs):
         self.total_price = (self.unit_price - self.unit_discount) * self.quantity
         self.loyalty_points = self.product.loyalty_points * self.quantity
+ 
+
+        if not self.cost_price:
+         self.cost_price = self.product.cost_price 
         super().save(*args, **kwargs)
 
 class BranchSalesDelivery(models.Model):

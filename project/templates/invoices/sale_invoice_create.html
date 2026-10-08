@@ -174,6 +174,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .readonly-discount {
+    background-color: #f3f4f6 !important;
+    cursor: not-allowed;
+  }
+  .delivery-section {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+  }
 
   @media (max-width: 900px) {
     .invoice-layout {
@@ -338,10 +349,22 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="form-group">
-            <label class="form-label">الخصم</label>
-            <input type="number" name="discount" id="discount" class="form-control" step="0.01" value="0">
+            <label class="form-label">إجمالي الخصم </label>
+            <input type="number" name="discount" id="discount" class="form-control readonly-discount"
+                   step="0.01" value="0" readonly>
+            <input type="hidden" name="discount_hidden" id="discount_hidden" value="0">
           </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="is_delivery" name="is_delivery">
+              توصيل
+            </label>
+          </div>
+          
+
           <div id="payment_group">
             <div class="form-group">
               <label class="form-label">المبلغ المدفوع</label>
@@ -833,15 +856,22 @@ $(document).ready(function() {
 
     function updateTotals() {
         let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
-        let discount = parseFloat($('#discount').val()) || 0;
-        let total = subtotal - discount;
+
+        let totalUnitDiscount = selectedProducts.reduce((s, p) => s + (p.discount * p.quantity), 0);
+
+        $('#discount').val(totalUnitDiscount.toFixed(2));
+        $('#discount_hidden').val(totalUnitDiscount.toFixed(2));
+        $('#discount_display').text(totalUnitDiscount.toFixed(2));
+
+        let total = subtotal;
+
         let selectedPaymentMethod = $('#payment_method').find(':selected');
         let increasePercent = parseFloat(selectedPaymentMethod.data('increase')) || 0;
         let fees = total * increasePercent / 100;
         let finalTotal = total + fees;
         let points = selectedProducts.reduce((s, p) => s + (p.points * p.quantity), 0);
+
         $('#subtotal').text(subtotal.toFixed(2));
-        $('#discount_display').text(discount.toFixed(2));
         $('#additional_fees').text(fees.toFixed(2));
         $('#total').text(finalTotal.toFixed(2));
         $('#points').text(points);
@@ -895,7 +925,8 @@ $(document).ready(function() {
         updateTotals();
     });
 
-    $('#discount, #payment_method').on('input change', function() {
+
+    $('#payment_method').on('change', function() {
         updateTotals();
     });
 
@@ -952,7 +983,7 @@ $(document).ready(function() {
                 return false;
             }
         }
-        return true;
+      
     });
 });
 </script>

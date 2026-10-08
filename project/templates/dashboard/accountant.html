@@ -612,7 +612,33 @@
     </div>
   </div>
 </div>
-
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"> المبيعات بالتوصيل</span>
+    {% if date_from or date_to %}
+    <small class="text-muted" style="font-size:12px;">
+      {% if date_from %}من {{ date_from }}{% endif %}
+      {% if date_to %} إلى {{ date_to }}{% endif %}
+    </small>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="delivery-grid" style="grid-template-columns:1fr 1fr;">
+      <div style="background:#fef3c7;padding:20px;border-radius:12px;text-align:center;">
+        <div class="text-muted" style="margin-bottom:8px;">إجمالي المبيعات بالتوصيل</div>
+        <div class="fw-bold" style="font-size:28px;color:#d97706;">
+          {{ total_delivery_sales|floatformat:0|intcomma }} د.ل
+        </div>
+      </div>
+      <div style="background:#dbeafe;padding:20px;border-radius:12px;text-align:center;">
+        <div class="text-muted" style="margin-bottom:8px;">عدد الفواتير</div>
+        <div class="fw-bold" style="font-size:28px;color:#2563eb;">
+          {{ delivery_sales_count }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="dashboard-grid">
   <div class="card">
     <div class="card-header">

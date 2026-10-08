@@ -166,10 +166,7 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">فواتير المبيعات</span>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          <button onclick="window.print()" class="btn btn-outline btn-sm">طباعة</button>
-          <a href="{% url 'branch_sales_report' branch.pk %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-outline btn-sm">تقرير</a>
-        </div>
+        
       </div>
       <div class="card-body" style="padding:0;">
         <div class="table-wrap">

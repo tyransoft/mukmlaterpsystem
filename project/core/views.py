@@ -201,7 +201,7 @@ def accountant_dashboard(request):
     cogs = Decimal(0)
     for invoice in sales_query.prefetch_related('items__product'):
         for item in invoice.items.all():
-            cogs += item.quantity * item.product.cost_price
+            cogs += item.quantity * item.cost_price
     
     gross_profit = total_revenue - cogs
     
@@ -312,7 +312,9 @@ def accountant_dashboard(request):
     ).aggregate(total=Sum('total'))['total'] or 0
     
     total_unpaid_commissions = sum(b['remaining'] for b in branch_debt_list if b['remaining'] > 0)
-    
+    delivery_sales_query = sales_query.filter(is_delivery=True)
+    total_delivery_sales = delivery_sales_query.aggregate(total=Sum('total'))['total'] or 0
+    delivery_sales_count = delivery_sales_query.count() 
     context = {
         'date_from': date_from,
         'date_to': date_to,
@@ -335,6 +337,8 @@ def accountant_dashboard(request):
         'delivery_cash_count': delivery_cash_count,
         'delivery_bank_amount': delivery_bank_amount,
         'delivery_bank_count': delivery_bank_count,
+        'total_delivery_sales': total_delivery_sales,
+        'delivery_sales_count': delivery_sales_count,
         'sales_payment_methods_list': sales_payment_methods_list,
         'overdue_invoices': SaleInvoice.objects.filter(
             sale_type='customer',
@@ -489,11 +493,9 @@ def branch_edit(request, pk):
         form = BranchForm(instance=branch)
     return render(request, 'branches/form.html', {'form': form, 'title': f'تعديل الفرع: {branch.name}', 'branch': branch})
 
-
 @login_required
 def branch_detail(request, pk):
 
-    
     branch = get_object_or_404(Branch, pk=pk)
     employees = branch.employees.filter(is_active=True)
     
@@ -528,6 +530,128 @@ def branch_detail(request, pk):
     period_invoices = sales_query.order_by('-created_at')[:50]
     recent_deliveries = BranchSalesDelivery.objects.filter(branch=branch).order_by('-delivery_date')[:10]
     last_delivery = BranchSalesDelivery.objects.filter(branch=branch).order_by('-delivery_date').first()
+    
+    
+    movement_filter = Q(branch=branch) & Q(
+        Q(movement_type__in=['sale', 'supply_in', 'supply_out', 'purchase', 'adjustment', 'damage', 'stocktake'])
+    )
+    
+    movements_qs = InventoryMovement.objects.filter(branch=branch)
+    
+    if date_from:
+        movements_qs = movements_qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        movements_qs = movements_qs.filter(created_at__date__lte=date_to)
+    
+    product_ids = movements_qs.values_list('product_id', flat=True).distinct()
+    products_in_movements = Product.objects.filter(id__in=product_ids).order_by('name')
+    
+    inventory_comparison = []
+    
+    for product in products_in_movements:
+        before_filter = InventoryMovement.objects.filter(
+            branch=branch,
+            product=product
+        )
+        if date_from:
+            before_filter = before_filter.filter(created_at__date__lt=date_from)
+        else:
+            pass
+        
+        last_before_movement = before_filter.order_by('-created_at', '-id').first()
+        
+        if last_before_movement:
+            stock_before = last_before_movement.quantity_after
+        else:
+            first_in_period = movements_qs.filter(product=product).order_by('created_at', 'id').first()
+            if first_in_period:
+                stock_before = first_in_period.quantity_before
+            else:
+                stock_before = 0
+        
+        
+        incoming = movements_qs.filter(
+            product=product,
+            movement_type__in=['supply_in', 'purchase']
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        
+        positive_adjustments = movements_qs.filter(
+            product=product,
+            movement_type='adjustment',
+            quantity__gt=0
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        
+        incoming = incoming + positive_adjustments
+        
+        sold_to_customers = abs(movements_qs.filter(
+            product=product,
+            movement_type='sale'
+        ).aggregate(total=Sum('quantity'))['total'] or 0)
+        
+        supplied_out = abs(movements_qs.filter(
+            product=product,
+            movement_type='supply_out'
+        ).aggregate(total=Sum('quantity'))['total'] or 0)
+        
+        damaged = abs(movements_qs.filter(
+            product=product,
+            movement_type='damage'
+        ).aggregate(total=Sum('quantity'))['total'] or 0)
+        
+        stocktake_loss = abs(movements_qs.filter(
+            product=product,
+            movement_type='stocktake'
+        ).aggregate(total=Sum('quantity'))['total'] or 0)
+        
+        negative_adjustments = abs(movements_qs.filter(
+            product=product,
+            movement_type='adjustment',
+            quantity__lt=0
+        ).aggregate(total=Sum('quantity'))['total'] or 0)
+        
+        total_out = sold_to_customers + supplied_out + damaged + stocktake_loss + negative_adjustments
+        
+        try:
+            current_inv = BranchInventory.objects.get(branch=branch, product=product)
+            current_stock = current_inv.quantity
+        except BranchInventory.DoesNotExist:
+            current_stock = 0
+        
+        expected_stock = stock_before + incoming - total_out
+        
+        difference = current_stock - expected_stock
+        
+        if difference == 0:
+            stock_status = 'match'  
+        elif difference > 0:
+            stock_status = 'surplus'  
+        else:
+            stock_status = 'shortage'   
+        
+        inventory_comparison.append({
+            'product_id': product.id,
+            'product_name': product.name,
+            'product_barcode': product.barcode,
+            'stock_before': stock_before,
+            'incoming': incoming,
+            'sold_to_customers': sold_to_customers,
+            'supplied_out': supplied_out,
+            'damaged': damaged,
+            'stocktake_loss': stocktake_loss,
+            'total_out': total_out,
+            'expected_stock': expected_stock,
+            'current_stock': current_stock,
+            'difference': difference,
+            'stock_status': stock_status,
+        })
+    
+    inventory_comparison.sort(key=lambda x: x['product_name'])
+    
+    total_products_count = len(inventory_comparison)
+    matched_count = sum(1 for x in inventory_comparison if x['stock_status'] == 'match')
+    surplus_count = sum(1 for x in inventory_comparison if x['stock_status'] == 'surplus')
+    shortage_count = sum(1 for x in inventory_comparison if x['stock_status'] == 'shortage')
+    
     context = {
         'branch': branch,
         'employees': employees,
@@ -541,9 +665,13 @@ def branch_detail(request, pk):
         'last_delivery': last_delivery,
         'date_from': date_from,
         'date_to': date_to,
+        'inventory_comparison': inventory_comparison,
+        'total_products_count': total_products_count,
+        'matched_count': matched_count,
+        'surplus_count': surplus_count,
+        'shortage_count': shortage_count,
     }
     return render(request, 'branches/detail.html', context)
-
 @login_required
 def branch_delete(request, pk):
     if not request.user.is_main_admin():
@@ -587,10 +715,13 @@ def sale_invoice_create(request):
                     payment_method = PaymentMethod.objects.filter(id=payment_method_id, is_active=True).first()
                 
                 is_cash_customer = request.POST.get('is_cash_customer') == 'on'
-                customer_id = None
-                cash_customer_name = None
-                cash_customer_phone = None
+                is_delivery = request.POST.get('is_delivery') == 'on'
+                delivery_company = request.POST.get('delivery_company', '').strip()
                 
+                if is_delivery and not delivery_company:
+                    raise ValidationErr('الرجاء إدخال اسم شركة التوصيل')
+                
+                customer_id = None
                 if is_cash_customer:
                     pass
                 else:
@@ -603,7 +734,7 @@ def sale_invoice_create(request):
                     branch=user_branch,
                     target_branch_id=request.POST.get('target_branch') or None,
                     customer_id=customer_id,
-                    discount=Decimal(request.POST.get('discount', 0) or 0),
+                    discount=Decimal('0'),
                     paid_amount=Decimal(request.POST.get('paid_amount', 0) or 0),
                     due_date=request.POST.get('due_date') or None,
                     notes=request.POST.get('notes', ''),
@@ -613,10 +744,13 @@ def sale_invoice_create(request):
                     total=0,
                     payment_method=payment_method,
                     is_cash_customer=is_cash_customer,
+                    is_delivery=is_delivery,
                 )
+                invoice.notes = invoice.notes
                 invoice.save()
                 
                 subtotal = Decimal(0)
+                total_unit_discount = Decimal(0)
                 items_added = False
                 
                 for key, value in request.POST.items():
@@ -646,15 +780,13 @@ def sale_invoice_create(request):
                                 raise ValidationErr(
                                     f'خصم الوحدة للمنتج {product.name} لا يمكن أن يكون سالباً'
                                 )
-                            
-                            if unit_discount > unit_price:
-                                raise ValidationErr(
-                                    f'خصم الوحدة للمنتج {product.name} ({unit_discount}) لا يمكن أن يتجاوز سعر الوحدة ({unit_price})'
-                                )
+                          
                             
                             net_unit_price = unit_price - unit_discount
                             total_price = net_unit_price * quantity
                             subtotal += total_price
+                            
+                            total_unit_discount += unit_discount * quantity
                             
                             SaleInvoiceItem.objects.create(
                                 invoice=invoice,
@@ -669,6 +801,7 @@ def sale_invoice_create(request):
                     raise ValidationErr('الرجاء إضافة منتج واحد على الأقل للفاتورة')
                 
                 invoice.subtotal = subtotal
+                invoice.discount = total_unit_discount
                 invoice.total = subtotal - invoice.discount
                 
                 if invoice.payment_method and invoice.payment_method.increase_percentage > 0:
@@ -735,7 +868,6 @@ def sale_invoice_create(request):
         'products': products_with_stock,
     }
     return render(request, 'invoices/sale_invoice_create.html', context)
-
 
 @login_required
 def purchase_invoice_create(request):

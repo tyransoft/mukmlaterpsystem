@@ -415,6 +415,8 @@
     <div class="info-card">
       <div class="info-label">الفرع</div>
       <div class="info-value">{{ invoice.branch.name }}</div>
+      <div class="info-value">{{ invoice.branch.phone }}</div>
+
     </div>
     <div class="info-card">
       <div class="info-label">التاريخ</div>
@@ -434,6 +436,7 @@
         <th style="text-align:right;">المنتج</th>
         <th style="width:70px;">الكمية</th>
         <th style="width:90px;">السعر</th>
+        <th style="width:90px;">الخصم</th>
         <th style="width:100px;">الإجمالي</th>
         {% if invoice.total_loyalty_points > 0 %}
         <th style="width:80px;">اجمالي النقاط</th>
@@ -447,6 +450,8 @@
         <td style="text-align:right;">{{ item.product.name }}</td>
         <td>{{ item.quantity }}</td>
         <td>{{ item.unit_price|floatformat:2 }}</td>
+        <td>{{ item.unit_discount|floatformat:2 }}</td>
+
         <td>{{ item.total_price|floatformat:2 }}</td>
         {% if invoice.total_loyalty_points > 0 %}
         <td>{{ item.loyalty_points }}</td>

@@ -249,7 +249,9 @@
             <th>مخزون قبل الفترة</th>
             <th>وارد (+)</th>
             <th>مباع للعملاء (-)</th>
+            {% if  branch.is_main %}
             <th>توريد لفرع (-)</th>
+            {% endif %}
             <th>إتلاف/استهلاك (-)</th>
             <th>إتلاف/استهلاك (+)</th>
             <th>مخزون متوقع</th>
@@ -294,7 +296,7 @@
                 -
               {% endif %}
             </td>
-
+              {% if branch.is_main %}
             <td class="text-danger">
               {% if item.supplied_out > 0 %}
                 -{{ item.supplied_out }}
@@ -302,7 +304,7 @@
                 -
               {% endif %}
             </td>
-
+{% endif %}
             <td class="text-danger fw-bold">
               {% if item.damaged_out > 0 %}
                 -{{ item.damaged_out }}

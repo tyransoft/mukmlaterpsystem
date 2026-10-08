@@ -556,7 +556,6 @@ def branch_delete(request, pk):
     branch.save()
     return JsonResponse({'success': True, 'message': f'تم تعطيل الفرع {name}'})
 
-
 @login_required
 def sale_invoice_create(request):
     
@@ -604,8 +603,8 @@ def sale_invoice_create(request):
                     branch=user_branch,
                     target_branch_id=request.POST.get('target_branch') or None,
                     customer_id=customer_id,
-                    discount=Decimal(request.POST.get('discount', 0)),
-                    paid_amount=Decimal(request.POST.get('paid_amount', 0)),
+                    discount=Decimal(request.POST.get('discount', 0) or 0),
+                    paid_amount=Decimal(request.POST.get('paid_amount', 0) or 0),
                     due_date=request.POST.get('due_date') or None,
                     notes=request.POST.get('notes', ''),
                     employee=request.user,
@@ -614,7 +613,6 @@ def sale_invoice_create(request):
                     total=0,
                     payment_method=payment_method,
                     is_cash_customer=is_cash_customer,
-                    
                 )
                 invoice.save()
                 
@@ -625,8 +623,9 @@ def sale_invoice_create(request):
                     if key.endswith('_id'):
                         product_id = value
                         prefix = key.replace('_id', '')
-                        quantity = int(request.POST.get(f'{prefix}_quantity', 0))
-                        unit_price = Decimal(request.POST.get(f'{prefix}_price', 0))
+                        quantity = int(request.POST.get(f'{prefix}_quantity', 0) or 0)
+                        unit_price = Decimal(request.POST.get(f'{prefix}_price', 0) or 0)
+                        unit_discount = Decimal(request.POST.get(f'{prefix}_discount', 0) or 0)
                         
                         if quantity > 0:
                             items_added = True
@@ -643,7 +642,18 @@ def sale_invoice_create(request):
                                     f'الكمية المطلوبة للمنتج {product.name} ({quantity}) تتجاوز المخزون المتوفر ({available_stock})'
                                 )
                             
-                            total_price = unit_price * quantity
+                            if unit_discount < 0:
+                                raise ValidationErr(
+                                    f'خصم الوحدة للمنتج {product.name} لا يمكن أن يكون سالباً'
+                                )
+                            
+                            if unit_discount > unit_price:
+                                raise ValidationErr(
+                                    f'خصم الوحدة للمنتج {product.name} ({unit_discount}) لا يمكن أن يتجاوز سعر الوحدة ({unit_price})'
+                                )
+                            
+                            net_unit_price = unit_price - unit_discount
+                            total_price = net_unit_price * quantity
                             subtotal += total_price
                             
                             SaleInvoiceItem.objects.create(
@@ -651,6 +661,7 @@ def sale_invoice_create(request):
                                 product=product,
                                 quantity=quantity,
                                 unit_price=unit_price,
+                                unit_discount=unit_discount,
                                 total_price=total_price
                             )
                 
@@ -717,14 +728,13 @@ def sale_invoice_create(request):
     
     context = {
         'branches': branches,
-        'customers': Customer.objects.filter(is_active=True,created_branch=user_branch),
+        'customers': Customer.objects.filter(is_active=True, created_branch=user_branch),
         'allowed_sale_types': allowed_sale_types,
         'user_branch': user_branch,
         'payment_methods': payment_methods,
         'products': products_with_stock,
     }
     return render(request, 'invoices/sale_invoice_create.html', context)
-
 
 
 @login_required

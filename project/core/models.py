@@ -971,6 +971,8 @@ class SaleInvoiceItem(models.Model):
     invoice = models.ForeignKey(SaleInvoice, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
+    unit_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
     loyalty_points = models.DecimalField(max_digits=12, decimal_places=2,default=0)  
@@ -980,7 +982,7 @@ class SaleInvoiceItem(models.Model):
         verbose_name_plural = 'بنود فواتير المبيعات'
     
     def save(self, *args, **kwargs):
-        self.total_price = self.unit_price * self.quantity
+        self.total_price = (self.unit_price - self.unit_discount) * self.quantity
         self.loyalty_points = self.product.loyalty_points * self.quantity
         super().save(*args, **kwargs)
 

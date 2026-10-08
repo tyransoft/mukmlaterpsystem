@@ -51,7 +51,7 @@
     border-collapse: collapse;
   }
   .products-table th, .products-table td {
-    padding: 12px;
+    padding: 10px 8px;
     text-align: center;
     border-bottom: 1px solid #e5e7eb;
     white-space: nowrap;
@@ -59,6 +59,7 @@
   .products-table th {
     background: #f9fafb;
     font-weight: 600;
+    font-size: 13px;
   }
   .products-scroll {
     max-height: 400px;
@@ -112,19 +113,24 @@
     margin-top: 4px;
   }
   .quantity-input {
-    width: 65px;
+    width: 55px;
     text-align: center;
-    margin: 0 5px;
+    margin: 0 4px;
   }
   .price-input {
-    width: 90px;
+    width: 80px;
     text-align: center;
   }
+  .discount-input {
+    width: 75px;
+    text-align: center;
+    border-color: #fbbf24 !important;
+  }
   .btn-sm {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     padding: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     border: 1px solid #d1d5db;
     background: white;
@@ -162,6 +168,12 @@
     font-size: 16px;
     letter-spacing: 1px;
   }
+  .product-name-cell {
+    text-align: right !important;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   @media (max-width: 900px) {
     .invoice-layout {
@@ -173,10 +185,17 @@
       flex-direction: column;
     }
     .products-table th, .products-table td {
-      padding: 8px;
+      padding: 6px 4px;
+      font-size: 12px;
     }
     .price-input {
-      width: 75px;
+      width: 65px;
+    }
+    .discount-input {
+      width: 60px;
+    }
+    .quantity-input {
+      width: 45px;
     }
   }
 </style>
@@ -216,16 +235,17 @@
           <table class="products-table">
             <thead>
               <tr>
-                <th style="width:35%">المنتج</th>
-                <th style="width:20%">الكمية</th>
-                <th style="width:20%">السعر</th>
-                <th style="width:20%">الإجمالي</th>
-                <th style="width:5%"></th>
+                <th style="width:28%">المنتج</th>
+                <th style="width:16%">الكمية</th>
+                <th style="width:16%">السعر</th>
+                <th style="width:16%">خصم الوحدة</th>
+                <th style="width:16%">الإجمالي</th>
+                <th style="width:8%"></th>
               </tr>
             </thead>
             <tbody id="products-tbody">
               <tr id="empty-row">
-                <td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">
+                <td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">
                   ابحث عن منتج أو اختر من القائمة
                 </td>
               </tr>
@@ -409,9 +429,21 @@ $(document).ready(function() {
         let totalText = $('#total').text();
         let total = parseFloat(totalText);
         if (!isNaN(total)) {
-            $('#paid_amount').val(total.toFixed(2));
-            $('#paid_display').text(total.toFixed(2));
-            $('#remaining').text('0.00');
+            let isCashCustomer = $('#is_cash_customer').is(':checked');
+            let saleType = $('#sale_type').val();
+            if (isCashCustomer || saleType === 'branch') {
+                $('#paid_amount').val(total.toFixed(2));
+                $('#paid_display').text(total.toFixed(2));
+                $('#remaining').text('0.00');
+            } else {
+                let paid = parseFloat($('#paid_amount').val()) || 0;
+                if (paid > total) {
+                    paid = total;
+                    $('#paid_amount').val(paid.toFixed(2));
+                }
+                $('#paid_display').text(paid.toFixed(2));
+                $('#remaining').text((total - paid).toFixed(2));
+            }
         }
     }
 
@@ -514,7 +546,7 @@ $(document).ready(function() {
             $('#customer_name').text(customerName);
             $('#customer_membership').text(customerMembership || '-');
             $('#customer_points').text(customerPoints);
-            $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
+            $('#customer_debt').text(parseFloat(customerDebt).toFixed(2) + ' د.ل');
             $('#customer_details').show();
             $('#customer-search').val(customerName);
             $('#customer-results').hide();
@@ -582,7 +614,7 @@ $(document).ready(function() {
                 $('#customer_name').text(customerName);
                 $('#customer_membership').text(customerMembership || '-');
                 $('#customer_points').text(customerPoints);
-                $('#customer_debt').text(customerDebt.toFixed(2) + ' د.ل');
+                $('#customer_debt').text(parseFloat(customerDebt).toFixed(2) + ' د.ل');
                 $('#customer_details').show();
                 $('#customer_select').val(customerId);
                 $('#customer-search').val(customerName);
@@ -611,7 +643,7 @@ $(document).ready(function() {
                 return false;
             }
             existingProduct.quantity = newQuantity;
-            existingProduct.total = existingProduct.quantity * existingProduct.price;
+            existingProduct.total = existingProduct.quantity * (existingProduct.price - existingProduct.discount);
             updateProductRow(existingProduct);
         } else {
             let newProduct = {
@@ -619,6 +651,7 @@ $(document).ready(function() {
                 name: productName,
                 quantity: 1,
                 price: productPrice,
+                discount: 0,
                 points: productPoints,
                 total: productPrice,
                 maxStock: productStock
@@ -638,7 +671,9 @@ $(document).ready(function() {
         let rowId = 'product-row-' + product.id;
         if ($('#' + rowId).length === 0) {
             let newRow = $('<tr>').attr('id', rowId);
-            let nameCell = $('<td>').attr('style', 'text-align:right;').html('<strong>' + product.name + '</strong>');
+            let nameCell = $('<td>').addClass('product-name-cell').html('<strong>' + product.name + '</strong>');
+
+            // الكمية
             let quantityCell = $('<td>');
             let decButton = $('<button>').addClass('btn-sm dec-qty').attr('type', 'button').attr('data-id', product.id).text('-');
             let quantityInput = $('<input>').addClass('quantity-input').attr('type', 'number').attr('value', product.quantity).attr('min', '1').attr('max', product.maxStock).attr('data-id', product.id);
@@ -646,39 +681,60 @@ $(document).ready(function() {
             quantityCell.append(decButton);
             quantityCell.append(quantityInput);
             quantityCell.append(incButton);
+
+            // السعر
             let priceCell = $('<td>');
-            let priceInput = $('<input>').addClass('price-input').attr('type', 'number').attr('value', product.price).attr('step', '0.01').attr('data-id', product.id);
+            let priceInput = $('<input>').addClass('price-input').attr('type', 'number').attr('value', product.price).attr('step', '0.01').attr('min', '0').attr('data-id', product.id);
             priceCell.append(priceInput);
+
+            // خصم الوحدة
+            let discountCell = $('<td>');
+            let discountInput = $('<input>').addClass('discount-input').attr('type', 'number').attr('value', product.discount).attr('step', '0.01').attr('min', '0').attr('data-id', product.id);
+            discountCell.append(discountInput);
+
+            // الإجمالي
             let totalCell = $('<td>').addClass('total-' + product.id).text(product.total.toFixed(2));
+
+            // حذف
             let actionCell = $('<td>');
             let removeButton = $('<button>').addClass('remove-btn').attr('type', 'button').attr('data-id', product.id).text('✕');
             actionCell.append(removeButton);
+
             newRow.append(nameCell);
             newRow.append(quantityCell);
             newRow.append(priceCell);
+            newRow.append(discountCell);
             newRow.append(totalCell);
             newRow.append(actionCell);
             $('#products-tbody').append(newRow);
+
+            // الحقول المخفية
             let hiddenId = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_id').val(product.id);
             let hiddenQuantity = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_quantity').addClass('hidden-qty-' + product.id).val(product.quantity);
             let hiddenPrice = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_price').addClass('hidden-price-' + product.id).val(product.price);
+            let hiddenDiscount = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_discount').addClass('hidden-discount-' + product.id).val(product.discount);
             $('#products-tbody').append(hiddenId);
             $('#products-tbody').append(hiddenQuantity);
             $('#products-tbody').append(hiddenPrice);
+            $('#products-tbody').append(hiddenDiscount);
         }
     }
 
     function updateProductRow(product) {
         let quantityInput = $('.quantity-input[data-id="' + product.id + '"]');
         let priceInput = $('.price-input[data-id="' + product.id + '"]');
+        let discountInput = $('.discount-input[data-id="' + product.id + '"]');
         let totalCell = $('.total-' + product.id);
         let hiddenQuantity = $('.hidden-qty-' + product.id);
         let hiddenPrice = $('.hidden-price-' + product.id);
+        let hiddenDiscount = $('.hidden-discount-' + product.id);
         quantityInput.val(product.quantity);
         priceInput.val(product.price);
+        discountInput.val(product.discount);
         totalCell.text(product.total.toFixed(2));
         hiddenQuantity.val(product.quantity);
         hiddenPrice.val(product.price);
+        hiddenDiscount.val(product.discount);
     }
 
     $(document).on('click', '.inc-qty', function() {
@@ -688,7 +744,7 @@ $(document).ready(function() {
             let newQuantity = product.quantity + 1;
             if (newQuantity <= product.maxStock) {
                 product.quantity = newQuantity;
-                product.total = product.quantity * product.price;
+                product.total = product.quantity * (product.price - product.discount);
                 updateProductRow(product);
                 updateTotals();
             } else {
@@ -702,7 +758,7 @@ $(document).ready(function() {
         let product = selectedProducts.find(p => p.id === productId);
         if (product && product.quantity > 1) {
             product.quantity = product.quantity - 1;
-            product.total = product.quantity * product.price;
+            product.total = product.quantity * (product.price - product.discount);
             updateProductRow(product);
             updateTotals();
         }
@@ -720,7 +776,7 @@ $(document).ready(function() {
                 $(this).val(product.quantity);
             } else {
                 product.quantity = newQuantity;
-                product.total = product.quantity * product.price;
+                product.total = product.quantity * (product.price - product.discount);
                 updateProductRow(product);
                 updateTotals();
             }
@@ -735,7 +791,27 @@ $(document).ready(function() {
             if (isNaN(newPrice)) newPrice = 0;
             if (newPrice < 0) newPrice = 0;
             product.price = newPrice;
-            product.total = product.quantity * product.price;
+            if (product.discount > product.price) {
+                product.discount = product.price;
+            }
+            product.total = product.quantity * (product.price - product.discount);
+            updateProductRow(product);
+            updateTotals();
+        }
+    });
+
+    $(document).on('change', '.discount-input', function() {
+        let productId = $(this).data('id');
+        let product = selectedProducts.find(p => p.id === productId);
+        if (product) {
+            let newDiscount = parseFloat($(this).val());
+            if (isNaN(newDiscount) || newDiscount < 0) newDiscount = 0;
+            if (newDiscount > product.price) {
+                showToast('الخصم لا يمكن أن يتجاوز سعر الوحدة (' + product.price.toFixed(2) + ')', 'error');
+                newDiscount = product.price;
+            }
+            product.discount = newDiscount;
+            product.total = product.quantity * (product.price - product.discount);
             updateProductRow(product);
             updateTotals();
         }
@@ -748,6 +824,7 @@ $(document).ready(function() {
         $('input[name="product_' + productId + '_id"]').remove();
         $('input[name="product_' + productId + '_quantity"]').remove();
         $('input[name="product_' + productId + '_price"]').remove();
+        $('input[name="product_' + productId + '_discount"]').remove();
         if (selectedProducts.length === 0) {
             $('#empty-row').show();
         }
@@ -800,8 +877,8 @@ $(document).ready(function() {
             $('#target_branch_group').show();
             $('#customer_section').hide();
             $('#payment_group').hide();
-            updateTotals();
         }
+        updateTotals();
     });
 
     $('#is_cash_customer').on('change', function() {
@@ -812,11 +889,10 @@ $(document).ready(function() {
             $('#customer_details').hide();
             $('#customer-search').val('');
             $('#customer_select').val('');
-            updateTotals();
         } else {
             $('#registered_customer_fields').show();
-            updateTotals();
         }
+        updateTotals();
     });
 
     $('#discount, #payment_method').on('input change', function() {
@@ -827,7 +903,8 @@ $(document).ready(function() {
         let finalTotal = parseFloat($('#total').text()) || 0;
         let paid = parseFloat($(this).val()) || 0;
         let isCashCustomer = $('#is_cash_customer').is(':checked');
-        if (!isCashCustomer) {
+        let saleType = $('#sale_type').val();
+        if (!isCashCustomer && saleType !== 'branch') {
             if (paid > finalTotal) {
                 $(this).val(finalTotal.toFixed(2));
                 paid = finalTotal;
@@ -849,6 +926,11 @@ $(document).ready(function() {
             if (product.quantity > product.maxStock) {
                 event.preventDefault();
                 alert('المنتج ' + product.name + ': الكمية المطلوبة (' + product.quantity + ') تتجاوز المخزون المتوفر (' + product.maxStock + ')');
+                return false;
+            }
+            if (product.discount > product.price) {
+                event.preventDefault();
+                alert('المنتج ' + product.name + ': خصم الوحدة (' + product.discount + ') لا يمكن أن يتجاوز سعر الوحدة (' + product.price + ')');
                 return false;
             }
         }

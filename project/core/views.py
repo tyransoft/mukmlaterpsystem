@@ -201,8 +201,13 @@ def accountant_dashboard(request):
     cogs = Decimal(0)
     for invoice in sales_query.prefetch_related('items__product'):
         for item in invoice.items.all():
-            cogs += item.quantity * item.cost_price
-    
+            cost_price = (
+            item.cost_price
+               if item.cost_price > 0
+               else item.product.cost_price
+              )
+
+            cogs += item.quantity * cost_price
     gross_profit = total_revenue - cogs
     
     total_commissions = sales_query.aggregate(total=Sum('branch_commission'))['total'] or 0

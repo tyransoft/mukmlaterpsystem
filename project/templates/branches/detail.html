@@ -25,6 +25,29 @@
     width: 100%;
     min-width: 1100px;
   }
+.branch-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.branch-main {
+    min-width: 0;
+}
+
+.inventory-card {
+    width: calc(100vw - 280px - 48px - 40px);
+    max-width: none;
+}
+
+@media (max-width: 900px) {
+    .branch-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .inventory-card {
+        width: 100%;
+    }
+}
 </style>
 {% endblock %}
 {% block content %}

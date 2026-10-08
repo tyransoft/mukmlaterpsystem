@@ -977,7 +977,7 @@ class SaleInvoiceItem(models.Model):
     cost_price = models.DecimalField(
     max_digits=12,
     decimal_places=2,
-    default=product.cost_price
+    default=0
     )
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)

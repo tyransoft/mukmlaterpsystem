@@ -499,6 +499,7 @@ def branch_edit(request, pk):
     return render(request, 'branches/form.html', {'form': form, 'title': f'تعديل الفرع: {branch.name}', 'branch': branch})
 
 
+from datetime import date
 
 @login_required
 def branch_detail(request, pk):

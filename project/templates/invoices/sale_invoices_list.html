@@ -174,8 +174,8 @@
     <option value="">جميع الفروع</option>
 
     {% for branch in branches %}
-        <option value="{{ branch.pk }}"
-            {% if target_branch_filter == branch.pk|stringformat:"s" %}
+        <option value="{{ branch.id }}"
+            {% if target_branch_filter == branch.id|stringformat:"s" %}
                 selected
             {% endif %}>
             {{ branch.name }}

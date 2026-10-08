@@ -499,15 +499,14 @@ def branch_edit(request, pk):
     return render(request, 'branches/form.html', {'form': form, 'title': f'تعديل الفرع: {branch.name}', 'branch': branch})
 
 
-from datetime import date
+
 
 @login_required
 def branch_detail(request, pk):
-
     branch = get_object_or_404(Branch, pk=pk)
     employees = branch.employees.filter(is_active=True)
 
-    today = date.today()
+    today = timezone.localdate()
 
     date_from = request.GET.get('date_from') or today.replace(day=1).isoformat()
     date_to = request.GET.get('date_to') or today.isoformat()
@@ -554,6 +553,7 @@ def branch_detail(request, pk):
 
     movement_types = [
         'sale',
+        'return_sale',
         'purchase',
         'supply_in',
         'supply_out',
@@ -581,7 +581,6 @@ def branch_detail(request, pk):
     inventory_comparison = []
 
     for product in products_in_movements:
-
         before_filter = InventoryMovement.objects.filter(
             branch=branch,
             product=product,
@@ -611,6 +610,8 @@ def branch_detail(request, pk):
         incoming = movements_qs.filter(
             product=product,
             quantity__gt=0
+        ).exclude(
+            movement_type='return_sale'
         ).aggregate(
             total=Sum('quantity')
         )['total'] or 0
@@ -647,7 +648,7 @@ def branch_detail(request, pk):
 
         damaged_in = movements_qs.filter(
             product=product,
-            movement_type__in=['damage', 'stocktake'],
+            movement_type__in=['damage', 'stocktake', 'return_sale'],
             quantity__gt=0
         ).aggregate(
             total=Sum('quantity')
@@ -736,7 +737,6 @@ def branch_detail(request, pk):
     }
 
     return render(request, 'branches/detail.html', context)
-
 
 
 @login_required
@@ -2120,8 +2120,7 @@ def sale_invoices_list(request):
 
     if target_branch_id:
         invoices = invoices.filter(
-            sale_type='branch',
-            target_branch_id=target_branch_id
+            branch=Branch.objects.get(id=target_branch_id)
         )
 
     status = request.GET.get('status', '')

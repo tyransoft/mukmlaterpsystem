@@ -4,7 +4,29 @@
 {% block title %}{{ branch.name }}{% endblock %}
 {% block page_title %}{{ branch.name }}{% endblock %}
 {% block nav_branches %}active{% endblock %}
+{% block extra_css  %}
 
+<style>
+  .inventory-card {
+    width: 100%;
+    max-width: none;
+  }
+
+  .inventory-card .card-body {
+    width: 100%;
+  }
+
+  .inventory-card .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .inventory-card .erp-table {
+    width: 100%;
+    min-width: 1100px;
+  }
+</style>
+{% endblock %}
 {% block content %}
 
 <div class="branch-layout">
@@ -163,8 +185,8 @@
       </div>
     </div>
 {% if request.user.is_main_admin %}
-<div class="card" style="margin-top:20px;">
-  <div class="card-header">
+<div class="card inventory-card" style="margin-top:20px;">
+<div class="card-header">
     <span class="card-title">الجرد</span>
     {% if date_from or date_to %}
     <small class="text-muted" style="font-size:12px;">

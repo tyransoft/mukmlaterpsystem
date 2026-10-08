@@ -371,6 +371,7 @@ class InventoryMovement(models.Model):
         ('supply_in', 'توريد وارد'),
         ('adjustment', 'تعديل'),
         ('damage','اتلاف'),
+        ('return_sale','مرتجع مبيعات'),
         ('stocktake','استهلاك'),
     ]
     

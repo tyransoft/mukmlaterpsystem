@@ -448,27 +448,14 @@ $(document).ready(function() {
         }, 2500);
     }
 
-    function updatePaidAmountAndRemaining() {
-        let totalText = $('#total').text();
-        let total = parseFloat(totalText);
-        if (!isNaN(total)) {
-            let isCashCustomer = $('#is_cash_customer').is(':checked');
-            let saleType = $('#sale_type').val();
-            if (isCashCustomer || saleType === 'branch') {
-                $('#paid_amount').val(total.toFixed(2));
-                $('#paid_display').text(total.toFixed(2));
-                $('#remaining').text('0.00');
-            } else {
-                let paid = parseFloat($('#paid_amount').val()) || 0;
-                if (paid > total) {
-                    paid = total;
-                    $('#paid_amount').val(paid.toFixed(2));
-                }
-                $('#paid_display').text(paid.toFixed(2));
-                $('#remaining').text((total - paid).toFixed(2));
-            }
-        }
-    }
+
+function updatePaidAmountAndRemaining() {
+    let total = parseFloat($('#total').text()) || 0;
+
+    $('#paid_amount').val(total.toFixed(2));
+    $('#paid_display').text(total.toFixed(2));
+    $('#remaining').text('0.00');
+}
 
     $('#add-product-btn').on('click', function() {
         let select = $('#product-select');
@@ -876,11 +863,7 @@ $(document).ready(function() {
         $('#total').text(finalTotal.toFixed(2));
         $('#points').text(points);
         updatePaidAmountAndRemaining();
-        if ($('#sale_type').val() === 'branch') {
-            $('#paid_amount').val(finalTotal.toFixed(2));
-            $('#paid_display').text(finalTotal.toFixed(2));
-            $('#remaining').text('0.00');
-        }
+       
     }
 
     $(document).on('click', function(event) {
@@ -930,21 +913,24 @@ $(document).ready(function() {
         updateTotals();
     });
 
-    $('#paid_amount').on('input', function() {
-        let finalTotal = parseFloat($('#total').text()) || 0;
-        let paid = parseFloat($(this).val()) || 0;
-        let isCashCustomer = $('#is_cash_customer').is(':checked');
-        let saleType = $('#sale_type').val();
-        if (!isCashCustomer && saleType !== 'branch') {
-            if (paid > finalTotal) {
-                $(this).val(finalTotal.toFixed(2));
-                paid = finalTotal;
-            }
-            let remaining = finalTotal - paid;
-            $('#remaining').text(remaining.toFixed(2));
-        }
-        $('#paid_display').text(paid.toFixed(2));
-    });
+$('#paid_amount').on('input', function() {
+    let total = parseFloat($('#total').text()) || 0;
+    let paid = parseFloat($(this).val()) || 0;
+
+    if (paid < 0) {
+        paid = 0;
+        $(this).val('0');
+    }
+
+    if (paid > total) {
+        paid = total;
+        $(this).val(total.toFixed(2));
+    }
+
+    $('#paid_display').text(paid.toFixed(2));
+    $('#remaining').text(Math.max(0, total - paid).toFixed(2));
+});
+
 
     $('#sale-invoice-form').on('submit', function(event) {
         if (selectedProducts.length === 0) {

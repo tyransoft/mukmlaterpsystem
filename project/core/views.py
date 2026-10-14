@@ -532,7 +532,6 @@ def accountant_dashboard(request):
         created_at__date__gte=month_start
     ).aggregate(total=Sum('total'))['total'] or 0
     
-    total_unpaid_commissions = sum(b['remaining'] for b in branch_debt_list if b['remaining'] > 0)
     delivery_sales_query = sales_query.filter(is_delivery=True)
     total_delivery_sales = delivery_sales_query.aggregate(total=Sum('total'))['total'] or 0
     delivery_sales_count = delivery_sales_query.count() 

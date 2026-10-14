@@ -18,34 +18,103 @@
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-icon green">
-      
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
       <div class="stat-label">مبيعات اليوم</div>
+      {% if today_loyalty_amount > 0 %}
+        <div style="font-size:10px;color:#dc2626;">- عمولة العملاء: {{ today_loyalty_amount|floatformat:0|intcomma }}</div>
+      {% endif %}
     </div>
   </div>
-  
+
+  <div class="stat-card">
+    <div class="stat-icon green">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color:#16a34a;">{{ net_today_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">صافي مبيعات اليوم</div>
+    </div>
+  </div>
+
   <div class="stat-card">
     <div class="stat-icon blue">
-      
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
       <div class="stat-label">مبيعات الشهر</div>
+      {% if month_loyalty_amount > 0 %}
+        <div style="font-size:10px;color:#dc2626;">- عمولة العملاء: {{ month_loyalty_amount|floatformat:0|intcomma }}</div>
+      {% endif %}
     </div>
   </div>
-  
+
+  <div class="stat-card">
+    <div class="stat-icon blue">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color:#2563eb;">{{ net_month_sales|floatformat:0|intcomma }}</div>
+      <div class="stat-label">صافي مبيعات الشهر</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fee2e2;color:#dc2626;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 12 20 22 4 22 4 12"></polyline>
+        <rect x="2" y="7" width="20" height="5"></rect>
+        <line x1="12" y1="22" x2="12" y2="7"></line>
+        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color:#dc2626;">{{ total_loyalty_amount|floatformat:0|intcomma }} د.ل</div>
+      <div class="stat-label">إجمالي عمولة العملاء</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef3c7;color:#d97706;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color:#d97706;">{{ total_loyalty_points|floatformat:0|intcomma }}</div>
+      <div class="stat-label">إجمالي نقاط عمولة العملاء</div>
+    </div>
+  </div>
+
   <div class="stat-card">
     <div class="stat-icon orange">
-      
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ commission|floatformat:0|intcomma }}</div>
-      <div class="stat-label">عمولة الشهر</div>
+      <div class="stat-label">عمولة الشهر </div>
     </div>
   </div>
-  
+
   <div class="stat-card">
     <div class="stat-icon purple">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -135,6 +204,7 @@
       {% endif %}
     </div>
   </div>
+
 </div>
 
 <div class="quick-actions">
@@ -317,6 +387,7 @@
   .badge-secondary { background: #f1f3f5; color: #6b7280; }
   
   .text-success { color: #16a34a; }
+  .text-danger { color: #dc2626; }
   .text-primary { color: #E8793A; }
   .text-muted { color: #6b7280; }
   .fw-bold { font-weight: 700; }

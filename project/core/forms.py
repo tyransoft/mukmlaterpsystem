@@ -329,3 +329,32 @@ class CompanySettingsForm(forms.ModelForm):
             'address': 'العنوان',
             'slogen':'عبارة الشركة'
         }        
+
+
+
+class CustomerLoyaltyRewardForm(forms.ModelForm):
+    class Meta:
+        model = CustomerLoyaltyReward
+        fields = ['customer', 'points', 'amount',  'reward_date', 'notes']
+        widgets = {
+            'customer': forms.Select(attrs={'class': 'form-control'}),
+            'points': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': 0}),
+            'reward_date': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'customer': 'العميل',
+            'points': 'نقاط المستبدلة',
+            'amount': 'المبلغ المسدد',
+            'branch': 'الفرع',
+            'reward_date': 'تاريخ العمولة',
+            'notes': 'ملاحظات',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['reward_date'].input_formats = ['%Y-%m-%dT%H:%M']        

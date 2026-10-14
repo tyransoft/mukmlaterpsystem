@@ -469,6 +469,11 @@
       <a href="{% url 'dashboard_accountant' %}" class="btn btn-outline" style="width:100%;">إعادة تعيين</a>
       {% endif %}
     </div>
+    <div style="display:flex;justify-content:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:15px;">
+  <a href="{% url 'inventory_full_report_pdf' %}?date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}" class="btn btn-primary">
+    تنزيل   PDF
+  </a>
+</div>
   </form>
 </div>
 
@@ -483,10 +488,18 @@
   <div class="stat-card">
     <div class="stat-icon orange"></div>
     <div class="stat-info">
-      <div class="stat-value">{{ cogs|floatformat:0|intcomma }}</div>
-      <div class="stat-label">تكلفة المبيعات</div>
+      <div class="stat-value">{{ branch_loyalty |floatformat:0|intcomma }}</div>
+      <div class="stat-label"> عمولة العملاء المسلمة </div>
     </div>
   </div>
+  <div class="stat-card">
+    <div class="stat-icon orange"></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ net_revenue |floatformat:0|intcomma }}</div>
+      <div class="stat-label"> صافي المبيعات</div>
+    </div>
+  </div>
+
   <div class="stat-card">
     <div class="stat-icon blue"></div>
     <div class="stat-info">
@@ -672,46 +685,74 @@
     </div>
   </div>
   
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">ديون الفروع (مستحقات الرئيسي)</span>
+ <div class="card">
+  <div class="card-header">
+    <span class="card-title">ديون الفروع (مستحقات الرئيسي)</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div style="background:#fef3c7;padding:12px;text-align:center;border-bottom:1px solid #eaecf0;">
+      <span class="text-muted">إجمالي المبيعات غير المسددة</span>
+      <span class="fw-bold text-warning" style="font-size:20px;margin-right:10px;">
+        {{ total_unpaid_commissions|floatformat:0|intcomma }} د.ل
+      </span>
     </div>
-    <div class="card-body" style="padding:0;">
-      <div style="background:#fef3c7;padding:12px;text-align:center;border-bottom:1px solid #eaecf0;">
-        <span class="text-muted">إجمالي العمولات غير المسددة</span>
-        <span class="fw-bold text-warning" style="font-size:20px;margin-right:10px;">{{ total_unpaid_commissions|floatformat:0|intcomma }} د.ل</span>
-      </div>
-      <div class="table-responsive">
-        <table class="erp-table">
-          <thead>
-            <tr><th>الفرع</th><th>النسبة</th><th>المبيعات</th><th>العمولة</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th><th></th></tr>
-          </thead>
-          <tbody>
-            {% for branch in branch_debt_list %}
-            <tr>
-              <td class="fw-600">{{ branch.name }}</td>
-              <td>{{ branch.commission_percentage }}%</td>
-              <td>{{ branch.total_sales|floatformat:0|intcomma }}</td>
-              <td>{{ branch.commission|floatformat:0|intcomma }}</td>
-              <td>{{ branch.amount_due|floatformat:0|intcomma }}</td>
-              <td class="text-success">{{ branch.paid|floatformat:0|intcomma }}</td>
-              <td class="{% if branch.remaining > 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
-                {{ branch.remaining|floatformat:0|intcomma }}
-              </td>
-              <td>
-                {% if branch.remaining > 0 %}
+    <div class="table-responsive">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>الفرع</th>
+            <th>النسبة</th>
+            <th>المبيعات</th>
+            <th>عمولة العملاء</th>
+            <th>صافي المبيعات</th>
+            <th>العمولة</th>
+            <th>المستحق</th>
+            <th>المدفوع</th>
+            <th>المتبقي</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for branch in branch_debt_list %}
+          <tr>
+            <td class="fw-600">{{ branch.name }}</td>
+            <td>{{ branch.commission_percentage }}%</td>
+            <td>{{ branch.total_sales|floatformat:0|intcomma }}</td>
+            
+            <td class="text-danger">
+              {{ branch.loyalty|floatformat:0|intcomma }}
+              {% if branch.loyalty_points > 0 %}
+                <br>
+                <small class="text-muted">
+                  ({{ branch.loyalty_points|floatformat:0|intcomma }} نقطة)
+                </small>
+              {% endif %}
+            </td>
+            
+            <td class="fw-600">{{ branch.net_sales|floatformat:0|intcomma }}</td>
+            
+            <td>{{ branch.commission|floatformat:0|intcomma }}</td>
+            <td>{{ branch.amount_due|floatformat:0|intcomma }}</td>
+            <td class="text-success">{{ branch.paid|floatformat:0|intcomma }}</td>
+            <td class="{% if branch.remaining > 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+              {{ branch.remaining|floatformat:0|intcomma }}
+            </td>
+            <td>
+              {% if branch.remaining > 0 %}
                 <a href="{% url 'branch_sales_delivery' branch.id %}" class="btn btn-success btn-sm">تسليم</a>
-                {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="8" class="text-center text-muted" style="padding:30px;">لا توجد فروع</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10" class="text-center text-muted" style="padding:30px;">لا توجد فروع</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 </div>
 
 <div class="dashboard-grid">

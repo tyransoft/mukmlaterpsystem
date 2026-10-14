@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <span class="card-title">{{ title }}</span>
+    <a href="{% url 'loyalty_reward_add' %}" class="btn btn-primary">إضافة مكافأة</a>
+  </div>
+
+  <div class="card-body">
+
+    <!-- البحث -->
+    <form method="get" style="margin-bottom:16px;">
+      <div style="display:flex; gap:10px;">
+        <input type="text" name="search" value="{{ search }}" 
+               class="form-control" placeholder="بحث بالاسم، الهاتف، رقم العضوية...">
+        <button type="submit" class="btn btn-primary">بحث</button>
+        {% if search %}
+          <a href="{% url 'loyalty_rewards_list' %}" class="btn btn-outline">إلغاء البحث</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if page_obj %}
+      <table class="table" style="width:100%;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>العميل</th>
+            <th>النقاط</th>
+            <th>المبلغ</th>
+            <th>الفرع</th>
+            <th>التاريخ</th>
+            <th>تم بواسطة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reward in page_obj %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ reward.customer.full_name }}</td>
+              <td>{{ reward.points }}</td>
+              <td>{{ reward.amount }}</td>
+              <td>{{ reward.branch|default:"-" }}</td>
+              <td>{{ reward.reward_date|date:"Y-m-d H:i" }}</td>
+              <td>{{ reward.created_by|default:"-" }}</td>
+              <td>
+                <a href="{% url 'loyalty_reward_edit' reward.pk %}" class="btn btn-sm btn-primary">تعديل</a>
+                <a href="{% url 'loyalty_reward_delete' reward.pk %}" class="btn btn-sm btn-danger">حذف</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" style="text-align:center;">لا توجد مكافآت ولاء</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- ترقيم الصفحات -->
+      {% if page_obj.has_other_pages %}
+        <div style="display:flex; gap:5px; justify-content:center; margin-top:16px;">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}" 
+               class="btn btn-outline">السابق</a>
+          {% endif %}
+          
+          <span style="padding:8px;">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+          
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}" 
+               class="btn btn-outline">التالي</a>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    {% else %}
+      <p style="text-align:center;">لا توجد مكافآت ولاء</p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

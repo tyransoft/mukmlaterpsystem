@@ -64,7 +64,29 @@ def main_dashboard(request):
         is_auto_generated=False   
     ).aggregate(total=Sum('total'))['total'] or 0
     
-    net_profit = total_sales - total_purchases
+    total_loyalty_amount = CustomerLoyaltyReward.objects.aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+    
+    total_loyalty_points = CustomerLoyaltyReward.objects.aggregate(
+        total=Sum('points')
+    )['total'] or 0
+    
+    month_loyalty_amount = CustomerLoyaltyReward.objects.filter(
+        reward_date__date__gte=month_start
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    today_loyalty_amount = CustomerLoyaltyReward.objects.filter(
+        reward_date__date=today
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    net_sales = total_sales - total_loyalty_amount
+    
+    net_month_sales = month_sales - month_loyalty_amount
+    
+    net_today_sales = today_sales - today_loyalty_amount
+    
+    net_profit = net_sales - total_purchases
     
     low_stock_count = BranchInventory.objects.filter(
         quantity__lte=F('min_quantity')
@@ -83,11 +105,20 @@ def main_dashboard(request):
             created_at__date__gte=month_start
         ).aggregate(total=Sum('total'))['total'] or 0
         
-        commission = float(sales) * float(branch.commission_percentage) / 100
+        branch_loyalty = CustomerLoyaltyReward.objects.filter(
+            branch=branch,
+            reward_date__date__gte=month_start
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        net_branch_sales = sales - branch_loyalty
+        
+        commission = float(net_branch_sales) * float(branch.commission_percentage) / 100
         
         branch_sales.append({
             'branch': branch, 
-            'sales': sales, 
+            'sales': sales,
+            'loyalty': branch_loyalty,
+            'net_sales': net_branch_sales,
             'commission': commission
         })
     
@@ -108,6 +139,13 @@ def main_dashboard(request):
         'today_sales': today_sales,
         'month_sales': month_sales,
         'total_sales': total_sales,
+        'total_loyalty_amount': total_loyalty_amount,
+        'total_loyalty_points': total_loyalty_points,
+        'month_loyalty_amount': month_loyalty_amount,
+        'today_loyalty_amount': today_loyalty_amount,
+        'net_sales': net_sales,
+        'net_month_sales': net_month_sales,
+        'net_today_sales': net_today_sales,
         'net_profit': net_profit,
         'low_stock_count': low_stock_count,
         'recent_invoices': recent_invoices,
@@ -120,15 +158,16 @@ def main_dashboard(request):
 @login_required
 def branch_dashboard(request):
     user = request.user
-    if user.can_see_all_data():
-        return redirect('dashboard_main')
+   
     if not user.branch:
-        return render(request, 'dashboard/no_branch.html')
+        return redirect('/')
     
     today = timezone.now().date()
     month_start = today.replace(day=1)
-    branch = user.branch
-    
+    if user.can_see_all_data() and branch.is_main:
+        branch = Branch.objects.get(id=request.GET.get('branch_id', branch.id)) 
+    else:
+        branch = user.branch
     today_sales = SaleInvoice.objects.filter(
         branch=branch,
         sale_type='customer',
@@ -143,7 +182,39 @@ def branch_dashboard(request):
         created_at__date__gte=month_start
     ).aggregate(total=Sum('total'))['total'] or 0
     
-    commission = float(month_sales) * float(branch.commission_percentage) / 100
+    today_loyalty_amount = CustomerLoyaltyReward.objects.filter(
+        branch=branch,
+        reward_date__date=today
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    today_loyalty_points = CustomerLoyaltyReward.objects.filter(
+        branch=branch,
+        reward_date__date=today
+    ).aggregate(total=Sum('points'))['total'] or 0
+    
+    month_loyalty_amount = CustomerLoyaltyReward.objects.filter(
+        branch=branch,
+        reward_date__date__gte=month_start
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    month_loyalty_points = CustomerLoyaltyReward.objects.filter(
+        branch=branch,
+        reward_date__date__gte=month_start
+    ).aggregate(total=Sum('points'))['total'] or 0
+    
+    total_loyalty_amount = CustomerLoyaltyReward.objects.filter(
+        branch=branch
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    total_loyalty_points = CustomerLoyaltyReward.objects.filter(
+        branch=branch
+    ).aggregate(total=Sum('points'))['total'] or 0
+    
+    net_today_sales = today_sales - today_loyalty_amount
+    
+    net_month_sales = month_sales - month_loyalty_amount
+    
+    commission = float(net_month_sales) * float(branch.commission_percentage) / 100
     
     low_stock = BranchInventory.objects.filter(
         branch=branch,
@@ -168,15 +239,27 @@ def branch_dashboard(request):
     
     return render(request, 'dashboard/branch.html', {
         'branch': branch,
+        
         'today_sales': today_sales,
         'month_sales': month_sales,
+        
+        'today_loyalty_amount': today_loyalty_amount,
+        'today_loyalty_points': today_loyalty_points,
+        'month_loyalty_amount': month_loyalty_amount,
+        'month_loyalty_points': month_loyalty_points,
+        'total_loyalty_amount': total_loyalty_amount,
+        'total_loyalty_points': total_loyalty_points,
+        
+        'net_today_sales': net_today_sales,
+        'net_month_sales': net_month_sales,
+        
         'commission': commission,
+        
         'low_stock': low_stock,
         'recent_invoices': recent_invoices,
         'invoice_count_today': invoice_count_today,
         'supply_count': supply_count,
     })
-
 
 @login_required
 def accountant_dashboard(request):
@@ -193,14 +276,24 @@ def accountant_dashboard(request):
         date_filter['created_at__date__lte'] = date_to
    
     delivery_date_filter = {}
-
+    reward_date_filter = {}
     if date_from:
       delivery_date_filter['delivery_date__date__gte'] = date_from
 
     if date_to:
       delivery_date_filter['delivery_date__date__lte'] = date_to
+
+    if date_from:
+       reward_date_filter['reward_date__date__gte'] = date_from
+
+    if date_to:
+      reward_date_filter['reward_date__date__lte'] = date_to
+
+
     sales_query = SaleInvoice.objects.filter(sale_type='customer', status='confirmed', **date_filter)
     total_revenue = sales_query.aggregate(total=Sum('total'))['total'] or 0
+    branch_loyalty = CustomerLoyaltyReward.objects.filter(**reward_date_filter).aggregate(total=Sum('amount'))['total'] or 0
+    net_revenue = total_revenue - branch_loyalty
     
     purchase_query = PurchaseInvoice.objects.filter(status='confirmed', is_auto_generated=False, **date_filter)
     total_cost = purchase_query.aggregate(total=Sum('total'))['total'] or 0
@@ -250,24 +343,72 @@ def accountant_dashboard(request):
         amount_due=Sum('total') - Sum('branch_commission')
     ).order_by('-amount_due')
     
-    branch_payments = BranchSalesDelivery.objects.filter(**delivery_date_filter).values('branch__id', 'branch__name').annotate(
+    branch_debts = SaleInvoice.objects.filter(
+      sale_type='customer',
+      status='confirmed',
+      branch__is_main=False,
+      **date_filter
+      ).values(
+         'branch__id', 'branch__name', 'branch__commission_percentage'
+      ).annotate(
+        total_sales=Sum('total'),
+        total_commission=Sum('branch_commission'),
+       ).order_by('-total_sales')
+
+    branch_loyalties = CustomerLoyaltyReward.objects.filter(
+      branch__is_main=False,
+       **reward_date_filter   
+    ).values('branch__id').annotate(
+      total_loyalty=Sum('amount'),
+      total_points=Sum('points')
+    )
+
+    branch_payments = BranchSalesDelivery.objects.filter(
+      **delivery_date_filter
+    ).values('branch__id', 'branch__name').annotate(
         total_paid=Sum('amount')
     )
-    
+
     branch_debt_list = []
     for branch in branch_debts:
-        paid = next((p['total_paid'] for p in branch_payments if p['branch__id'] == branch['branch__id']), 0)
-        branch_debt_list.append({
-            'id': branch['branch__id'],
-            'name': branch['branch__name'],
-            'commission_percentage': branch['branch__commission_percentage'],
-            'total_sales': branch['total_sales'],
-            'commission': branch['total_commission'],
-            'amount_due': branch['amount_due'],
-            'paid': paid,
-            'remaining': branch['amount_due'] - paid,
-        })
+        loyalty_data = next(
+           (l for l in branch_loyalties if l['branch__id'] == branch['branch__id']),
+           {'total_loyalty': 0, 'total_points': 0}
+         )
+        branch_loyalty = loyalty_data['total_loyalty'] or 0
+        branch_loyalty_points = loyalty_data['total_points'] or 0
     
+        paid = next(
+          (p['total_paid'] for p in branch_payments if p['branch__id'] == branch['branch__id']),
+          0
+        ) or 0
+    
+        total_sales = branch['total_sales'] or 0
+        total_commission = branch['total_commission'] or 0
+    
+        net_sales = total_sales - branch_loyalty
+    
+        amount_due = net_sales - total_commission
+    
+        remaining = amount_due - paid
+    
+        branch_debt_list.append({
+           'id': branch['branch__id'],
+           'name': branch['branch__name'],
+           'commission_percentage': branch['branch__commission_percentage'],
+           'total_sales': total_sales,
+           'loyalty': branch_loyalty,
+           'loyalty_points': branch_loyalty_points,
+           'net_sales': net_sales,
+           'commission': total_commission,
+           'amount_due': amount_due,
+           'paid': paid,
+           'remaining': remaining,
+        })
+
+    total_unpaid_commissions = sum(
+       b['remaining'] for b in branch_debt_list if b['remaining'] > 0
+    )
     branch_deliveries_query = BranchSalesDelivery.objects.filter(**delivery_date_filter)
     total_branch_deliveries = branch_deliveries_query.aggregate(total=Sum('amount'))['total'] or 0
     
@@ -352,6 +493,8 @@ def accountant_dashboard(request):
         'total_delivery_sales': total_delivery_sales,
         'delivery_sales_count': delivery_sales_count,
         'sales_payment_methods_list': sales_payment_methods_list,
+        'net_revenue':net_revenue,
+        'branch_loyalty':branch_loyalty,
         'overdue_invoices': SaleInvoice.objects.filter(
             sale_type='customer',
             status='confirmed',
@@ -529,12 +672,21 @@ def branch_detail(request, pk):
     total_sales = sales_query.aggregate(
         total=Sum('total')
     )['total'] or 0
+    branch_loyalty = CustomerLoyaltyReward.objects.filter(
+       branch=branch,
+       reward_date__date__gte=date_from,
+       reward_date__date__lte=date_to
+         ).aggregate(
+           total=Sum('amount')
+          )['total'] or 0
+
+    net_sales = total_sales - branch_loyalty
 
     total_commission = sales_query.aggregate(
         total=Sum('branch_commission')
     )['total'] or 0
 
-    amount_due_to_main = total_sales - total_commission
+    amount_due_to_main = net_sales - total_commission
 
     deliveries_query = BranchSalesDelivery.objects.filter(
         branch=branch,
@@ -741,6 +893,8 @@ def branch_detail(request, pk):
         'matched_count': matched_count,
         'surplus_count': surplus_count,
         'shortage_count': shortage_count,
+        'branch_loyalty': branch_loyalty,
+        'net_sales': net_sales,
     }
 
     return render(request, 'branches/detail.html', context)
@@ -2327,7 +2481,9 @@ def branch_sales_delivery(request, pk):
     
     total_sales = sales_query.aggregate(total=Sum('total'))['total'] or 0
     total_commission = sales_query.aggregate(total=Sum('branch_commission'))['total'] or 0
-    amount_due_to_main = total_sales - total_commission
+    branch_loyalty = sales_query.aggregate(total=Sum('branch_loyalty'))['total'] or 0
+    net_sales = total_sales - branch_loyalty
+    amount_due_to_main = net_sales - total_commission
     
     total_delivered = BranchSalesDelivery.objects.filter(branch=branch).aggregate(total=Sum('amount'))['total'] or 0
     remaining_to_deliver = amount_due_to_main - total_delivered
@@ -2361,6 +2517,8 @@ def branch_sales_delivery(request, pk):
         'branch': branch,
         'total_sales': total_sales,
         'total_commission': total_commission,
+        'branch_loyalty': branch_loyalty,
+        'net_sales': net_sales,
         'amount_due_to_main': amount_due_to_main,
         'total_delivered': total_delivered,
         'remaining_to_deliver': remaining_to_deliver,
@@ -3417,3 +3575,608 @@ def company_settings_edit(request):
         'form': form,
         'settings': settings
     })    
+
+
+
+@login_required
+def loyalty_rewards_list(request):
+    rewards = CustomerLoyaltyReward.objects.select_related(
+        'customer', 'branch', 'created_by'
+    ).filter(branch=request.user.branch) if not request.user.can_see_all_data() else CustomerLoyaltyReward.objects.select_related(
+        'customer', 'branch', 'created_by'
+    ).all()
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        rewards = rewards.filter(
+            Q(customer__full_name__icontains=search) |
+            Q(customer__phone__icontains=search) |
+            Q(customer__customer_id__icontains=search) 
+       )
+
+    paginator = Paginator(rewards, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'title': ' تسليم عمولة نقاط ',
+        'page_obj': page_obj,
+        'search': search,
+    }
+    return render(request, 'customers/loyalty_rewards_list.html', context)
+
+
+@login_required
+def loyalty_reward_add(request):
+    if request.method == 'POST':
+        form = CustomerLoyaltyRewardForm(request.POST)
+        if form.is_valid():
+            reward = form.save(commit=False)
+            reward.created_by = request.user
+            reward.save()
+            messages.success(request, 'تمت الاضافة بنجاح')
+            return redirect('loyalty_rewards_list')
+    else:
+        form = CustomerLoyaltyRewardForm()
+
+    context = {
+        'title': 'تسليم عمولة نقاط',
+        'form': form,
+    }
+    return render(request, 'customers/loyalty_reward_form.html', context)
+
+
+@login_required
+def loyalty_reward_edit(request, pk):
+    reward = get_object_or_404(CustomerLoyaltyReward, pk=pk)
+
+    if request.method == 'POST':
+        form = CustomerLoyaltyRewardForm(request.POST, instance=reward)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'تم التعديل  بنجاح')
+            return redirect('loyalty_rewards_list')
+    else:
+        form = CustomerLoyaltyRewardForm(instance=reward)
+
+    context = {
+        'title': 'تعديل تسليم عمولة نقاط',
+        'form': form,
+        'reward': reward,
+    }
+    return render(request, 'customers/loyalty_reward_form.html', context)
+
+
+@login_required
+def loyalty_reward_delete(request, pk):
+    reward = get_object_or_404(CustomerLoyaltyReward, pk=pk)
+
+    if request.method == 'POST':
+        reward.delete()
+        messages.success(request, 'تم حذف  بنجاح')
+        return redirect('loyalty_rewards_list')
+
+    context = {
+        'title': 'حذف تسليم عمولة نقاط',
+        'reward': reward,
+    }
+    return render(request, 'customers/loyalty_reward_confirm_delete.html', context)
+
+
+
+
+
+
+
+
+import io
+import html
+from pathlib import Path
+from datetime import date
+
+import arabic_reshaper
+from bidi.algorithm import get_display
+
+from django.conf import settings
+from django.http import HttpResponse
+from django.utils import timezone
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+)
+
+
+
+@login_required
+def inventory_full_report_pdf(request):
+    today = timezone.localdate()
+    first_day = today.replace(day=1)
+
+    try:
+        date_from = date.fromisoformat(
+            request.GET.get("date_from", first_day.isoformat())
+        )
+        date_to = date.fromisoformat(
+            request.GET.get("date_to", today.isoformat())
+        )
+        if date_from > date_to:
+            raise ValueError
+    except (ValueError, TypeError):
+        date_from, date_to = first_day, today
+
+    branches = Branch.objects.all().order_by("-is_main", "name")
+
+    font_path = (
+        Path(settings.BASE_DIR)
+        / "static" / "fonts" / "Amiri-Regular.ttf"
+    )
+
+    if not font_path.exists():
+        return HttpResponse(
+            "ملف الخط العربي غير موجود في static/fonts/Amiri-Regular.ttf",
+            status=500,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    if "Amiri" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("Amiri", str(font_path)))
+
+    def ar(value):
+        value = html.escape(str(value if value is not None else ""))
+        return get_display(arabic_reshaper.reshape(value))
+
+    def money(value):
+        return f"{float(value or 0):,.2f} د.ل"
+
+    def quantity(value):
+        return f"{value or 0:,}"
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "ReportTitle",
+        parent=styles["Title"],
+        fontName="Amiri",
+        fontSize=18,
+        leading=25,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#1F3A5F"),
+    )
+
+    heading_style = ParagraphStyle(
+        "ReportHeading",
+        parent=styles["Heading2"],
+        fontName="Amiri",
+        fontSize=12,
+        leading=18,
+        alignment=TA_RIGHT,
+        textColor=colors.HexColor("#1F3A5F"),
+        spaceBefore=7,
+        spaceAfter=6,
+    )
+
+    normal_style = ParagraphStyle(
+        "ReportNormal",
+        parent=styles["Normal"],
+        fontName="Amiri",
+        fontSize=9,
+        leading=13,
+        alignment=TA_RIGHT,
+    )
+
+    cell_style = ParagraphStyle(
+        "ReportCell",
+        parent=normal_style,
+        fontSize=8,
+        leading=11,
+    )
+
+    header_style = ParagraphStyle(
+        "ReportHeader",
+        parent=cell_style,
+        alignment=TA_CENTER,
+        textColor=colors.white,
+    )
+
+    def paragraph(value, style=cell_style):
+        return Paragraph(ar(value), style)
+
+    def make_table(headers, rows, widths):
+        data = [[paragraph(item, header_style) for item in headers]]
+
+        for row in rows:
+            data.append([
+                item if isinstance(item, Paragraph) else paragraph(item)
+                for item in row
+            ])
+
+        table = Table(
+            data,
+            colWidths=widths,
+            repeatRows=1,
+            hAlign="CENTER",
+        )
+
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563EB")),
+            ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#D1D5DB")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [
+                colors.white, colors.HexColor("#F3F6FA")
+            ]),
+        ]))
+
+        return table
+
+    story = []
+
+    inventory = list(
+        BranchInventory.objects
+        .select_related("branch", "product")
+        .order_by("branch__name", "product__name")
+    )
+
+    inventories_by_branch = {}
+    for item in inventory:
+        inventories_by_branch.setdefault(item.branch_id, []).append(item)
+
+    grand_quantity = 0
+    grand_cost = 0
+    grand_sale = 0
+    grand_products = 0
+    branch_inventory_rows = []
+
+    for branch in branches:
+        items = inventories_by_branch.get(branch.id, [])
+        total_quantity = sum(item.quantity for item in items)
+        cost_value = sum(
+            item.quantity * item.product.cost_price for item in items
+        )
+        sale_value = sum(
+            item.quantity * item.product.selling_price for item in items
+        )
+        products_count = sum(1 for item in items if item.quantity > 0)
+
+        grand_quantity += total_quantity
+        grand_cost += cost_value
+        grand_sale += sale_value
+        grand_products += products_count
+
+        branch_inventory_rows.append([
+            branch.name,
+            quantity(products_count),
+            quantity(total_quantity),
+            money(cost_value),
+            money(sale_value),
+        ])
+
+    story.append(paragraph("تقرير المخزون والمبيعات والتسليمات", title_style))
+    story.append(Spacer(1, 3 * mm))
+    story.append(paragraph(
+        f"تاريخ التقرير: {today.isoformat()} | "
+        f"الفترة: {date_from.isoformat()} إلى {date_to.isoformat()}",
+        normal_style,
+    ))
+    story.append(Spacer(1, 4 * mm))
+
+    story.append(paragraph("1. الملخص العام للمخزون الحالي", heading_style))
+    story.append(make_table(
+        ["الفرع", "أصناف برصيد موجب", "إجمالي الكمية",
+         "القيمة بالتكلفة", "قيمة البيع"],
+        branch_inventory_rows + [[
+            "الإجمالي العام",
+            quantity(grand_products),
+            quantity(grand_quantity),
+            money(grand_cost),
+            money(grand_sale),
+        ]],
+        [48 * mm, 32 * mm, 30 * mm, 42 * mm, 42 * mm],
+    ))
+
+    story.append(Spacer(1, 4 * mm))
+    story.append(paragraph("2. تفصيل المنتجات حسب الفرع", heading_style))
+
+    for branch in branches:
+        items = inventories_by_branch.get(branch.id, [])
+        if not items:
+            continue
+
+        rows = []
+        for item in items:
+            product = item.product
+            rows.append([
+                product.name,
+                product.barcode or "—",
+                quantity(item.quantity),
+                money(product.cost_price),
+                money(item.quantity * product.cost_price),
+                money(product.selling_price),
+                money(item.quantity * product.selling_price),
+            ])
+
+        branch_cost = sum(
+            item.quantity * item.product.cost_price for item in items
+        )
+        branch_sale = sum(
+            item.quantity * item.product.selling_price for item in items
+        )
+
+        story.append(paragraph(
+            f"{branch.name} | قيمة التكلفة: {money(branch_cost)} | "
+            f"قيمة البيع: {money(branch_sale)}",
+            heading_style,
+        ))
+
+        story.append(make_table(
+            ["المنتج", "الباركود", "الكمية", "سعر التكلفة",
+             "إجمالي التكلفة", "سعر البيع", "إجمالي البيع"],
+            rows,
+            [47 * mm, 30 * mm, 19 * mm, 28 * mm,
+             34 * mm, 27 * mm, 34 * mm],
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+    movements = InventoryMovement.objects.filter(
+        branch__in=branches,
+        created_at__date__range=(date_from, date_to),
+    ).select_related("branch", "product")
+
+    movement_labels = dict(InventoryMovement.MOVEMENT_TYPES)
+    movement_totals = {}
+    supplied_products = {}
+    branch_sales_movements = {}
+
+    for movement in movements.iterator():
+        kind = movement.movement_type
+        amount = abs(movement.quantity or 0)
+        movement_totals[kind] = movement_totals.get(kind, 0) + amount
+
+        if kind == "supply_in":
+            name = movement.product.name
+            supplied_products[name] = supplied_products.get(name, 0) + amount
+
+        if kind in ("sale", "return_sale"):
+            values = branch_sales_movements.setdefault(
+                movement.branch_id, {"sold": 0, "returned": 0}
+            )
+            if kind == "sale":
+                values["sold"] += amount
+            else:
+                values["returned"] += amount
+
+    story.append(PageBreak())
+    story.append(paragraph("3. حركات المخزون خلال الفترة", heading_style))
+    story.append(make_table(
+        ["نوع الحركة", "إجمالي الكمية"],
+        [
+            [movement_labels.get(kind, kind), quantity(amount)]
+            for kind, amount in sorted(movement_totals.items())
+        ] or [["لا توجد حركات", "0"]],
+        [100 * mm, 55 * mm],
+    ))
+
+    sales = SaleInvoice.objects.filter(
+        branch__in=branches,
+        status="confirmed",
+        created_at__date__range=(date_from, date_to),
+    ).select_related("branch", "customer", "target_branch")
+
+    sales_rows = []
+    total_invoice_count = 0
+    total_customer_sales = 0
+    total_branch_sales = 0
+    total_paid = 0
+    total_debt = 0
+    total_sold_quantity = 0
+
+    for branch in branches:
+        branch_sales = sales.filter(branch=branch)
+        customer_sales = branch_sales.filter(sale_type="customer")
+        transfers = branch_sales.filter(sale_type="branch")
+
+        customer_total = sum(
+            invoice.total or 0 for invoice in customer_sales
+        )
+        branch_total = sum(invoice.total or 0 for invoice in transfers)
+        paid = sum(invoice.paid_amount or 0 for invoice in branch_sales)
+        debt = sum(
+            max((invoice.total or 0) - (invoice.paid_amount or 0), 0)
+            for invoice in branch_sales
+        )
+        invoice_count = branch_sales.count()
+        sold_quantity = sum(
+            item.quantity
+            for item in SaleInvoiceItem.objects.filter(
+                invoice__in=branch_sales
+            )
+        )
+
+        sales_rows.append([
+            branch.name,
+            str(invoice_count),
+            quantity(sold_quantity),
+            money(customer_total),
+            money(branch_total),
+            money(customer_total + branch_total),
+            money(paid),
+            money(debt),
+        ])
+
+        total_invoice_count += invoice_count
+        total_customer_sales += customer_total
+        total_branch_sales += branch_total
+        total_paid += paid
+        total_debt += debt
+        total_sold_quantity += sold_quantity
+
+    sales_rows.append([
+        "الإجمالي",
+        str(total_invoice_count),
+        quantity(total_sold_quantity),
+        money(total_customer_sales),
+        money(total_branch_sales),
+        money(total_customer_sales + total_branch_sales),
+        money(total_paid),
+        money(total_debt),
+    ])
+
+    story.append(Spacer(1, 4 * mm))
+    story.append(paragraph("4. المبيعات حسب الفرع خلال الفترة", heading_style))
+    story.append(make_table(
+        ["الفرع", "الفواتير", "الكمية", "بيع العملاء", "توريد الفروع",
+         "الإجمالي", "المدفوع", "المتبقي"],
+        sales_rows,
+        [34 * mm, 21 * mm, 20 * mm, 29 * mm,
+         29 * mm, 29 * mm, 25 * mm, 25 * mm],
+    ))
+
+    rewards = CustomerLoyaltyReward.objects.filter(
+        branch__in=branches,
+        reward_date__date__range=(date_from, date_to),
+    ).select_related("branch", "customer")
+
+    reward_rows = []
+    rewards_amount_total = 0
+    rewards_points_total = 0
+
+    for branch in branches:
+        branch_rewards = rewards.filter(branch=branch)
+        amount = sum(reward.amount or 0 for reward in branch_rewards)
+        points = sum(reward.points or 0 for reward in branch_rewards)
+
+        reward_rows.append([
+            branch.name,
+            str(branch_rewards.count()),
+            quantity(points),
+            money(amount),
+        ])
+        rewards_amount_total += amount
+        rewards_points_total += points
+
+    reward_rows.append([
+        "الإجمالي",
+        str(rewards.count()),
+        quantity(rewards_points_total),
+        money(rewards_amount_total),
+    ])
+
+    story.append(Spacer(1, 4 * mm))
+    story.append(paragraph("5. مكافآت العملاء خلال الفترة", heading_style))
+    story.append(make_table(
+        ["الفرع", "عدد المكافآت", "النقاط", "قيمة المكافآت"],
+        reward_rows,
+        [65 * mm, 35 * mm, 40 * mm, 45 * mm],
+    ))
+
+    deliveries = BranchSalesDelivery.objects.filter(
+        branch__in=branches,
+        delivery_date__date__range=(date_from, date_to),
+    ).select_related("branch", "created_by")
+
+    delivery_rows = []
+    delivery_total = 0
+    delivery_cash_total = 0
+    delivery_bank_total = 0
+
+    for branch in branches:
+        branch_deliveries = deliveries.filter(branch=branch)
+        cash = sum(
+            delivery.amount or 0
+            for delivery in branch_deliveries
+            if delivery.payment_method == "cash"
+        )
+        bank = sum(
+            delivery.amount or 0
+            for delivery in branch_deliveries
+            if delivery.payment_method == "bank_transfer"
+        )
+        amount = sum(
+            delivery.amount or 0 for delivery in branch_deliveries
+        )
+
+        delivery_rows.append([
+            branch.name,
+            str(branch_deliveries.count()),
+            money(cash),
+            money(bank),
+            money(amount),
+        ])
+
+        delivery_total += amount
+        delivery_cash_total += cash
+        delivery_bank_total += bank
+
+    delivery_rows.append([
+        "الإجمالي",
+        str(deliveries.count()),
+        money(delivery_cash_total),
+        money(delivery_bank_total),
+        money(delivery_total),
+    ])
+
+    story.append(Spacer(1, 4 * mm))
+    story.append(paragraph("6. تسليمات مبيعات الفروع خلال الفترة", heading_style))
+    story.append(make_table(
+        ["الفرع", "عدد التسليمات", "نقدي", "تحويل بنكي", "الإجمالي"],
+        delivery_rows,
+        [55 * mm, 32 * mm, 35 * mm, 35 * mm, 40 * mm],
+    ))
+
+    story.append(Spacer(1, 4 * mm))
+    story.append(paragraph("7. أبرز المنتجات الموردة خلال الفترة", heading_style))
+    top_supplied = sorted(
+        supplied_products.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )[:20]
+
+    story.append(make_table(
+        ["المنتج", "الكمية الموردة"],
+        [[name, quantity(amount)] for name, amount in top_supplied]
+        or [["لا توجد توريدات واردة", "0"]],
+        [100 * mm, 55 * mm],
+    ))
+
+   
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=12 * mm,
+        leftMargin=12 * mm,
+        topMargin=14 * mm,
+        bottomMargin=14 * mm,
+        title="تقرير المخزون والمبيعات والتسليمات",
+    )
+
+    def page_number(canvas, document):
+        canvas.saveState()
+        canvas.setFont("Amiri", 8)
+        canvas.drawCentredString(
+            landscape(A4)[0] / 2,
+            7 * mm,
+            ar(f"صفحة {document.page}"),
+        )
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=page_number, onLaterPages=page_number)
+
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = (
+        'attachment; filename="inventory_full_report.pdf"'
+    )
+    buffer.close()
+    return response

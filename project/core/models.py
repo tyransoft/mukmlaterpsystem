@@ -222,6 +222,25 @@ class CustomerPayment(models.Model):
 
 
 
+class CustomerLoyaltyReward(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='loyalty_rewards')
+    points = models.IntegerField(default=0, verbose_name='نقاط المستبدلة')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='المبلغ المسدد')
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL,null=True, blank=True, verbose_name='الفرع')
+    reward_date = models.DateTimeField( verbose_name='تاريخ العمولة')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    created_by = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL, null=True, verbose_name='تم بواسطة')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'مكافأة ولاء عميل'
+        verbose_name_plural = 'مكافآت ولاء العملاء'
+        ordering = ['-reward_date']
+    
+    def __str__(self):
+        return f"{self.customer.full_name} - {self.points} - {self.amount} - {self.reward_date}"
+    
+
 class BranchInventory(models.Model):
     branch = models.ForeignKey(
         Branch, on_delete=models.CASCADE,

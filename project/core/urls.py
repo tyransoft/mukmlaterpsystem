@@ -105,6 +105,14 @@ urlpatterns = [
 
     path('company/settings/', company_settings_view, name='company_settings_view'),
     path('company/settings/edit/', company_settings_edit, name='company_settings_edit'),
+
+
+    path('loyalty-rewards/',loyalty_rewards_list, name='loyalty_rewards_list'),
+    path('loyalty-rewards/add/',loyalty_reward_add, name='loyalty_reward_add'),
+    path('loyalty-rewards/<int:pk>/edit/',loyalty_reward_edit, name='loyalty_reward_edit'),
+    path('loyalty-rewards/<int:pk>/delete/',loyalty_reward_delete, name='loyalty_reward_delete'),
+    path('reports/inventory/pdf/',inventory_full_report_pdf,name="inventory_full_report_pdf",),
+
 ]
 
 

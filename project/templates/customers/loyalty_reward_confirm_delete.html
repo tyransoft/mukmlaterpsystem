@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:500px;">
+  <div class="card-header">
+    <span class="card-title">{{ title }}</span>
+  </div>
+
+  <div class="card-body">
+    <p>هل أنت متأكد من حذف  التسليمات التالية؟</p>
+    
+    <ul style="margin-bottom:16px;">
+      <li><strong>العميل:</strong> {{ reward.customer.full_name }}</li>
+      <li><strong>النقاط:</strong> {{ reward.points }}</li>
+      <li><strong>المبلغ:</strong> {{ reward.amount }}</li>
+      <li><strong>التاريخ:</strong> {{ reward.reward_date|date:"Y-m-d H:i" }}</li>
+    </ul>
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+        <a href="{% url 'loyalty_rewards_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

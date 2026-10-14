@@ -137,6 +137,16 @@
         <div class="summary-value" style="color:#2563eb;">{{ total_sales|floatformat:0|intcomma }} د.ل</div>
         <div class="label">للفترة المحددة</div>
       </div>
+      <div class="summary-box" style="background:#eff6ff;">
+        <div class="label">العمولات المسلمة للعملاء</div>
+        <div class="summary-value" style="color:#2563eb;">{{ branch_loyalty|floatformat:0|intcomma }} د.ل</div>
+        <div class="label">للفترة المحددة</div>
+      </div>
+      <div class="summary-box" style="background:#eff6ff;">
+        <div class="label"> المبيعات</div>
+        <div class="summary-value" style="color:#2563eb;">{{ net_sales|floatformat:0|intcomma }} د.ل</div>
+        <div class="label">للفترة المحددة (بعد خصم عمولة العملاء المسلمة)</div>
+      </div>
       <div class="summary-box" style="background:#f0fdf4;">
         <div class="label">عمولة الفرع</div>
         <div class="summary-value" style="color:#16a34a;">{{ total_commission|floatformat:0|intcomma }} د.ل</div>

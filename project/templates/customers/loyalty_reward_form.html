@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block content %}
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+  .select2-container--default .select2-selection--single {
+    height: 38px;
+    padding: 5px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+  }
+  .select2-container {
+    width: 100% !important;
+  }
+</style>
+
+<div class="card" style="max-width:500px;">
+  <div class="card-header">
+    <span class="card-title">{{ title }}</span>
+  </div>
+
+  <div class="card-body">
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.customer.label }}
+          <span style="color:red;">*</span>
+        </label>
+        {{ form.customer }}
+        {% if form.customer.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.customer.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.points.label }}
+          <span style="color:red;">*</span>
+        </label>
+        {{ form.points }}
+        {% if form.points.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.points.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.amount.label }}
+          <span style="color:red;">*</span>
+        </label>
+        {{ form.amount }}
+        {% if form.amount.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.amount.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          {{ form.reward_date.label }}
+          <span style="color:red;">*</span>
+        </label>
+        {{ form.reward_date }}
+        {% if form.reward_date.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.reward_date.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}
+          <div style="color:red; margin-top:5px;">
+            {% for error in form.notes.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a href="{% url 'loyalty_rewards_list' %}" class="btn btn-outline">إلغاء</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function() {
+    $('.select2-customer').select2({
+      placeholder: '--- ابحث عن العميل ---',
+      allowClear: true,
+      dir: 'rtl',
+      language: {
+        noResults: function() {
+          return 'لا توجد نتائج';
+        },
+        searching: function() {
+          return 'جاري البحث...';
+        },
+        inputTooShort: function() {
+          return 'اكتب حرفين على الأقل للبحث';
+        }
+      },
+      minimumInputLength: 0,
+      matcher: function(params, data) {
+        if ($.trim(params.term) === '') {
+          return data;
+        }
+        var term = params.term.toLowerCase();
+        var text = data.text.toLowerCase();
+        if (text.indexOf(term) > -1) {
+          return data;
+        }
+        return null;
+      }
+    });
+  });
+</script>
+
+{% endblock %}

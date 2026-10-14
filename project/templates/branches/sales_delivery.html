@@ -105,6 +105,14 @@
         <div class="text-muted">عمولة الفرع ({{ branch.commission_percentage }}%)</div>
         <div class="stat-value" style="color:#16a34a;">{{ total_commission|floatformat:0|intcomma }} د.ل</div>
       </div>
+      <div class="stat-box" style="background:#f0fdf4;">
+        <div class="text-muted">العمولة المسلمة للعملاء</div>
+        <div class="stat-value" style="color:#16a34a;">{{ branch_loyalty|floatformat:0|intcomma }} د.ل</div>
+      </div>
+      <div class="stat-box" style="background:#f0fdf4;">
+        <div class="text-muted">صافي المبيعات</div>
+        <div class="stat-value" style="color:#16a34a;">{{ net_sales|floatformat:0|intcomma }} د.ل</div>
+      </div>
       <div class="stat-box" style="background:#fef3c7;">
         <div class="text-muted">المستحق للفرع الرئيسي</div>
         <div class="stat-value" style="color:#d97706;">{{ amount_due_to_main|floatformat:0|intcomma }} د.ل</div>

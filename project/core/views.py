@@ -292,9 +292,13 @@ def accountant_dashboard(request):
 
     sales_query = SaleInvoice.objects.filter(sale_type='customer', status='confirmed', **date_filter)
     total_revenue = sales_query.aggregate(total=Sum('total'))['total'] or 0
-    branch_loyalty = CustomerLoyaltyReward.objects.filter(**reward_date_filter).aggregate(total=Sum('amount'))['total'] or 0
-    net_revenue = total_revenue - branch_loyalty
-    
+    total_branch_loyalty = (
+      CustomerLoyaltyReward.objects
+      .filter(**reward_date_filter)
+      .aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    )
+
+    net_revenue = total_revenue - total_branch_loyalty    
     purchase_query = PurchaseInvoice.objects.filter(status='confirmed', is_auto_generated=False, **date_filter)
     total_cost = purchase_query.aggregate(total=Sum('total'))['total'] or 0
     
@@ -369,46 +373,111 @@ def accountant_dashboard(request):
         total_paid=Sum('amount')
     )
 
+
+    all_branches = Branch.objects.filter(
+      is_main=False
+        ).values(
+       'id', 'name', 'commission_percentage'
+        ).order_by('name')
+
+    sales_by_branch = SaleInvoice.objects.filter(
+      sale_type='customer',
+      status='confirmed',
+      branch__is_main=False,
+      **date_filter
+        ).values('branch_id').annotate(
+       total_sales=Sum('total'),
+      total_commission=Sum('branch_commission'),
+    )
+
+    sales_map = {
+      row['branch_id']: row
+     for row in sales_by_branch
+    }
+
+    loyalties_by_branch = CustomerLoyaltyReward.objects.filter(
+      branch__is_main=False,
+       **reward_date_filter
+      ).values('branch_id').annotate(
+       total_loyalty=Sum('amount'),
+      total_points=Sum('points'),
+    )
+
+    loyalty_map = {
+      row['branch_id']: row
+      for row in loyalties_by_branch
+    }
+
+    payments_by_branch = BranchSalesDelivery.objects.filter(
+      branch__is_main=False,
+      **delivery_date_filter
+    ).values('branch_id').annotate(
+      total_paid=Sum('amount')
+    )
+
+    payments_map = {
+      row['branch_id']: row['total_paid'] or Decimal('0')
+      for row in payments_by_branch
+    }
+
     branch_debt_list = []
-    for branch in branch_debts:
-        loyalty_data = next(
-           (l for l in branch_loyalties if l['branch__id'] == branch['branch__id']),
-           {'total_loyalty': 0, 'total_points': 0}
-         )
-        branch_loyalty = loyalty_data['total_loyalty'] or 0
-        branch_loyalty_points = loyalty_data['total_points'] or 0
-    
-        paid = next(
-          (p['total_paid'] for p in branch_payments if p['branch__id'] == branch['branch__id']),
-          0
+
+    for branch in all_branches:
+        branch_id = branch['id']
+
+        sales_data = sales_map.get(branch_id, {})
+        loyalty_data = loyalty_map.get(branch_id, {})
+
+        total_sales = sales_data.get(
+                'total_sales'
+        ) or Decimal('0')
+
+        total_commission = sales_data.get(
+                'total_commission'
+        ) or Decimal('0')
+
+        branch_loyalty_amount = loyalty_data.get(
+                'total_loyalty'
+        ) or Decimal('0')
+
+        branch_loyalty_points = loyalty_data.get(
+                'total_points'
         ) or 0
-    
-        total_sales = branch['total_sales'] or 0
-        total_commission = branch['total_commission'] or 0
-    
-        net_sales = total_sales - branch_loyalty
-    
+
+        paid = payments_map.get(
+                branch_id,
+                Decimal('0')
+        )
+
+        net_sales = total_sales - branch_loyalty_amount
+
         amount_due = net_sales - total_commission
-    
+
         remaining = amount_due - paid
-    
+
         branch_debt_list.append({
-           'id': branch['branch__id'],
-           'name': branch['branch__name'],
-           'commission_percentage': branch['branch__commission_percentage'],
-           'total_sales': total_sales,
-           'loyalty': branch_loyalty,
-           'loyalty_points': branch_loyalty_points,
-           'net_sales': net_sales,
-           'commission': total_commission,
-           'amount_due': amount_due,
-           'paid': paid,
-           'remaining': remaining,
+                'id': branch_id,
+                'name': branch['name'],
+                'commission_percentage': branch['commission_percentage'],
+                'total_sales': total_sales,
+                'loyalty': branch_loyalty_amount,
+                'loyalty_points': branch_loyalty_points,
+                'net_sales': net_sales,
+                'commission': total_commission,
+                'amount_due': amount_due,
+                'paid': paid,
+                'remaining': remaining,
         })
 
     total_unpaid_commissions = sum(
-       b['remaining'] for b in branch_debt_list if b['remaining'] > 0
+           (
+                b['remaining']
+                for b in branch_debt_list
+        if b['remaining'] > 0
+       ),
+       Decimal('0')
     )
+
     branch_deliveries_query = BranchSalesDelivery.objects.filter(**delivery_date_filter)
     total_branch_deliveries = branch_deliveries_query.aggregate(total=Sum('amount'))['total'] or 0
     
@@ -494,7 +563,7 @@ def accountant_dashboard(request):
         'delivery_sales_count': delivery_sales_count,
         'sales_payment_methods_list': sales_payment_methods_list,
         'net_revenue':net_revenue,
-        'branch_loyalty':branch_loyalty,
+        'total_branch_loyalty':total_branch_loyalty,
         'overdue_invoices': SaleInvoice.objects.filter(
             sale_type='customer',
             status='confirmed',

@@ -192,6 +192,13 @@ def accountant_dashboard(request):
     if date_to:
         date_filter['created_at__date__lte'] = date_to
    
+    delivery_date_filter = {}
+
+    if date_from:
+      delivery_date_filter['delivery_date__date__gte'] = date_from
+
+    if date_to:
+      delivery_date_filter['delivery_date__date__lte'] = date_to
     sales_query = SaleInvoice.objects.filter(sale_type='customer', status='confirmed', **date_filter)
     total_revenue = sales_query.aggregate(total=Sum('total'))['total'] or 0
     
@@ -243,7 +250,7 @@ def accountant_dashboard(request):
         amount_due=Sum('total') - Sum('branch_commission')
     ).order_by('-amount_due')
     
-    branch_payments = BranchSalesDelivery.objects.filter(**date_filter).values('branch__id', 'branch__name').annotate(
+    branch_payments = BranchSalesDelivery.objects.filter(**delivery_date_filter).values('branch__id', 'branch__name').annotate(
         total_paid=Sum('amount')
     )
     
@@ -261,7 +268,7 @@ def accountant_dashboard(request):
             'remaining': branch['amount_due'] - paid,
         })
     
-    branch_deliveries_query = BranchSalesDelivery.objects.filter(**date_filter)
+    branch_deliveries_query = BranchSalesDelivery.objects.filter(**delivery_date_filter)
     total_branch_deliveries = branch_deliveries_query.aggregate(total=Sum('amount'))['total'] or 0
     
     branch_deliveries_by_method = branch_deliveries_query.values('payment_method').annotate(

@@ -470,13 +470,12 @@ def accountant_dashboard(request):
         })
 
     total_unpaid_commissions = sum(
-           (
-                b['remaining']
-                for b in branch_debt_list
-        if b['remaining'] > 0
-       ),
-       Decimal('0')
-    )
+    (
+        b['remaining']
+        for b in branch_debt_list
+    ),
+    Decimal('0')
+)
 
     branch_deliveries_query = BranchSalesDelivery.objects.filter(**delivery_date_filter)
     total_branch_deliveries = branch_deliveries_query.aggregate(total=Sum('amount'))['total'] or 0

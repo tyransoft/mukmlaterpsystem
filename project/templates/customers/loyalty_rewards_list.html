@@ -25,7 +25,11 @@
     </form>
 
     {% if page_obj %}
-      <table class="table" style="width:100%;">
+    <div class="card-body" style="padding:0;">
+    
+     <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
         <thead>
           <tr>
             <th>#</th>
@@ -60,8 +64,10 @@
           {% endfor %}
         </tbody>
       </table>
-
-      <!-- ترقيم الصفحات -->
+       </div>
+     </div>  
+    </div>  
+    
       {% if page_obj.has_other_pages %}
         <div style="display:flex; gap:5px; justify-content:center; margin-top:16px;">
           {% if page_obj.has_previous %}

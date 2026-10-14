@@ -3608,43 +3608,66 @@ def loyalty_rewards_list(request):
 
 @login_required
 def loyalty_reward_add(request):
+    branch = request.user.branch
+
     if request.method == 'POST':
-        form = CustomerLoyaltyRewardForm(request.POST)
+        form = CustomerLoyaltyRewardForm(
+            request.POST,
+            branch=branch,
+        )
+
         if form.is_valid():
             reward = form.save(commit=False)
             reward.created_by = request.user
+            reward.branch = branch
             reward.save()
-            messages.success(request, 'تمت الاضافة بنجاح')
+
+            messages.success(request, 'تمت الإضافة بنجاح')
             return redirect('loyalty_rewards_list')
     else:
-        form = CustomerLoyaltyRewardForm()
+        form = CustomerLoyaltyRewardForm(branch=branch)
 
-    context = {
+    return render(request, 'customers/loyalty_reward_form.html', {
         'title': 'تسليم عمولة نقاط',
         'form': form,
-    }
-    return render(request, 'customers/loyalty_reward_form.html', context)
+    })
 
 
 @login_required
 def loyalty_reward_edit(request, pk):
-    reward = get_object_or_404(CustomerLoyaltyReward, pk=pk)
+    branch = request.user.branch
+
+    reward = get_object_or_404(
+        CustomerLoyaltyReward,
+        pk=pk,
+        branch=branch,
+    )
 
     if request.method == 'POST':
-        form = CustomerLoyaltyRewardForm(request.POST, instance=reward)
+        form = CustomerLoyaltyRewardForm(
+            request.POST,
+            instance=reward,
+            branch=branch,
+        )
+
         if form.is_valid():
-            form.save()
-            messages.success(request, 'تم التعديل  بنجاح')
+            reward = form.save(commit=False)
+            reward.branch = branch
+            reward.save()
+
+            messages.success(request, 'تم التعديل بنجاح')
             return redirect('loyalty_rewards_list')
     else:
-        form = CustomerLoyaltyRewardForm(instance=reward)
+        form = CustomerLoyaltyRewardForm(
+            instance=reward,
+            branch=branch,
+        )
 
-    context = {
+    return render(request, 'customers/loyalty_reward_form.html', {
         'title': 'تعديل تسليم عمولة نقاط',
         'form': form,
         'reward': reward,
-    }
-    return render(request, 'customers/loyalty_reward_form.html', context)
+    })
 
 
 @login_required

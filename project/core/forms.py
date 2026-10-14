@@ -335,26 +335,64 @@ class CompanySettingsForm(forms.ModelForm):
 class CustomerLoyaltyRewardForm(forms.ModelForm):
     class Meta:
         model = CustomerLoyaltyReward
-        fields = ['customer', 'points', 'amount',  'reward_date', 'notes']
+        fields = [
+            'customer',
+            'points',
+            'amount',
+            'reward_date',
+            'notes',
+        ]
+
         widgets = {
-            'customer': forms.Select(attrs={'class': 'form-control'}),
-            'points': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': 0}),
+            'customer': forms.Select(attrs={
+                'class': 'form-control select2-customer',
+            }),
+            'points': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': 0,
+            }),
             'reward_date': forms.DateTimeInput(
-                attrs={'class': 'form-control', 'type': 'datetime-local'},
-                format='%Y-%m-%dT%H:%M'
+                attrs={
+                    'class': 'form-control',
+                    'type': 'datetime-local',
+                },
+                format='%Y-%m-%dT%H:%M',
             ),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+            }),
         }
+
         labels = {
             'customer': 'العميل',
-            'points': 'نقاط المستبدلة',
+            'points': 'النقاط المستبدلة',
             'amount': 'المبلغ المسدد',
-            'branch': 'الفرع',
             'reward_date': 'تاريخ العمولة',
             'notes': 'ملاحظات',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, branch=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['reward_date'].input_formats = ['%Y-%m-%dT%H:%M']        
+
+        self.fields['reward_date'].input_formats = [
+            '%Y-%m-%dT%H:%M',
+        ]
+
+        if branch is not None:
+            self.fields['customer'].queryset = (
+                Customer.objects.filter(
+                    created_branch=branch
+                ).order_by('customer_id')
+            )
+
+        self.fields['customer'].label_from_instance = (
+            lambda customer: (
+                f'{customer.customer_id} - {customer}'
+            )
+        )

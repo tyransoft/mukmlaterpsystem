@@ -1407,7 +1407,15 @@ def customer_detail(request, pk):
         sale_type='customer',
         status='confirmed'
     ).aggregate(total=Sum('total'))['total'] or 0
-    
+
+    total_loyalty_points = CustomerLoyaltyReward.objects.filter(
+        customer=customer
+    ).aggregate(total=Sum('points'))['total'] or 0 
+
+    total_loyalty_amount = CustomerLoyaltyReward.objects.filter(
+        customer=customer
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
     total_points_earned = LoyaltyTransfer.objects.filter(
         customer=customer,
         status='transferred'
@@ -1418,6 +1426,8 @@ def customer_detail(request, pk):
         'invoices': invoices,
         'pending_transfers': pending_transfers,
         'total_purchases': total_purchases,
+        'total_loyalty_points': total_loyalty_points,
+        'total_loyalty_amount': total_loyalty_amount,
         'total_points_earned': total_points_earned,
     })
 

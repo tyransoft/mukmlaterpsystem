@@ -116,6 +116,11 @@
         <span class="fw-bold">الإجمالي</span>
         <span class="fw-bold text-primary" style="font-size:20px;">{{ invoice.total|floatformat:2|intcomma }}</span>
       </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;">
+        <span class="fw-bold">اجمالي النقاط</span>
+        <span class="fw-bold text-primary" style="font-size:20px;">{{ invoice.total_loyalty_points|floatformat:2|intcomma }}</span>
+      </div>
+
     </div>
   </div>
 

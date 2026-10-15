@@ -1573,7 +1573,7 @@ def inventory_stocktake(request):
         branch = user.branch
     
     inventory_items = BranchInventory.objects.select_related('product').filter(branch=branch)
-    
+    branchname = branch.name if isinstance(branch, Branch) else Branch.objects.filter(pk=branch).first().name
     if request.method == 'POST':
         for item in inventory_items:
             new_quantity = request.POST.get(f'quantity_{item.pk}')
@@ -1603,6 +1603,7 @@ def inventory_stocktake(request):
     return render(request, 'inventory/stocktake.html', {
         'inventory_items': inventory_items,
         'branch': branch,
+        'branchname': branchname
     })
 
 

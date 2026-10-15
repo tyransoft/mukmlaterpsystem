@@ -1568,7 +1568,7 @@ def inventory_stocktake(request):
          if not branch_id:
              branch = user.branch
          else:
-           branch = get_object_or_404(Branch, pk=branch_id)
+             branch = branch_id
     else:
         branch = user.branch
     

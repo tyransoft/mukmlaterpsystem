@@ -1013,8 +1013,6 @@ def sale_invoice_create(request):
                 is_delivery = request.POST.get('is_delivery') == 'on'
                 delivery_company = request.POST.get('delivery_company', '').strip()
                 
-                if is_delivery and not delivery_company:
-                    raise ValidationErr('الرجاء إدخال اسم شركة التوصيل')
                 
                 customer_id = None
                 if is_cash_customer:
@@ -1565,8 +1563,14 @@ def inventory_stocktake(request):
     if not user.branch:
         messages.error(request, 'لا يوجد فرع مرتبط بحسابك لإجراء الجرد')
         return redirect('dashboard_home')
-    
-    branch = user.branch
+    if user.can_see_all_data():
+         branch_id=request.GET.get('branch')
+         if not branch_id:
+             branch = user.branch
+         else:
+           branch = get_object_or_404(Branch, pk=branch_id)
+    else:
+        branch = user.branch
     
     inventory_items = BranchInventory.objects.select_related('product').filter(branch=branch)
     

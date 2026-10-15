@@ -786,6 +786,7 @@ def branch_detail(request, pk):
         'adjustment',
         'damage',
         'stocktake',
+        'return_supply_out',
     ]
 
     movements_qs = InventoryMovement.objects.filter(
@@ -865,7 +866,7 @@ def branch_detail(request, pk):
         damaged_out = abs(
             movements_qs.filter(
                 product=product,
-                movement_type__in=['damage', 'stocktake'],
+                movement_type__in=['damage', 'stocktake', 'return_supply_out'],
                 quantity__lt=0
             ).aggregate(
                 total=Sum('quantity')

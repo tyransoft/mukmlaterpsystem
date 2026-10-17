@@ -2564,7 +2564,7 @@ def branch_sales_delivery(request, pk):
     
     total_sales = sales_query.aggregate(total=Sum('total'))['total'] or 0
     total_commission = sales_query.aggregate(total=Sum('branch_commission'))['total'] or 0
-    branch_loyalty = sales_query.aggregate(total=Sum('branch_loyalty'))['total'] or 0
+    branch_loyalty = sales_query.aggregate(total=Sum('total_loyalty_points'))['total'] or 0
     net_sales = total_sales - branch_loyalty
     amount_due_to_main = net_sales - total_commission
     

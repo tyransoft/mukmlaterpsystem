@@ -424,6 +424,8 @@ $(document).ready(function() {
     let selectedProducts = [];
     let productSearchTimeout;
     let customerSearchTimeout;
+    // متغير لتتبع ما إذا كان المستخدم قد عدّل المبلغ المدفوع يدوياً
+    let paidAmountManuallyEdited = false;
 
     function showToast(message, type) {
         let bgColor = type === 'success' ? '#22c55e' : '#ef4444';
@@ -448,14 +450,27 @@ $(document).ready(function() {
         }, 2500);
     }
 
+    // تحديث المبلغ المدفوع والمتبقي مع الحفاظ على إدخال المستخدم
+    function updatePaidAmountAndRemaining() {
+        let total = parseFloat($('#total').text()) || 0;
 
-function updatePaidAmountAndRemaining() {
-    let total = parseFloat($('#total').text()) || 0;
-
-    $('#paid_amount').val(total.toFixed(2));
-    $('#paid_display').text(total.toFixed(2));
-    $('#remaining').text('0.00');
-}
+        if (paidAmountManuallyEdited) {
+            // المستخدم عدّل المبلغ يدوياً: احتفظ بقيمته وحدّث المتبقي فقط
+            let paid = parseFloat($('#paid_amount').val()) || 0;
+            if (paid < 0) paid = 0;
+            if (paid > total) {
+                paid = total;
+                $('#paid_amount').val(total.toFixed(2));
+            }
+            $('#paid_display').text(paid.toFixed(2));
+            $('#remaining').text(Math.max(0, total - paid).toFixed(2));
+        } else {
+            // لم يعدّل المستخدم: املأ المبلغ المدفوع بالإجمالي
+            $('#paid_amount').val(total.toFixed(2));
+            $('#paid_display').text(total.toFixed(2));
+            $('#remaining').text('0.00');
+        }
+    }
 
     $('#add-product-btn').on('click', function() {
         let select = $('#product-select');
@@ -774,7 +789,8 @@ function updatePaidAmountAndRemaining() {
         }
     });
 
-    $(document).on('change', '.quantity-input', function() {
+    // الكمية: تحديث فوري أثناء الكتابة
+    $(document).on('input change', '.quantity-input', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
         if (product) {
@@ -793,7 +809,8 @@ function updatePaidAmountAndRemaining() {
         }
     });
 
-    $(document).on('change', '.price-input', function() {
+    // السعر: تحديث فوري أثناء الكتابة
+    $(document).on('input change', '.price-input', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
         if (product) {
@@ -810,7 +827,8 @@ function updatePaidAmountAndRemaining() {
         }
     });
 
-    $(document).on('change', '.discount-input', function() {
+    // خصم الوحدة: تحديث فوري أثناء الكتابة
+    $(document).on('input change', '.discount-input', function() {
         let productId = $(this).data('id');
         let product = selectedProducts.find(p => p.id === productId);
         if (product) {
@@ -863,7 +881,6 @@ function updatePaidAmountAndRemaining() {
         $('#total').text(finalTotal.toFixed(2));
         $('#points').text(points);
         updatePaidAmountAndRemaining();
-       
     }
 
     $(document).on('click', function(event) {
@@ -908,29 +925,29 @@ function updatePaidAmountAndRemaining() {
         updateTotals();
     });
 
-
     $('#payment_method').on('change', function() {
         updateTotals();
     });
 
-$('#paid_amount').on('input', function() {
-    let total = parseFloat($('#total').text()) || 0;
-    let paid = parseFloat($(this).val()) || 0;
+    // المبلغ المدفوع: تحديث فوري أثناء الكتابة + وضع علامة التعديل اليدوي
+    $('#paid_amount').on('input', function() {
+        paidAmountManuallyEdited = true;
+        let total = parseFloat($('#total').text()) || 0;
+        let paid = parseFloat($(this).val()) || 0;
 
-    if (paid < 0) {
-        paid = 0;
-        $(this).val('0');
-    }
+        if (paid < 0) {
+            paid = 0;
+            $(this).val('0');
+        }
 
-    if (paid > total) {
-        paid = total;
-        $(this).val(total.toFixed(2));
-    }
+        if (paid > total) {
+            paid = total;
+            $(this).val(total.toFixed(2));
+        }
 
-    $('#paid_display').text(paid.toFixed(2));
-    $('#remaining').text(Math.max(0, total - paid).toFixed(2));
-});
-
+        $('#paid_display').text(paid.toFixed(2));
+        $('#remaining').text(Math.max(0, total - paid).toFixed(2));
+    });
 
     $('#sale-invoice-form').on('submit', function(event) {
         if (selectedProducts.length === 0) {
@@ -969,7 +986,6 @@ $('#paid_amount').on('input', function() {
                 return false;
             }
         }
-      
     });
 });
 </script>

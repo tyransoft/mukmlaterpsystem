@@ -1077,18 +1077,20 @@ def sale_invoice_create(request):
                           
                             
                             net_unit_price = unit_price - unit_discount
-                            total_price = net_unit_price * quantity
+                            total_price = unit_price * quantity
                             subtotal += total_price
-                            
+
                             total_unit_discount += unit_discount * quantity
-                            
+
                             SaleInvoiceItem.objects.create(
                                 invoice=invoice,
                                 product=product,
                                 quantity=quantity,
                                 unit_price=unit_price,
                                 unit_discount=unit_discount,
-                                total_price=total_price
+                                total_price=(
+                                (unit_price - unit_discount) * quantity
+                                )
                             )
                 
                 if not items_added:
@@ -1096,8 +1098,7 @@ def sale_invoice_create(request):
                 
                 invoice.subtotal = subtotal
                 invoice.discount = total_unit_discount
-                invoice.total = subtotal - invoice.discount
-                
+                invoice.total = subtotal - total_unit_discount
                 if invoice.payment_method and invoice.payment_method.increase_percentage > 0:
                     invoice.additional_fees = invoice.total * (invoice.payment_method.increase_percentage / Decimal('100'))
                     invoice.total += invoice.additional_fees

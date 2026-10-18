@@ -333,6 +333,7 @@ class CompanySettingsForm(forms.ModelForm):
 
 
 class CustomerLoyaltyRewardForm(forms.ModelForm):
+
     class Meta:
         model = CustomerLoyaltyReward
         fields = [
@@ -380,19 +381,12 @@ class CustomerLoyaltyRewardForm(forms.ModelForm):
     def __init__(self, *args, branch=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields['reward_date'].input_formats = [
-            '%Y-%m-%dT%H:%M',
-        ]
-
-        if branch is not None:
-            self.fields['customer'].queryset = (
-                Customer.objects.filter(
-                    created_branch=branch
-                ).order_by('customer_id')
-            )
-
-        self.fields['customer'].label_from_instance = (
-            lambda customer: (
-                f'{customer.customer_id} - {customer}'
-            )
+        self.fields['customer'].queryset = (
+            Customer.objects.filter(
+                created_branch=branch,
+                is_active=True,
+            ).order_by('full_name')
+            if branch
+            else Customer.objects.none()
         )
+

@@ -37,9 +37,47 @@
       </div>
     {% endif %}
 
-    <form method="post">
-      {% csrf_token %}
 
+<form method="post">
+    {% csrf_token %}
+
+    {% if can_select_branch %}
+    <div class="form-group">
+        <label for="branch" class="form-label">
+            اختر الفرع
+            <span style="color:red;">*</span>
+        </label>
+
+        <select
+            name="branch"
+            id="branch"
+            required
+            class="form-control"
+            onchange="if(this.value) {
+                window.location.href='?branch=' + this.value;
+            }"
+        >
+            <option value="">-- اختر الفرع --</option>
+
+            {% for item in branches %}
+            <option
+                value="{{ item.pk }}"
+                {% if selected_branch and selected_branch.pk == item.pk %}
+                    selected
+                {% endif %}
+            >
+                {{ item.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    {% if can_select_branch and not selected_branch %}
+        <p class="text-muted">
+            اختر الفرع أولاً لعرض العملاء التابعين له.
+        </p>
+    {% else %}
       <div class="form-group">
         <label class="form-label">
           {{ form.customer.label }}

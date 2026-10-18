@@ -87,17 +87,28 @@
     <a href="{% url 'loyalty_reward_add' %}" class="btn btn-primary btn-sm">إضافة عمولة</a>
   </div>
 
-  <div class="card-body search-bar">
-    <form method="get" class="search-form">
-      <div>
-        <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="بحث بالاسم، الهاتف، رقم العضوية...">
-      </div>
-      <button type="submit" class="btn btn-primary">بحث</button>
-      {% if search %}
-        <a href="{% url 'loyalty_rewards_list' %}" class="btn btn-outline">إلغاء البحث</a>
-      {% endif %}
-    </form>
-  </div>
+<div class="card-body search-bar">
+  <form method="get" class="search-form" id="searchForm">
+    <div>
+      <select name="branch" id="branchSelect" class="form-control" required>
+        <option value="">— اختر الفرع —</option>
+        {% for b in branches %}
+          <option value="{{ b.id }}" {% if branch_id == b.id|stringformat:"s" %}selected{% endif %}>
+            {{ b.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <input type="text" name="search" value="{{ search }}" class="form-control"
+             placeholder="بحث بالاسم، الهاتف، رقم العضوية..." id="searchInput">
+    </div>
+    <button type="submit" class="btn btn-primary">بحث</button>
+    {% if search or branch_id %}
+      <a href="{% url 'loyalty_rewards_list' %}" class="btn btn-outline">إلغاء البحث</a>
+    {% endif %}
+  </form>
+</div>
 
   <div class="card-body" style="padding:0;">
 
@@ -208,4 +219,25 @@
 
   </div>
 </div>
+{%  block extra_js  %}
+<script>
+  document.getElementById('searchForm').addEventListener('submit', function (e) {
+    const branch = document.getElementById('branchSelect').value;
+    const search = document.getElementById('searchInput').value.trim();
+
+    if (search && !branch) {
+      e.preventDefault();
+      alert('يجب اختيار الفرع أولاً قبل البحث.');
+      document.getElementById('branchSelect').focus();
+      return;
+    }
+
+    if (!branch && !search) {
+      e.preventDefault();
+      alert('الرجاء اختيار الفرع.');
+      document.getElementById('branchSelect').focus();
+    }
+  });
+</script>
+{% endblock %}
 {% endblock %}

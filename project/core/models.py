@@ -127,28 +127,16 @@ class CustomUser(AbstractUser):
 
 
 
-
-
-
 class Customer(models.Model):
-    customer_id=models.CharField(max_length=20, verbose_name="رقم العضوية",null=True,blank=True)
-    full_name = models.CharField(max_length=30, verbose_name='الاسم الكامل')
-    phone = models.CharField(max_length=20, blank=True,null=True, verbose_name='رقم الهاتف')
-    address = models.TextField(blank=True,null=True ,verbose_name='العنوان')
 
+    customer_id = models.CharField(max_length=20, verbose_name="رقم العضوية",null=True,blank=True)
+    full_name = models.CharField(max_length=30, verbose_name='الاسم الكامل')
+    phone = models.CharField(max_length=20, blank=True, null=True , verbose_name='رقم الهاتف')
+    address = models.TextField(blank=True , null=True , verbose_name='العنوان')
     loyalty_points = models.DecimalField( max_digits=12, decimal_places=2, default=0, verbose_name='النقاط')
-    debt_balance = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
-        verbose_name='رصيد الدين'
-    )
-    created_by = models.ForeignKey(
-        'core.CustomUser', on_delete=models.SET_NULL,
-        null=True, blank=True, verbose_name='أنشأ بواسطة'
-    )
-    created_branch = models.ForeignKey(
-        Branch, on_delete=models.SET_NULL,
-        null=True, blank=True, verbose_name='فرع الإنشاء'
-    )
+    debt_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0,verbose_name='رصيد الدين')
+    created_by = models.ForeignKey('core.CustomUser', on_delete=models.SET_NULL,null=True, blank=True, verbose_name='أنشأ بواسطة' )
+    created_branch = models.ForeignKey(Branch, on_delete=models.SET_NULL,null=True, blank=True, verbose_name='فرع الإنشاء' )
     is_active = models.BooleanField(default=True, verbose_name='نشط')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

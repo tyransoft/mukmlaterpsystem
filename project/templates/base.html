@@ -793,11 +793,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             </a>
             {% endif %}
 
-            <div class="nav-section">عمولة العملاء</div>
-            <a href="{% url 'loyalty_rewards_list' %}" class="nav-link {% block nav_loyalty_commissions %}{% endblock %}">
-                 عمولة العملاء
-            </a>
-
+           
             {% if user.is_loyalty_employee or user.can_see_all_data %}
             <div class="nav-section">النقاط</div>
             <a href="{% url 'loyalty_pending' %}" class="nav-link {% block nav_loyalty %}{% endblock %}">
@@ -806,6 +802,11 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             <a href="{% url 'loyalty_history' %}" class="nav-link {% block nav_loyalty_history %}{% endblock %}">
                 سجل التحويلات
             </a>
+             <div class="nav-section">عمولة العملاء</div>
+            <a href="{% url 'loyalty_rewards_list' %}" class="nav-link {% block nav_loyalty_commissions %}{% endblock %}">
+                 عمولة العملاء
+            </a>
+
             {% endif %}
 
             {% if user.can_see_all_data or user.is_accountant %}

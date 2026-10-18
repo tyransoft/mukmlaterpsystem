@@ -3661,40 +3661,73 @@ def company_settings_edit(request):
     })    
 
 
-
 @login_required
 def loyalty_rewards_list(request):
-    rewards = CustomerLoyaltyReward.objects.select_related(
-        'customer', 'branch', 'created_by'
-    ).filter(branch=request.user.branch) if not request.user.can_see_all_data() else CustomerLoyaltyReward.objects.select_related(
-        'customer', 'branch', 'created_by'
-    ).all()
+    branches = Branch.objects.all().order_by('name')
+
+    if request.user.can_see_all_data():
+        rewards = CustomerLoyaltyReward.objects.select_related(
+            'customer', 'branch', 'created_by'
+        ).all()
+    else:
+        rewards = CustomerLoyaltyReward.objects.select_related(
+            'customer', 'branch', 'created_by'
+        ).filter(branch=request.user.branch)
 
     search = request.GET.get('search', '').strip()
-    if search:
-        rewards = rewards.filter(
-            Q(customer__full_name__icontains=search) |
-            Q(customer__phone__icontains=search) |
-            Q(customer__customer_id__icontains=search) 
-       )
+    branch_id = request.GET.get('branch', '').strip()
 
-    paginator = Paginator(rewards, 50)
+    if search and not branch_id:
+        messages.warning(request, 'يجب اختيار الفرع أولاً قبل البحث.')
+        rewards = rewards.none()
+    else:
+        if branch_id:
+            rewards = rewards.filter(branch__id=branch_id)
+
+        if search:
+            rewards = rewards.filter(
+                Q(customer__full_name__icontains=search) |
+                Q(customer__phone__icontains=search) |
+                Q(customer__customer_id__icontains=search)
+            )
+
+    paginator = Paginator(rewards.order_by('-reward_date'), 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
-        'title': ' تسليم عمولة نقاط ',
+        'title': 'تسليم عمولة نقاط',
         'page_obj': page_obj,
         'search': search,
+        'branch_id': branch_id,
+        'branches': branches,
     }
     return render(request, 'customers/loyalty_rewards_list.html', context)
 
-
 @login_required
 def loyalty_reward_add(request):
-    branch = request.user.branch
+    user = request.user
+    can_select_branch = user.can_see_all_data()
+
+    if can_select_branch:
+        branch_id = (
+            request.POST.get('branch')
+            if request.method == 'POST'
+            else request.GET.get('branch')
+        )
+
+        branch = Branch.objects.filter(
+            pk=branch_id,
+            is_active=True,
+        ).first() if branch_id else None
+    else:
+        branch = user.branch
 
     if request.method == 'POST':
+        if not branch:
+            messages.error(request, 'يرجى اختيار فرع صحيح')
+            return redirect('loyalty_reward_add')
+
         form = CustomerLoyaltyRewardForm(
             request.POST,
             branch=branch,
@@ -3702,32 +3735,56 @@ def loyalty_reward_add(request):
 
         if form.is_valid():
             reward = form.save(commit=False)
-            reward.created_by = request.user
+            reward.created_by = user
             reward.branch = branch
             reward.save()
 
             messages.success(request, 'تمت الإضافة بنجاح')
             return redirect('loyalty_rewards_list')
+
     else:
         form = CustomerLoyaltyRewardForm(branch=branch)
 
     return render(request, 'customers/loyalty_reward_form.html', {
         'title': 'تسليم عمولة نقاط',
         'form': form,
+        'can_select_branch': can_select_branch,
+        'branches': Branch.objects.filter(is_active=True),
+        'selected_branch': branch,
     })
 
 
 @login_required
 def loyalty_reward_edit(request, pk):
-    branch = request.user.branch
+    user = request.user
+    can_select_branch = user.can_see_all_data()
 
-    reward = get_object_or_404(
-        CustomerLoyaltyReward,
-        pk=pk,
-        branch=branch,
-    )
+    if can_select_branch:
+        reward = get_object_or_404(
+            CustomerLoyaltyReward,
+            pk=pk,
+        )
+    else:
+        reward = get_object_or_404(
+            CustomerLoyaltyReward,
+            pk=pk,
+            branch=user.branch,
+        )
 
     if request.method == 'POST':
+        if can_select_branch:
+            branch_id = request.POST.get('branch')
+            branch = Branch.objects.filter(
+                pk=branch_id,
+                is_active=True,
+            ).first() if branch_id else None
+        else:
+            branch = reward.branch
+
+        if not branch:
+            messages.error(request, 'يرجى اختيار فرع صحيح')
+            return redirect('loyalty_reward_edit', pk=pk)
+
         form = CustomerLoyaltyRewardForm(
             request.POST,
             instance=reward,
@@ -3741,7 +3798,9 @@ def loyalty_reward_edit(request, pk):
 
             messages.success(request, 'تم التعديل بنجاح')
             return redirect('loyalty_rewards_list')
+
     else:
+        branch = reward.branch
         form = CustomerLoyaltyRewardForm(
             instance=reward,
             branch=branch,
@@ -3751,6 +3810,9 @@ def loyalty_reward_edit(request, pk):
         'title': 'تعديل تسليم عمولة نقاط',
         'form': form,
         'reward': reward,
+        'can_select_branch': can_select_branch,
+        'branches': Branch.objects.filter(is_active=True),
+        'selected_branch': branch,
     })
 
 

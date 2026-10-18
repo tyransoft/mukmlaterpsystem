@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}إضافة عرض تخفيض جديد{% endblock %}
+{% block page_title %}إضافة عرض تخفيض جديد{% endblock %}
+
+{% block content %}
+<style>
+  .invoice-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+  }
+  .search-container { position: relative; margin-bottom: 15px; }
+  .search-results-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: white; border: 1px solid #d1d5db; border-radius: 8px;
+    max-height: 300px; overflow-y: auto; z-index: 1000;
+    display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .search-result-item {
+    padding: 12px 15px; cursor: pointer;
+    border-bottom: 1px solid #f3f4f6; transition: background 0.2s;
+  }
+  .search-result-item:hover { background: #f3f4f6; }
+  .search-result-item .product-name { font-weight: 600; font-size: 14px; }
+  .search-result-item .product-details { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+  .selected-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f0fdf4; border: 1px solid #bbf7d0;
+    color: #166534; padding: 6px 10px; border-radius: 20px; font-size: 13px;
+  }
+  .chip.branch-chip { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+  .chip .chip-remove {
+    background: none; border: none; color: #dc2626;
+    cursor: pointer; font-weight: bold; font-size: 15px; padding: 0; line-height: 1;
+  }
+  .required-mark { color: #dc2626; font-weight: bold; }
+  .radio-group { display: flex; gap: 10px; margin-bottom: 10px; }
+  .radio-btn {
+    flex: 1; padding: 12px; text-align: center;
+    border: 2px solid #e5e7eb; border-radius: 8px;
+    cursor: pointer; transition: all 0.3s; background: white; font-weight: 500;
+  }
+  .radio-btn.active { border-color: #E8793A; background: rgba(232,121,58,0.1); color: #E8793A; }
+  .radio-btn input { display: none; }
+  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; }
+  .preview-box {
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
+    padding: 12px; margin-top: 10px; font-size: 14px;
+  }
+  .preview-box .old-price { color: #6b7280; text-decoration: line-through; margin-right: 6px; }
+  .preview-box .new-price { color: #166534; font-weight: 700; font-size: 16px; }
+  .count-info {
+    background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px;
+    padding: 10px; margin-top: 10px; font-size: 13px; color: #92400e;
+  }
+  @media (max-width: 900px) { .invoice-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .radio-group { flex-direction: column; } }
+</style>
+
+<form method="post" id="discount-offer-form">
+  {% csrf_token %}
+  <div class="invoice-layout">
+
+    <div>
+      <!-- المنتجات -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">1. المنتجات المشمولة <span class="required-mark">*</span></span></div>
+        <div class="card-body">
+          <div class="search-container">
+            <input type="text" id="product-search" class="form-control"
+                   placeholder="ابحث عن منتج بالاسم أو الباركود..." autocomplete="off">
+            <div id="product-results" class="search-results-dropdown"></div>
+          </div>
+          <div class="selected-chips" id="selected-products-chips"></div>
+          <small style="color:#6b7280;display:block;margin-top:8px;">
+            اختر منتجاً واحداً أو أكثر — سيُنشأ سجل خصم لكل منتج في كل فرع مختار.
+          </small>
+        </div>
+      </div>
+
+      <!-- الفروع -->
+      <div class="card" style="margin-top:15px;">
+        <div class="card-header"><span class="card-title">2. الفروع المشمولة <span class="required-mark">*</span></span></div>
+        <div class="card-body">
+          <select id="branch-select" class="form-select" style="margin-bottom:10px;">
+            <option value="">-- اختر فرع --</option>
+            {% for branch in branches %}
+            <option value="{{ branch.id }}" data-name="{{ branch.name }}">{{ branch.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" id="add-branch-btn" class="btn btn-primary" style="width:100%;">إضافة فرع</button>
+          <div class="selected-chips" id="selected-branches-chips"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">3. نوع التخفيض</span></div>
+        <div class="card-body">
+          <div class="radio-group">
+            <label class="radio-btn active" data-group="discount_type" data-value="percentage">
+              <input type="radio" name="discount_type" value="percentage" checked>
+              نسبة مئوية (%)
+            </label>
+            <label class="radio-btn" data-group="discount_type" data-value="fixed">
+              <input type="radio" name="discount_type" value="fixed">
+              مبلغ ثابت (د.ل لكل وحدة)
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">4. قيمة التخفيض <span class="required-mark">*</span></label>
+            <input type="number" name="value" id="value" class="form-control"
+                   step="0.01" min="0.01" required placeholder="مثال: 10">
+            <small style="color:#6b7280;" id="value-hint">النسبة % (0 - 100)</small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" name="is_active" id="is_active" checked>
+              نشط
+            </label>
+          </div>
+
+          <div class="preview-box" id="preview-box" style="display:none;">
+            <div>مثال (سعر المنتج 100 د.ل):</div>
+            <div style="margin-top:6px;">
+              <span class="old-price">100.00 د.ل</span>
+              <span class="new-price" id="preview-price">90.00 د.ل</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:15px;">
+        <div class="card-body">
+          <div class="summary-row"><span>المنتجات المختارة</span><span id="summary-products">0</span></div>
+          <div class="summary-row"><span>الفروع المختارة</span><span id="summary-branches">0</span></div>
+          <div class="summary-row"><span>نوع الخصم</span><span id="summary-type">نسبة مئوية</span></div>
+          <div class="summary-row"><span>القيمة</span><span id="summary-value">0</span></div>
+          <div class="count-info" id="count-info" style="display:none;">
+            سيتم إنشاء <strong id="records-count">0</strong> سجل خصم.
+          </div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary" style="flex:1;">حفظ العرض</button>
+            <a href="{% url 'discount_offers_list' %}" class="btn btn-outline">إلغاء</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="hidden-products"></div>
+  <div id="hidden-branches"></div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    let selectedProducts = [];
+    let selectedBranches = [];
+    let productSearchTimeout;
+
+    // ===== تبديل نوع الخصم =====
+    $(document).on('click', '.radio-btn[data-group="discount_type"]', function() {
+        $('.radio-btn[data-group="discount_type"]').removeClass('active');
+        $(this).addClass('active');
+        $('input[name="discount_type"]').prop('checked', false);
+        $(this).find('input[name="discount_type"]').prop('checked', true);
+        updateDiscountTypeUI();
+    });
+
+    // ===== بحث المنتجات =====
+    $('#product-search').on('input', function() {
+        clearTimeout(productSearchTimeout);
+        let query = $(this).val().trim();
+        if (query.length < 2) { $('#product-results').hide(); return; }
+        productSearchTimeout = setTimeout(function() {
+            $.ajax({
+                url: '/api/products-stock/',
+                method: 'GET',
+                data: { q: query },
+                success: function(data) {
+                    if (data.products && data.products.length > 0) {
+                        displayProductResults(data.products);
+                    } else { $('#product-results').hide(); }
+                },
+                error: function() { $('#product-results').hide(); }
+            });
+        }, 300);
+    });
+
+    function displayProductResults(products) {
+        let $results = $('#product-results');
+        $results.empty();
+        if (!products || products.length === 0) { $results.hide(); return; }
+        $results.show();
+        products.forEach(function(product) {
+            let item = $('<div>').addClass('search-result-item')
+                .attr('data-id', product.id)
+                .attr('data-name', product.name);
+            item.append($('<div>').addClass('product-name').text(product.name));
+            item.append($('<div>').addClass('product-details').text('السعر: ' + product.price + ' د.ل'));
+            item.on('click', function() {
+                addProduct(product.id, product.name);
+                $('#product-search').val('');
+                $results.hide();
+                $('#product-search').focus();
+            });
+            $results.append(item);
+        });
+    }
+
+    function addProduct(id, name) {
+        if (selectedProducts.some(p => p.id == id)) return;
+        selectedProducts.push({ id: id, name: name });
+        renderProductChips();
+    }
+    function removeProduct(id) {
+        selectedProducts = selectedProducts.filter(p => p.id != id);
+        renderProductChips();
+    }
+    function renderProductChips() {
+        let $wrap = $('#selected-products-chips').empty();
+        selectedProducts.forEach(function(p) {
+            let chip = $('<span>').addClass('chip').text(p.name);
+            let btn = $('<button>').addClass('chip-remove').attr('type', 'button').text('✕');
+            btn.on('click', function() { removeProduct(p.id); });
+            chip.append(btn);
+            $wrap.append(chip);
+        });
+        $('#summary-products').text(selectedProducts.length);
+        let $hidden = $('#hidden-products').empty();
+        selectedProducts.forEach(function(p) {
+            $hidden.append($('<input>').attr('type', 'hidden').attr('name', 'product_ids[]').val(p.id));
+        });
+        updateRecordsCount();
+    }
+
+    // ===== إضافة/حذف فرع =====
+    $('#add-branch-btn').on('click', function() {
+        let sel = $('#branch-select');
+        let opt = sel.find(':selected');
+        if (!opt.val()) { alert('اختر فرعاً'); return; }
+        addBranch(opt.val(), opt.data('name'));
+        sel.val('');
+    });
+
+    function addBranch(id, name) {
+        if (selectedBranches.some(b => b.id == id)) return;
+        selectedBranches.push({ id: id, name: name });
+        renderBranchChips();
+    }
+    function removeBranch(id) {
+        selectedBranches = selectedBranches.filter(b => b.id != id);
+        renderBranchChips();
+    }
+    function renderBranchChips() {
+        let $wrap = $('#selected-branches-chips').empty();
+        selectedBranches.forEach(function(b) {
+            let chip = $('<span>').addClass('chip branch-chip').text(b.name);
+            let btn = $('<button>').addClass('chip-remove').attr('type', 'button').text('✕');
+            btn.on('click', function() { removeBranch(b.id); });
+            chip.append(btn);
+            $wrap.append(chip);
+        });
+        $('#summary-branches').text(selectedBranches.length);
+        let $hidden = $('#hidden-branches').empty();
+        selectedBranches.forEach(function(b) {
+            $hidden.append($('<input>').attr('type', 'hidden').attr('name', 'branch_ids[]').val(b.id));
+        });
+        updateRecordsCount();
+    }
+
+    function updateRecordsCount() {
+        let total = selectedProducts.length * selectedBranches.length;
+        if (total > 0) {
+            $('#count-info').show();
+            $('#records-count').text(total);
+        } else {
+            $('#count-info').hide();
+        }
+    }
+
+    function updateDiscountTypeUI() {
+        let type = $('input[name="discount_type"]:checked').val();
+        if (type === 'percentage') {
+            $('#value-hint').text('النسبة % (0 - 100)');
+            $('#value').attr('max', 100);
+            $('#summary-type').text('نسبة مئوية');
+        } else {
+            $('#value-hint').text('مبلغ ثابت لكل وحدة (د.ل)');
+            $('#value').removeAttr('max');
+            $('#summary-type').text('مبلغ ثابت');
+        }
+        updatePreview();
+    }
+
+    function updatePreview() {
+        let type = $('input[name="discount_type"]:checked').val();
+        let value = parseFloat($('#value').val()) || 0;
+        let basePrice = 100;
+        let newPrice = type === 'percentage'
+            ? basePrice - (basePrice * value / 100)
+            : basePrice - value;
+        if (newPrice < 0) newPrice = 0;
+
+        if (value > 0) {
+            $('#preview-box').show();
+            $('#preview-price').text(newPrice.toFixed(2) + ' د.ل');
+        } else {
+            $('#preview-box').hide();
+        }
+        $('#summary-value').text(value);
+    }
+
+    $('#value').on('input change', updatePreview);
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#product-results, #product-search').length) {
+            $('#product-results').hide();
+        }
+    });
+
+    // ===== تحقق عند الإرسال =====
+    $('#discount-offer-form').on('submit', function(e) {
+        if (selectedProducts.length === 0) {
+            e.preventDefault();
+            alert('يجب اختيار منتج واحد على الأقل.');
+            return false;
+        }
+        if (selectedBranches.length === 0) {
+            e.preventDefault();
+            alert('يجب اختيار فرع واحد على الأقل.');
+            return false;
+        }
+        let value = parseFloat($('#value').val()) || 0;
+        if (value <= 0) {
+            e.preventDefault();
+            alert('قيمة الخصم يجب أن تكون أكبر من صفر.');
+            return false;
+        }
+        let type = $('input[name="discount_type"]:checked').val();
+        if (type === 'percentage' && value > 100) {
+            e.preventDefault();
+            alert('نسبة الخصم لا يمكن أن تتجاوز 100%.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

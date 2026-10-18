@@ -147,7 +147,7 @@ class Customer(models.Model):
         ordering = ['full_name']
 
     def __str__(self):
-        return f"{self.full_name} ({self.phone})"
+        return f"{self.full_name} ({self.customer_id})" if self.customer_id else self.full_name
 
     def get_total_purchases(self):
         from .models import SaleInvoice
@@ -369,6 +369,39 @@ class Product(models.Model):
         self.save()
         return True
       return False
+
+
+    def get_discount(self, branch):
+       from decimal import Decimal, ROUND_UP
+       from django.db.models import Q
+       from .models import DiscountOffer
+
+       best_offer = DiscountOffer.objects.filter(
+           is_active=True,
+           product=self,
+           branch=branch,
+        ).first()
+
+       if not best_offer:
+              return Decimal('0.00')
+
+       if best_offer.discount_type == 'percentage':
+            discount = (
+                    self.selling_price * best_offer.value / Decimal('100')
+            ).quantize(Decimal('1'), rounding=ROUND_UP)
+       else:
+              discount = best_offer.value
+
+       discount = min(
+              self.selling_price,
+              max(Decimal('0.00'), discount),
+       )
+
+       return discount.quantize(Decimal('0.01'))
+
+
+    def get_final_price(self, branch):
+       return self.selling_price - self.get_discount(branch)
 
 class InventoryMovement(models.Model):
     MOVEMENT_TYPES = [
@@ -1194,3 +1227,78 @@ class CompanySettings(models.Model):
             )
         return settings
   
+
+
+
+
+
+class DiscountOffer(models.Model):
+    DISCOUNT_TYPES = [
+        ('percentage', 'نسبة مئوية'),
+        ('fixed', 'مبلغ ثابت'),
+    ]
+
+
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='discount_offers',
+        verbose_name='المنتج',
+    )
+
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name='discount_offers',
+        verbose_name='الفرع',
+    )
+
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPES,
+        default='percentage',
+        verbose_name='نوع الخصم',
+    )
+
+    value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='قيمة الخصم',
+    )
+
+
+
+   
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='نشط',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'عرض وخصم'
+        verbose_name_plural = 'العروض والخصومات'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(value__gt=0),
+                name='discount_offer_value_positive',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(discount_type='fixed')
+                    | (
+                        Q(discount_type='percentage')
+                        & Q(value__lte=100)
+                    )
+                ),
+                name='discount_percentage_max_100',
+            )
+        ]
+
+    def __str__(self):
+        return self.product.name if self.product else f"عرض على الفرع {self.branch.name}"

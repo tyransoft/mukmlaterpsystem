@@ -747,6 +747,9 @@ textarea.form-control { resize: vertical; min-height: 90px; }
             <a href="{% url 'categories' %}" class="nav-link {% block nav_categories %}{% endblock %}">
                 الفئات
             </a>
+            <a href="{% url 'discount_offers_list' %}" class="nav-link {% block nav_discount_offers %}{% endblock %}">
+                الخصومات
+            </a>
             {% endif %}
             {% if not  user.is_loyalty_employee %}
             <div class="nav-section">المخزون</div>

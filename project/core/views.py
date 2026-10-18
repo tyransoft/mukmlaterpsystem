@@ -16,6 +16,13 @@ from datetime import timedelta
 from decimal import Decimal
 import logging ,  traceback
 
+
+
+
+
+
+
+
 def home(request):
     user = request.user
     if not request.user.is_authenticated:
@@ -1145,7 +1152,7 @@ def sale_invoice_create(request):
         products_with_stock.append({
             'id': inventory.product.id,
             'name': inventory.product.name,
-            'selling_price': inventory.product.selling_price,
+            'selling_price': inventory.product.get_final_price(user_branch),
             'loyalty_points': inventory.product.loyalty_points,
             'stock': inventory.quantity,
             'barcode': inventory.product.barcode,
@@ -3830,6 +3837,157 @@ def loyalty_reward_delete(request, pk):
         'reward': reward,
     }
     return render(request, 'customers/loyalty_reward_confirm_delete.html', context)
+
+
+
+
+
+
+
+
+
+@login_required
+def discount_offer_add(request):
+    products = Product.objects.filter(is_active=True).order_by('name')
+    branches = Branch.objects.all().order_by('name')
+
+    if request.method == 'POST':
+        product_ids = request.POST.getlist('product_ids[]')
+        branch_ids = request.POST.getlist('branch_ids[]')
+
+        discount_type = request.POST.get('discount_type', 'percentage')
+        try:
+            value = float(request.POST.get('value', 0))
+        except (TypeError, ValueError):
+            value = 0
+
+        is_active = request.POST.get('is_active') == 'on'
+
+        errors = []
+
+        if not product_ids:
+            errors.append('يجب اختيار منتج واحد على الأقل.')
+        if not branch_ids:
+            errors.append('يجب اختيار فرع واحد على الأقل.')
+        if value <= 0:
+            errors.append('قيمة الخصم يجب أن تكون أكبر من صفر.')
+        if discount_type == 'percentage' and value > 100:
+            errors.append('نسبة الخصم لا يمكن أن تتجاوز 100%.')
+
+        if not errors:
+            for pid in product_ids:
+                for bid in branch_ids:
+                    if DiscountOffer.objects.filter(
+                        product_id=pid,
+                        branch_id=bid,
+                        is_active=True,
+                    ).exists():
+                        pname = Product.objects.get(id=pid).name
+                        bname = Branch.objects.get(id=bid).name
+                        errors.append(f'يوجد بالفعل خصم نشط على "{pname}" في فرع "{bname}".')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            created_count = 0
+            with transaction.atomic():
+                for pid in product_ids:
+                    for bid in branch_ids:
+                        DiscountOffer.objects.create(
+                            product_id=pid,
+                            branch_id=bid,
+                            discount_type=discount_type,
+                            value=value,
+                            is_active=is_active,
+                        )
+                        created_count += 1
+
+            messages.success(request, f'تم إنشاء {created_count} عرض تخفيض بنجاح.')
+            return redirect('discount_offer_add')
+
+    context = {
+        'products': products,
+        'branches': branches,
+        'title': 'إضافة عرض تخفيض جديد',
+    }
+    return render(request, 'discounts/discount_offer_add.html', context)
+
+
+
+
+
+
+
+@login_required
+def discount_offers_list(request):
+    offers = DiscountOffer.objects.select_related(
+        'product', 'branch'
+    ).order_by('-created_at')
+
+    search = request.GET.get('search', '').strip()
+    product_id = request.GET.get('product', '').strip()
+    branch_id = request.GET.get('branch', '').strip()
+    discount_type = request.GET.get('discount_type', '').strip()
+    status = request.GET.get('status', '').strip()
+
+    if search:
+        offers = offers.filter(
+            Q(product__name__icontains=search) |
+            Q(branch__name__icontains=search)
+        )
+    if product_id:
+        offers = offers.filter(product_id=product_id)
+    if branch_id:
+        offers = offers.filter(branch_id=branch_id)
+    if discount_type:
+        offers = offers.filter(discount_type=discount_type)
+    if status == 'active':
+        offers = offers.filter(is_active=True)
+    elif status == 'inactive':
+        offers = offers.filter(is_active=False)
+
+    paginator = Paginator(offers, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'title': 'العروض والخصومات',
+        'page_obj': page_obj,
+        'search': search,
+        'product_id': product_id,
+        'branch_id': branch_id,
+        'discount_type': discount_type,
+        'status': status,
+        'products': Product.objects.filter(is_active=True).order_by('name'),
+        'branches': Branch.objects.all().order_by('name'),
+        'discount_types': DiscountOffer.DISCOUNT_TYPES,
+    }
+    return render(request, 'discounts/discount_offers_list.html', context)
+
+
+@login_required
+def discount_offer_delete(request, pk):
+    offer = get_object_or_404(DiscountOffer, pk=pk)
+
+    if request.method == 'POST':
+        if not request.user.can_see_all_data() :
+            messages.error(request, 'لا تملك صلاحية حذف هذا العرض.')
+            return redirect('discount_offers_list')
+
+        offer.delete()
+        messages.success(request, 'تم حذف عرض التخفيض بنجاح.')
+        return redirect('discount_offers_list')
+
+    context = {
+        'offer': offer,
+        'title': 'حذف عرض تخفيض',
+    }
+    return render(request, 'discounts/discount_offer_delete.html', context)
+
+
+
+
 
 
 import io

@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_discounts %}active{% endblock %}
+
+{% block content %}
+<style>
+  *{box-sizing:border-box;}
+
+  .search-bar{padding:10px 16px;border-bottom:1px solid #eaecf0;}
+  .search-form{display:flex;gap:10px;flex-wrap:wrap;}
+  .search-form > div{flex:1;min-width:160px;}
+
+  .card{background:#fff;border-radius:12px;border:1px solid #eaecf0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #eaecf0;}
+  .card-title{font-size:15px;font-weight:700;color:#1a2236;margin:0;}
+  .card-body{padding:16px;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:44px;min-width:44px;white-space:nowrap;}
+  .btn-primary{background:#E8793A;color:#fff;}
+  .btn-primary:hover{background:#d4682e;color:#fff;}
+  .btn-danger{background:#dc2626;color:#fff;}
+  .btn-danger:hover{background:#b91c1c;color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid #eaecf0;color:#374151;}
+  .btn-outline:hover{background:#f8f9fb;}
+  .btn-sm{padding:6px 12px;font-size:12px;min-height:36px;min-width:36px;}
+
+  .form-control{width:100%;padding:12px 14px;border:1.5px solid #eaecf0;border-radius:8px;font-size:16px;background:#fff;color:#1a2236;box-sizing:border-box;}
+  .form-control:focus{outline:none;border-color:#E8793A;box-shadow:0 0 0 4px rgba(232,121,58,0.12);}
+
+  .desktop-table{display:block;}
+  .mobile-cards{display:none;}
+
+  .mobile-offer-card{display:none;padding:14px;border-bottom:1px solid #f1f3f5;}
+  .mobile-offer-card:last-child{border-bottom:none;}
+  .mobile-offer-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .mobile-offer-name{font-size:15px;font-weight:700;color:#1a2236;}
+  .mobile-offer-row{display:flex;justify-content:space-between;padding:4px 0;flex-wrap:wrap;gap:4px;}
+  .mobile-offer-label{font-size:12px;color:#6b7280;font-weight:600;}
+  .mobile-offer-value{font-size:13px;color:#1a2236;}
+  .mobile-offer-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+  .mobile-offer-actions .btn{width:100%;justify-content:center;font-size:12px;min-height:40px;}
+
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+  .erp-table{min-width:720px;width:100%;font-size:14px;border-collapse:collapse;}
+  .erp-table th{background:#f8fafc;font-weight:600;color:#374151;padding:10px 14px;text-align:center;border-bottom:2px solid #eaecf0;white-space:nowrap;font-size:12px;}
+  .erp-table td{padding:10px 14px;text-align:center;border-bottom:1px solid #f1f3f5;vertical-align:middle;white-space:nowrap;}
+  .erp-table tbody tr:nth-child(even){background:#fafafa;}
+  .erp-table tbody tr:hover{background:#f0f4ff;}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+  .badge-success{background:#dcfce7;color:#166534;}
+  .badge-danger{background:#fee2e2;color:#991b1b;}
+  .badge-info{background:#dbeafe;color:#1e40af;}
+  .badge-warning{background:#fef3c7;color:#92400e;}
+
+  .empty-state{text-align:center;padding:50px 20px;}
+  .empty-state h5{font-size:16px;color:#1a2236;margin-bottom:6px;}
+
+  .pagination{display:flex;gap:5px;justify-content:center;margin-top:16px;}
+  .pagination span{padding:8px;}
+
+  @media(max-width:768px){
+    .search-form{flex-direction:column;}
+    .search-form > div{min-width:unset;}
+    .search-form .btn{width:100%;justify-content:center;}
+  }
+  @media(max-width:600px){
+    .card-header{flex-direction:column;align-items:stretch;}
+    .card-header .btn{width:100%;justify-content:center;}
+    .card-body{padding:12px;}
+    .erp-table{font-size:13px;}
+    .erp-table th,.erp-table td{padding:8px 10px;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
+    .mobile-offer-card{display:block !important;}
+    .btn{font-size:15px;padding:12px 16px;min-height:48px;}
+    .btn-sm{font-size:13px;padding:8px 14px;min-height:40px;}
+  }
+  @media print{.table-wrap{overflow:visible;}.btn{display:none;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">{{ title }}</span>
+    <a href="{% url 'discount_offer_add' %}" class="btn btn-primary btn-sm">إضافة عرض تخفيض</a>
+  </div>
+
+  <div class="card-body search-bar">
+    <form method="get" class="search-form">
+      <div>
+        <input type="text" name="search" value="{{ search }}" class="form-control"
+               placeholder="بحث باسم المنتج أو الفرع...">
+      </div>
+      <div>
+        <select name="product" class="form-control">
+          <option value="">كل المنتجات</option>
+          {% for p in products %}
+          <option value="{{ p.id }}" {% if product_id == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <select name="branch" class="form-control">
+          <option value="">كل الفروع</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}" {% if branch_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <select name="discount_type" class="form-control">
+          <option value="">كل الأنواع</option>
+          {% for key, label in discount_types %}
+          <option value="{{ key }}" {% if discount_type == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <select name="status" class="form-control">
+          <option value="">كل الحالات</option>
+          <option value="active" {% if status == 'active' %}selected{% endif %}>نشط</option>
+          <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>غير نشط</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">بحث</button>
+      {% if search or product_id or branch_id or discount_type or status %}
+        <a href="{% url 'discount_offers_list' %}" class="btn btn-outline">إلغاء الفلاتر</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="card-body" style="padding:0;">
+
+    {% if page_obj %}
+
+    <!-- جدول الديسكتوب -->
+    <div class="desktop-table">
+      <div class="table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>المنتج</th>
+              <th>الفرع</th>
+              <th>نوع الخصم</th>
+              <th>القيمة</th>
+              <th>الحالة</th>
+              <th>تاريخ الإنشاء</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for offer in page_obj %}
+            <tr>
+              <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+              <td>{{ offer.product.name }}</td>
+              <td>{{ offer.branch.name }}</td>
+              <td>
+                {% if offer.discount_type == 'percentage' %}
+                  <span class="badge badge-info">نسبة مئوية</span>
+                {% else %}
+                  <span class="badge badge-warning">مبلغ ثابت</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if offer.discount_type == 'percentage' %}
+                  {{ offer.value }}%
+                {% else %}
+                  {{ offer.value|floatformat:2 }} د.ل
+                {% endif %}
+              </td>
+              <td>
+                {% if offer.is_active %}
+                  <span class="badge badge-success">نشط</span>
+                {% else %}
+                  <span class="badge badge-danger">غير نشط</span>
+                {% endif %}
+              </td>
+              <td>{{ offer.created_at|date:"Y-m-d H:i" }}</td>
+              <td>
+                <a href="{% url 'discount_offer_delete' offer.pk %}" class="btn btn-sm btn-danger">حذف</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8">
+                <div class="empty-state"><h5>لا توجد عروض خصم</h5></div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- كروت الموبايل -->
+    <div class="mobile-cards">
+      {% for offer in page_obj %}
+      <div class="mobile-offer-card">
+        <div class="mobile-offer-header">
+          <span class="mobile-offer-name">{{ offer.product.name }}</span>
+          <span>#{{ forloop.counter0|add:page_obj.start_index }}</span>
+        </div>
+        <div class="mobile-offer-row">
+          <span class="mobile-offer-label">الفرع</span>
+          <span class="mobile-offer-value">{{ offer.branch.name }}</span>
+        </div>
+        <div class="mobile-offer-row">
+          <span class="mobile-offer-label">نوع الخصم</span>
+          <span class="mobile-offer-value">
+            {% if offer.discount_type == 'percentage' %}نسبة مئوية{% else %}مبلغ ثابت{% endif %}
+          </span>
+        </div>
+        <div class="mobile-offer-row">
+          <span class="mobile-offer-label">القيمة</span>
+          <span class="mobile-offer-value">
+            {% if offer.discount_type == 'percentage' %}{{ offer.value }}%{% else %}{{ offer.value|floatformat:2 }} د.ل{% endif %}
+          </span>
+        </div>
+        <div class="mobile-offer-row">
+          <span class="mobile-offer-label">الحالة</span>
+          <span class="mobile-offer-value">
+            {% if offer.is_active %}نشط{% else %}غير نشط{% endif %}
+          </span>
+        </div>
+        <div class="mobile-offer-row">
+          <span class="mobile-offer-label">التاريخ</span>
+          <span class="mobile-offer-value">{{ offer.created_at|date:"Y-m-d H:i" }}</span>
+        </div>
+        <div class="mobile-offer-actions">
+          <a href="{% url 'discount_offer_delete' offer.pk %}" class="btn btn-danger btn-sm">حذف</a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state"><h5>لا توجد عروض خصم</h5></div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if product_id %}&product={{ product_id }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if discount_type %}&discount_type={{ discount_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="btn btn-outline">السابق</a>
+        {% endif %}
+        <span>صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if product_id %}&product={{ product_id }}{% endif %}{% if branch_id %}&branch={{ branch_id }}{% endif %}{% if discount_type %}&discount_type={{ discount_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="btn btn-outline">التالي</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% else %}
+      <div class="empty-state"><h5>لا توجد عروض خصم</h5></div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

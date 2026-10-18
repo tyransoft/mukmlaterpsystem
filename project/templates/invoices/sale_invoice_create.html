@@ -121,10 +121,12 @@
     width: 80px;
     text-align: center;
   }
-  .discount-input {
-    width: 75px;
-    text-align: center;
-    border-color: #fbbf24 !important;
+  /* سعر البيع للقراءة فقط */
+  .price-input[readonly] {
+    background-color: #f3f4f6 !important;
+    cursor: not-allowed;
+    color: #6b7280;
+    border-color: #e5e7eb !important;
   }
   .btn-sm {
     width: 26px;
@@ -174,16 +176,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .readonly-discount {
-    background-color: #f3f4f6 !important;
-    cursor: not-allowed;
-  }
   .delivery-section {
     background: #fef3c7;
     border: 1px solid #fde68a;
     border-radius: 8px;
     padding: 12px;
     margin-top: 10px;
+  }
+  .required-mark {
+    color: #dc2626;
+    font-weight: bold;
   }
 
   @media (max-width: 900px) {
@@ -201,9 +203,6 @@
     }
     .price-input {
       width: 65px;
-    }
-    .discount-input {
-      width: 60px;
     }
     .quantity-input {
       width: 45px;
@@ -246,17 +245,16 @@
           <table class="products-table">
             <thead>
               <tr>
-                <th style="width:28%">المنتج</th>
-                <th style="width:16%">الكمية</th>
-                <th style="width:16%">السعر</th>
-                <th style="width:16%">خصم الوحدة</th>
-                <th style="width:16%">الإجمالي</th>
+                <th style="width:34%">المنتج</th>
+                <th style="width:22%">الكمية</th>
+                <th style="width:22%">سعر البيع</th>
+                <th style="width:14%">الإجمالي</th>
                 <th style="width:8%"></th>
               </tr>
             </thead>
             <tbody id="products-tbody">
               <tr id="empty-row">
-                <td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">
+                <td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">
                   ابحث عن منتج أو اختر من القائمة
                 </td>
               </tr>
@@ -338,10 +336,12 @@
               </div>
             </div>
           </div>
+
+          <!-- طريقة الدفع: إلزامية -->
           <div class="form-group">
-            <label class="form-label">طريقة الدفع</label>
-            <select name="payment_method" id="payment_method" class="form-select">
-              <option value="">-- بدون رسوم --</option>
+            <label class="form-label">طريقة الدفع <span class="required-mark">*</span></label>
+            <select name="payment_method" id="payment_method" class="form-select" required>
+              <option value="">-- اختر طريقة الدفع --</option>
               {% for method in payment_methods %}
               <option value="{{ method.id }}" data-increase="{{ method.increase_percentage }}">
                 {{ method.name }} {% if method.increase_percentage > 0 %}(+{{ method.increase_percentage }}%){% endif %}
@@ -351,19 +351,11 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">إجمالي الخصم </label>
-            <input type="number" name="discount" id="discount" class="form-control readonly-discount"
-                   step="0.01" value="0" readonly>
-            <input type="hidden" name="discount_hidden" id="discount_hidden" value="0">
-          </div>
-
-          <div class="form-group">
             <label>
               <input type="checkbox" id="is_delivery" name="is_delivery">
               توصيل
             </label>
           </div>
-          
 
           <div id="payment_group">
             <div class="form-group">
@@ -386,9 +378,6 @@
         <div class="card-body">
           <div style="display:flex;justify-content:space-between;padding:5px 0;">
             <span>المجموع الفرعي</span><span id="subtotal">0.00</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:5px 0;">
-            <span>الخصم</span><span class="text-danger" id="discount_display">0.00</span>
           </div>
           <div style="display:flex;justify-content:space-between;padding:5px 0;">
             <span>الرسوم الإضافية</span><span class="text-warning" id="additional_fees">0.00</span>
@@ -455,7 +444,6 @@ $(document).ready(function() {
         let total = parseFloat($('#total').text()) || 0;
 
         if (paidAmountManuallyEdited) {
-            // المستخدم عدّل المبلغ يدوياً: احتفظ بقيمته وحدّث المتبقي فقط
             let paid = parseFloat($('#paid_amount').val()) || 0;
             if (paid < 0) paid = 0;
             if (paid > total) {
@@ -465,7 +453,6 @@ $(document).ready(function() {
             $('#paid_display').text(paid.toFixed(2));
             $('#remaining').text(Math.max(0, total - paid).toFixed(2));
         } else {
-            // لم يعدّل المستخدم: املأ المبلغ المدفوع بالإجمالي
             $('#paid_amount').val(total.toFixed(2));
             $('#paid_display').text(total.toFixed(2));
             $('#remaining').text('0.00');
@@ -668,7 +655,7 @@ $(document).ready(function() {
                 return false;
             }
             existingProduct.quantity = newQuantity;
-            existingProduct.total = existingProduct.quantity * (existingProduct.price - existingProduct.discount);
+            existingProduct.total = existingProduct.quantity * existingProduct.price;
             updateProductRow(existingProduct);
         } else {
             let newProduct = {
@@ -676,7 +663,6 @@ $(document).ready(function() {
                 name: productName,
                 quantity: 1,
                 price: productPrice,
-                discount: 0,
                 points: productPoints,
                 total: productPrice,
                 maxStock: productStock
@@ -711,23 +697,15 @@ $(document).ready(function() {
             quantityCell.append(quantityInput);
             quantityCell.append(incButton);
 
-            // السعر
+            // سعر البيع (للقراءة فقط)
             let priceCell = $('<td>');
             let priceInput = $('<input>').addClass('price-input')
                 .attr('type', 'text')
-                .attr('inputmode', 'decimal')
+                .attr('readonly', 'readonly')
+                .attr('tabindex', '-1')
                 .attr('value', product.price)
                 .attr('data-id', product.id);
             priceCell.append(priceInput);
-
-            // خصم الوحدة
-            let discountCell = $('<td>');
-            let discountInput = $('<input>').addClass('discount-input')
-                .attr('type', 'text')
-                .attr('inputmode', 'decimal')
-                .attr('value', product.discount)
-                .attr('data-id', product.id);
-            discountCell.append(discountInput);
 
             // الإجمالي
             let totalCell = $('<td>').addClass('total-' + product.id).text(product.total.toFixed(2));
@@ -740,7 +718,6 @@ $(document).ready(function() {
             newRow.append(nameCell);
             newRow.append(quantityCell);
             newRow.append(priceCell);
-            newRow.append(discountCell);
             newRow.append(totalCell);
             newRow.append(actionCell);
             $('#products-tbody').append(newRow);
@@ -749,33 +726,22 @@ $(document).ready(function() {
             let hiddenId = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_id').val(product.id);
             let hiddenQuantity = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_quantity').addClass('hidden-qty-' + product.id).val(product.quantity);
             let hiddenPrice = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_price').addClass('hidden-price-' + product.id).val(product.price);
-            let hiddenDiscount = $('<input>').attr('type', 'hidden').attr('name', 'product_' + product.id + '_discount').addClass('hidden-discount-' + product.id).val(product.discount);
             $('#products-tbody').append(hiddenId);
             $('#products-tbody').append(hiddenQuantity);
             $('#products-tbody').append(hiddenPrice);
-            $('#products-tbody').append(hiddenDiscount);
         }
     }
 
-    // skipField: 'quantity' | 'price' | 'discount' | undefined
-    // عند تمريره، لا نُعيد كتابة قيمة ذلك الحقل النشط حتى لا نفسد كتابة المستخدم
+    // skipField: 'quantity' | undefined
     function updateProductRow(product, skipField) {
         let quantityInput = $('.quantity-input[data-id="' + product.id + '"]');
-        let priceInput = $('.price-input[data-id="' + product.id + '"]');
-        let discountInput = $('.discount-input[data-id="' + product.id + '"]');
         let totalCell = $('.total-' + product.id);
         let hiddenQuantity = $('.hidden-qty-' + product.id);
-        let hiddenPrice = $('.hidden-price-' + product.id);
-        let hiddenDiscount = $('.hidden-discount-' + product.id);
 
         if (skipField !== 'quantity') quantityInput.val(product.quantity);
-        if (skipField !== 'price') priceInput.val(product.price);
-        if (skipField !== 'discount') discountInput.val(product.discount);
 
         totalCell.text(product.total.toFixed(2));
         hiddenQuantity.val(product.quantity);
-        hiddenPrice.val(product.price);
-        hiddenDiscount.val(product.discount);
     }
 
     $(document).on('click', '.inc-qty', function() {
@@ -785,7 +751,7 @@ $(document).ready(function() {
             let newQuantity = product.quantity + 1;
             if (newQuantity <= product.maxStock) {
                 product.quantity = newQuantity;
-                product.total = product.quantity * (product.price - product.discount);
+                product.total = product.quantity * product.price;
                 updateProductRow(product);
                 updateTotals();
             } else {
@@ -799,7 +765,7 @@ $(document).ready(function() {
         let product = selectedProducts.find(p => p.id === productId);
         if (product && product.quantity > 1) {
             product.quantity = product.quantity - 1;
-            product.total = product.quantity * (product.price - product.discount);
+            product.total = product.quantity * product.price;
             updateProductRow(product);
             updateTotals();
         }
@@ -812,7 +778,6 @@ $(document).ready(function() {
         if (!product) return;
 
         let raw = $(this).val().trim();
-        // اسمح بالقيم الوسيطة دون تصحيح
         if (raw === '') return;
         let newQuantity = parseInt(raw);
         if (isNaN(newQuantity)) return;
@@ -823,12 +788,11 @@ $(document).ready(function() {
             return;
         }
         if (newQuantity < 1) {
-            // لا تُعيد الكتابة أثناء الكتابة، اترك change يطبّعها
             return;
         }
 
         product.quantity = newQuantity;
-        product.total = product.quantity * (product.price - product.discount);
+        product.total = product.quantity * product.price;
         updateProductRow(product, 'quantity');
         updateTotals();
     });
@@ -846,93 +810,17 @@ $(document).ready(function() {
             newQuantity = product.quantity;
         }
         product.quantity = newQuantity;
-        product.total = product.quantity * (product.price - product.discount);
+        product.total = product.quantity * product.price;
         updateProductRow(product);
         updateTotals();
     });
 
-    // ============ السعر: تحديث فوري أثناء الكتابة ============
-    $(document).on('input', '.price-input', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        if (!product) return;
-
-        let raw = $(this).val().trim();
-        // اسمح بالقيم الوسيطة مثل "" أو "." أو "0." أو "5."
-        if (raw === '' || raw === '.' || raw.endsWith('.')) {
-            return;
-        }
-        let newPrice = parseFloat(raw);
-        if (isNaN(newPrice)) return;
-        if (newPrice < 0) newPrice = 0;
-
-        product.price = newPrice;
-        if (product.discount > product.price) {
-            product.discount = product.price;
-        }
-        product.total = product.quantity * (product.price - product.discount);
-        updateProductRow(product, 'price');
-        updateTotals();
+    // السعر للقراءة فقط: لا يمكن تعديله — نمنع أي تغيير
+    $(document).on('keydown', '.price-input', function(e) {
+        e.preventDefault();
     });
-
-    // السعر: تطبيع نهائي عند الخروج
-    $(document).on('change', '.price-input', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        if (!product) return;
-
-        let newPrice = parseFloat($(this).val());
-        if (isNaN(newPrice) || newPrice < 0) newPrice = 0;
-        product.price = newPrice;
-        if (product.discount > product.price) {
-            product.discount = product.price;
-        }
-        product.total = product.quantity * (product.price - product.discount);
-        updateProductRow(product);
-        updateTotals();
-    });
-
-    // ============ خصم الوحدة: تحديث فوري أثناء الكتابة ============
-    $(document).on('input', '.discount-input', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        if (!product) return;
-
-        let raw = $(this).val().trim();
-        // اسمح بالقيم الوسيطة مثل "" أو "." أو "0." أو "5."
-        if (raw === '' || raw === '.' || raw.endsWith('.')) {
-            return;
-        }
-        let newDiscount = parseFloat(raw);
-        if (isNaN(newDiscount) || newDiscount < 0) return;
-
-        if (newDiscount > product.price) {
-            showToast('الخصم لا يمكن أن يتجاوز سعر الوحدة (' + product.price.toFixed(2) + ')', 'error');
-            newDiscount = product.price;
-            $(this).val(newDiscount);
-        }
-        product.discount = newDiscount;
-        product.total = product.quantity * (product.price - product.discount);
-        updateProductRow(product, 'discount');
-        updateTotals();
-    });
-
-    // خصم الوحدة: تطبيع نهائي عند الخروج
-    $(document).on('change', '.discount-input', function() {
-        let productId = $(this).data('id');
-        let product = selectedProducts.find(p => p.id === productId);
-        if (!product) return;
-
-        let newDiscount = parseFloat($(this).val());
-        if (isNaN(newDiscount) || newDiscount < 0) newDiscount = 0;
-        if (newDiscount > product.price) {
-            showToast('الخصم لا يمكن أن يتجاوز سعر الوحدة (' + product.price.toFixed(2) + ')', 'error');
-            newDiscount = product.price;
-        }
-        product.discount = newDiscount;
-        product.total = product.quantity * (product.price - product.discount);
-        updateProductRow(product);
-        updateTotals();
+    $(document).on('paste', '.price-input', function(e) {
+        e.preventDefault();
     });
 
     $(document).on('click', '.remove-btn', function() {
@@ -942,7 +830,6 @@ $(document).ready(function() {
         $('input[name="product_' + productId + '_id"]').remove();
         $('input[name="product_' + productId + '_quantity"]').remove();
         $('input[name="product_' + productId + '_price"]').remove();
-        $('input[name="product_' + productId + '_discount"]').remove();
         if (selectedProducts.length === 0) {
             $('#empty-row').show();
         }
@@ -951,12 +838,6 @@ $(document).ready(function() {
 
     function updateTotals() {
         let subtotal = selectedProducts.reduce((s, p) => s + p.total, 0);
-
-        let totalUnitDiscount = selectedProducts.reduce((s, p) => s + (p.discount * p.quantity), 0);
-
-        $('#discount').val(totalUnitDiscount.toFixed(2));
-        $('#discount_hidden').val(totalUnitDiscount.toFixed(2));
-        $('#discount_display').text(totalUnitDiscount.toFixed(2));
 
         let total = subtotal;
 
@@ -1052,11 +933,6 @@ $(document).ready(function() {
                 alert('المنتج ' + product.name + ': الكمية المطلوبة (' + product.quantity + ') تتجاوز المخزون المتوفر (' + product.maxStock + ')');
                 return false;
             }
-            if (product.discount > product.price) {
-                event.preventDefault();
-                alert('المنتج ' + product.name + ': خصم الوحدة (' + product.discount + ') لا يمكن أن يتجاوز سعر الوحدة (' + product.price + ')');
-                return false;
-            }
         }
         let saleType = $('#sale_type').val();
         let isCashCustomer = $('#is_cash_customer').is(':checked');
@@ -1075,6 +951,14 @@ $(document).ready(function() {
                 alert('الرجاء اختيار الفرع المستلم');
                 return false;
             }
+        }
+        // التحقق من اختيار طريقة الدفع
+        let paymentMethod = $('#payment_method').val();
+        if (!paymentMethod) {
+            event.preventDefault();
+            alert('الرجاء اختيار طريقة الدفع');
+            $('#payment_method').focus();
+            return false;
         }
     });
 });

@@ -113,6 +113,9 @@ urlpatterns = [
     path('loyalty-rewards/<int:pk>/delete/',loyalty_reward_delete, name='loyalty_reward_delete'),
     path('reports/inventory/pdf/',inventory_full_report_pdf,name="inventory_full_report_pdf",),
 
+    path('discounts/offers/', discount_offers_list, name='discount_offers_list'),
+    path('discounts/offers/add/', discount_offer_add, name='discount_offer_add'),
+    path('discounts/offers/<int:pk>/delete/', discount_offer_delete, name='discount_offer_delete'),
 ]
 
 

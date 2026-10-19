@@ -2854,7 +2854,7 @@ def api_products_stock(request):
         products_list.append({
             'id': inv.product.id,
             'name': inv.product.name,
-            'price': float(inv.product.selling_price),
+            'price': float(inv.product.get_final_price(branch)),
             'points': inv.product.loyalty_points,
             'stock': inv.quantity
         })

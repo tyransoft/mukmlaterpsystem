@@ -1565,102 +1565,207 @@ def inventory_print(request, branch_id):
         'total_profit': total_profit,
     })
 
+
 @login_required
 def inventory_stocktake(request):
     user = request.user
-    
-    if not user.branch:
-        messages.error(request, 'لا يوجد فرع مرتبط بحسابك لإجراء الجرد')
-        return redirect('dashboard_home')
-    if user.can_see_all_data():
-         branch_id=request.GET.get('branch')
-         if not branch_id:
-             branch = user.branch
-         else:
-             branch = branch_id
-    else:
+
+    branch_id = request.GET.get('branch') or request.POST.get('branch')
+
+    if user.can_see_all_data() and branch_id:
+        branch = get_object_or_404(Branch, pk=branch_id)
+    elif user.branch:
         branch = user.branch
-    
-    inventory_items = BranchInventory.objects.select_related('product').filter(branch=branch)
-    branchname = branch.name if isinstance(branch, Branch) else Branch.objects.filter(pk=branch).first().name
+    else:
+        messages.error(request, 'لا يوجد فرع محدد لإجراء الجرد')
+        return redirect('dashboard_home')
+
     if request.method == 'POST':
-        for item in inventory_items:
-            new_quantity = request.POST.get(f'quantity_{item.pk}')
-            if new_quantity is not None:
-                try:
-                    new_quantity = int(new_quantity)
-                    old_quantity = item.quantity
-                    if new_quantity != old_quantity:
-                        InventoryMovement.objects.create(
-                            branch=item.branch,
-                            product=item.product,
-                            movement_type='stocktake',
-                            quantity=new_quantity - old_quantity,
-                            quantity_before=old_quantity,
-                            quantity_after=new_quantity,
-                            notes=f'جرد دوري - تعديل من {old_quantity} إلى {new_quantity}',
-                            employee=user,
+        try:
+            with transaction.atomic():
+                branch = Branch.objects.select_for_update().get(pk=branch.pk)
+
+                inventory_items = (
+                    BranchInventory.objects
+                    .select_for_update()
+                    .select_related('product')
+                    .filter(branch=branch)
+                )
+
+                points_delta_total = Decimal('0')
+                changes_count = 0
+
+                for item in inventory_items:
+                    posted_quantity = request.POST.get(
+                        f'quantity_{item.pk}'
+                    )
+
+                    if posted_quantity is None:
+                        continue
+
+                    try:
+                        new_quantity = int(posted_quantity)
+                    except (ValueError, TypeError):
+                        raise ValueError(
+                            f'الكمية المدخلة للمنتج {item.product.name} غير صحيحة'
                         )
-                        item.quantity = new_quantity
-                        item.save()
-                except (ValueError, TypeError):
-                    pass
-        
-        messages.success(request, 'تم حفظ الجرد بنجاح')
-        return redirect('inventory_list')
-    
+
+                    if new_quantity < 0:
+                        raise ValueError(
+                            f'كمية المنتج {item.product.name} لا يمكن أن تكون سالبة'
+                        )
+
+                    old_quantity = item.quantity
+                    difference = new_quantity - old_quantity
+
+                    if difference == 0:
+                        continue
+
+                    points_per_unit = Decimal(
+                        str(item.product.loyalty_points or 0)
+                    )
+
+                    points_difference = (
+                        Decimal(difference) * points_per_unit
+                    )
+
+                    InventoryMovement.objects.create(
+                        branch=branch,
+                        product=item.product,
+                        movement_type='stocktake',
+                        quantity=difference,
+                        quantity_before=old_quantity,
+                        quantity_after=new_quantity,
+                        notes=(
+                            f'جرد دوري - تعديل من {old_quantity} '
+                            f'إلى {new_quantity}'
+                        ),
+                        employee=user,
+                    )
+
+                    item.quantity = new_quantity
+                    item.save(update_fields=['quantity'])
+
+                    points_delta_total += points_difference
+                    changes_count += 1
+
+                if points_delta_total != 0:
+                    branch.loyalty_points_inventory = (
+                        branch.loyalty_points_inventory
+                        + points_delta_total
+                    )
+                    branch.save(
+                        update_fields=['loyalty_points_inventory', 'updated_at']
+                    )
+
+            messages.success(
+                request,
+                f'تم حفظ الجرد بنجاح. عدد المنتجات المعدلة: {changes_count}. '
+            )
+            return redirect('inventory_list')
+
+        except ValueError as e:
+            messages.error(request, str(e))
+
+    inventory_items = (
+        BranchInventory.objects
+        .select_related('product')
+        .filter(branch=branch)
+    )
+
     return render(request, 'inventory/stocktake.html', {
         'inventory_items': inventory_items,
         'branch': branch,
-        'branchname': branchname
+        'branchname': branch.name,
     })
+
 
 
 @login_required
 def inventory_damage(request, pk):
-    inv = get_object_or_404(BranchInventory, pk=pk)
-    
-    if not request.user.can_see_all_data():
-        if not request.user.branch or request.user.branch != inv.branch:
-            messages.error(request, 'ليس لديك صلاحية لتلف هذا المخزون')
+    inv = get_object_or_404(
+        BranchInventory.objects.select_related('branch', 'product'),
+        pk=pk
+    )
+
+    user = request.user
+
+    if not user.can_see_all_data():
+        if not user.branch or user.branch_id != inv.branch_id:
+            messages.error(request, 'ليس لديك صلاحية لتسجيل تلف هذا المخزون')
             url = reverse('inventory_list')
-            return redirect(f'{url}?branch={inv.branch.pk}')    
+            return redirect(f'{url}?branch={inv.branch_id}')
+
     if request.method == 'POST':
         try:
             quantity = int(request.POST.get('quantity', 0))
-            notes = request.POST.get('notes', '')
-            
+            notes = request.POST.get('notes', '').strip()
+
             if quantity <= 0:
                 messages.error(request, 'الكمية يجب أن تكون أكبر من صفر')
-            elif quantity > inv.quantity:
-                messages.error(request, f'الكمية المدخلة أكبر من المتوفر ({inv.quantity})')
+
             else:
-                old_quantity = inv.quantity
-                new_quantity = old_quantity - quantity
-                
-                InventoryMovement.objects.create(
-                    branch=inv.branch,
-                    product=inv.product,
-                    movement_type='damage',
-                    quantity=-quantity,
-                    quantity_before=old_quantity,
-                    quantity_after=new_quantity,
-                    notes=f'تلف - {notes}' if notes else 'تلف',
-                    employee=request.user,
+                with transaction.atomic():
+                    branch = Branch.objects.select_for_update().get(
+                        pk=inv.branch
+                    )
+
+                    inv = (
+                        BranchInventory.objects
+                        .select_for_update()
+                        .select_related('product')
+                        .get(pk=pk)
+                    )
+
+                    if quantity > inv.quantity:
+                        raise ValueError(
+                            f'الكمية المدخلة أكبر من المتوفر ({inv.quantity})'
+                        )
+
+                    old_quantity = inv.quantity
+                    new_quantity = old_quantity - quantity
+
+                    points_per_unit = Decimal(
+                        str(inv.product.loyalty_points or 0)
+                    )
+
+                    points_to_deduct = Decimal(quantity) * points_per_unit
+
+                    InventoryMovement.objects.create(
+                        branch=branch,
+                        product=inv.product,
+                        movement_type='damage',
+                        quantity=-quantity,
+                        quantity_before=old_quantity,
+                        quantity_after=new_quantity,
+                        notes=f'تلف - {notes}' if notes else 'تلف',
+                        employee=user,
+                    )
+
+                    inv.quantity = new_quantity
+                    inv.save(update_fields=['quantity'])
+
+                    branch.loyalty_points_inventory -= points_to_deduct
+                    branch.save(
+                        update_fields=['loyalty_points_inventory', 'updated_at']
+                    )
+
+                messages.success(
+                    request,
+                    f'تم تسجيل تلف {quantity} وحدة من {inv.product.name}. '
+                    f'تم خصم {points_to_deduct} نقطة من رصيد الفرع.'
                 )
-                
-                inv.quantity = new_quantity
-                inv.save()
-                
-                messages.success(request, f'تم تسجيل تلف {quantity} وحدة من {inv.product.name}')
+
                 url = reverse('inventory_list')
-                return redirect(f'{url}?branch={inv.branch.pk}') 
-        except ValueError:
-            messages.error(request, 'الكمية المدخلة غير صحيحة')
-    
+                return redirect(f'{url}?branch={inv.branch}')
+
+        except ValueError as e:
+            messages.error(request, str(e))
+
     return render(request, 'inventory/damage.html', {
         'inv': inv,
     })
+
 
 
 @login_required
@@ -2934,301 +3039,388 @@ def payment_method_toggle_status(request, pk):
     return redirect('payment_methods_list')
 
 
+
+
+
 @login_required
 def sale_invoice_return(request, pk):
-    invoice = get_object_or_404(SaleInvoice, pk=pk)
+    if request.method != 'POST':
+        invoice = get_object_or_404(SaleInvoice, pk=pk)
+
+        return render(request, 'invoices/sale_invoice_return.html', {
+            'invoice': invoice,
+            'items': invoice.items.all(),
+        })
+
     user = request.user
-    
-    
-    
-    if invoice.status != 'confirmed':
-        messages.error(request, 'لا يمكن عمل مرتجع إلا لفاتورة مؤكدة')
-        return redirect('sale_invoice_detail', pk=pk)
-    
-    if request.method == 'POST':
-        return_type = request.POST.get('return_type')
-        selected_items = request.POST.getlist('items')
-        
-        if not selected_items and return_type != 'full':
-            messages.error(request, 'الرجاء اختيار المنتجات التي سيتم إرجاعها')
-            return redirect('sale_invoice_return', pk=pk)
-        
-        try:
-            total_return_amount = 0
+    return_type = request.POST.get('return_type')
+    selected_items = request.POST.getlist('items')
+
+    if return_type not in ('full', 'partial'):
+        messages.error(request, 'نوع المرتجع غير صحيح')
+        return redirect('sale_invoice_return', pk=pk)
+
+    if return_type == 'partial' and not selected_items:
+        messages.error(request, 'الرجاء اختيار المنتجات التي سيتم إرجاعها')
+        return redirect('sale_invoice_return', pk=pk)
+
+   
+
+    try:
+        with transaction.atomic():
+            invoice = get_object_or_404(
+                SaleInvoice.objects.select_for_update(),
+                pk=pk,
+            )
+
+            if invoice.status != 'confirmed':
+                raise ValueError('لا يمكن عمل مرتجع إلا لفاتورة مؤكدة')
+
             
-            if return_type == 'full':
-                for item in invoice.items.all():
-                    if invoice.sale_type == 'customer':
-                        inventory, created = BranchInventory.objects.get_or_create(
-                            branch=invoice.branch,
-                            product=item.product,
-                            defaults={'quantity': 0, 'min_quantity': 5}
+
+            branch = (
+                Branch.objects.select_for_update()
+                .get(pk=invoice.branch_id)
+            )
+
+            items = list(
+                invoice.items.select_related('product').all()
+            )
+
+            if not items:
+                raise ValueError('لا توجد منتجات في الفاتورة')
+
+            selected_ids = set(selected_items)
+
+            if return_type == 'partial':
+                valid_ids = {str(item.pk) for item in items}
+
+                if not selected_ids.issubset(valid_ids):
+                    raise ValueError('تم اختيار منتج غير تابع لهذه الفاتورة')
+
+            return_lines = []
+            total_return_amount = Decimal('0')
+            returned_points = Decimal('0')
+
+            for item in items:
+                if return_type == 'partial' and str(item.pk) not in selected_ids:
+                    continue
+
+                if return_type == 'full':
+                    return_quantity = item.quantity
+                else:
+                    try:
+                        return_quantity = int(
+                            request.POST.get(f'quantity_{item.pk}', 0)
                         )
-                        
-                        old_quantity = inventory.quantity
-                        inventory.quantity += item.quantity
-                        inventory.save()
-                        
-                        InventoryMovement.objects.create(
-                            branch=invoice.branch,
-                            product=item.product,
-                            movement_type='return_sale',
-                            quantity=item.quantity,
-                            quantity_before=old_quantity,
-                            quantity_after=inventory.quantity,
-                            sale_invoice=invoice,
-                            employee=user,
-                            notes=f'مرتجع كامل للفاتورة {invoice.invoice_number}'
+                    except (ValueError, TypeError):
+                        raise ValueError(
+                            f'كمية المرتجع غير صحيحة للمنتج {item.product.name}'
                         )
-                    
-                    elif invoice.sale_type == 'branch' and invoice.target_branch:
-                        source_inventory, created = BranchInventory.objects.get_or_create(
-                            branch=invoice.branch,
-                            product=item.product,
-                            defaults={'quantity': 0, 'min_quantity': 5}
-                        )
-                        
-                        old_source_qty = source_inventory.quantity
-                        source_inventory.quantity += item.quantity
-                        source_inventory.save()
-                        
-                        InventoryMovement.objects.create(
-                            branch=invoice.branch,
-                            product=item.product,
-                            movement_type='return_supply_out',
-                            quantity=item.quantity,
-                            quantity_before=old_source_qty,
-                            quantity_after=source_inventory.quantity,
-                            sale_invoice=invoice,
-                            employee=user,
-                            notes=f'إرجاع توريد من فاتورة {invoice.invoice_number}'
-                        )
-                        
-                        target_inventory = BranchInventory.objects.filter(
-                            branch=invoice.target_branch,
-                            product=item.product
-                        ).first()
-                        
-                        if target_inventory:
-                            old_target_qty = target_inventory.quantity
-                            if target_inventory.quantity >= item.quantity:
-                                target_inventory.quantity -= item.quantity
-                            else:
-                                target_inventory.quantity = 0
-                            target_inventory.save()
-                            
-                            InventoryMovement.objects.create(
-                                branch=invoice.target_branch,
-                                product=item.product,
-                                movement_type='adjustment',
-                                quantity=-(item.quantity if target_inventory.quantity >= item.quantity else old_target_qty),
-                                quantity_before=old_target_qty,
-                                quantity_after=target_inventory.quantity,
-                                sale_invoice=invoice,
-                                employee=user,
-                                notes=f'إلغاء استلام توريد من فاتورة {invoice.invoice_number}'
-                            )
-                    
-                    total_return_amount += item.total_price
-                
-                if invoice.sale_type == 'branch' and invoice.target_branch:
-                    PurchaseInvoice.objects.filter(source_sale_invoice=invoice).delete()
-                
-                invoice.status = 'cancelled'
-                
-                if invoice.sale_type == 'customer' and not invoice.branch.is_main:
-                    from decimal import Decimal
-                    commission_rate = invoice.branch.commission_percentage / Decimal('100')
-                    invoice.branch_commission = invoice.total * commission_rate
-                
-                invoice.save()
-                
-                if invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
-                    debt_reduction = min(invoice.debt_amount, total_return_amount)
-                    invoice.customer.debt_balance -= debt_reduction
-                    invoice.customer.save()
-                    
-                    
-                
-                if invoice.total_loyalty_points > 0 and invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
-                    invoice.branch.loyalty_points_inventory += invoice.total_loyalty_points
-                    invoice.branch.save()
-                    
-                    LoyaltyTransaction.objects.create(
-                        branch=invoice.branch,
-                        customer=invoice.customer,
-                        sale_invoice=invoice,
-                        points=invoice.total_loyalty_points,
-                        transaction_type='refund',
-                        notes=f'استرجاع نقاط من مرتجع فاتورة {invoice.invoice_number}'
+
+                if return_quantity < 0:
+                    raise ValueError('كمية المرتجع لا يمكن أن تكون سالبة')
+
+                if return_quantity == 0:
+                    continue
+
+                if return_quantity > item.quantity:
+                    raise ValueError(
+                        f'كمية المرتجع للمنتج {item.product.name} '
+                        f'أكبر من الكمية المتبقية ({item.quantity})'
                     )
-                    
-                    pending_transfer = LoyaltyTransfer.objects.filter(
+
+                product_points = Decimal(
+                    str(item.product.loyalty_points or 0)
+                )
+                line_points = product_points * Decimal(return_quantity)
+
+                return_amount = (
+                    Decimal(str(item.unit_price))
+                    * Decimal(return_quantity)
+                )
+
+                return_lines.append({
+                    'item': item,
+                    'quantity': return_quantity,
+                    'amount': return_amount,
+                    'points': line_points,
+                })
+
+                total_return_amount += return_amount
+                returned_points += line_points
+
+            if not return_lines:
+                raise ValueError('لم يتم تحديد كمية صالحة للإرجاع')
+
+            points_deltas = {}
+
+            def add_points_delta(branch_id, delta):
+                points_deltas[branch_id] = (
+                    points_deltas.get(branch_id, Decimal('0')) + delta
+                )
+
+            # تعديل المخزون وتسجيل الحركات
+            for line in return_lines:
+                item = line['item']
+                qty = line['quantity']
+                points = line['points']
+                product = item.product
+
+                if invoice.sale_type == 'customer':
+                    inventory, created = BranchInventory.objects.get_or_create(
+                        branch=branch,
+                        product=product,
+                        defaults={
+                            'quantity': 0,
+                            'min_quantity': 5,
+                        },
+                    )
+
+                    inventory = (
+                        BranchInventory.objects.select_for_update()
+                        .get(pk=inventory.pk)
+                    )
+
+                    old_quantity = inventory.quantity
+                    new_quantity = old_quantity + qty
+
+                    inventory.quantity = new_quantity
+                    inventory.save(update_fields=['quantity'])
+
+                    InventoryMovement.objects.create(
+                        branch=branch,
+                        product=product,
+                        movement_type='return_sale',
+                        quantity=qty,
+                        quantity_before=old_quantity,
+                        quantity_after=new_quantity,
                         sale_invoice=invoice,
-                        status='pending'
-                    ).first()
-                    if pending_transfer:
-                        pending_transfer.status = 'cancelled'
-                        pending_transfer.save()
-            
-            else:
-                for item_id in selected_items:
-                    original_item = invoice.items.get(pk=item_id)
-                    return_quantity = int(request.POST.get(f'quantity_{item_id}', 0))
-                    
-                    if return_quantity <= 0:
-                        continue
-                    
-                    if return_quantity > original_item.quantity:
-                        messages.error(request, f'الكمية المرتجعة للمنتج {original_item.product.name} أكبر من الكمية الأصلية')
-                        return redirect('sale_invoice_return', pk=pk)
-                    
-                    return_amount = original_item.unit_price * return_quantity
-                    total_return_amount += return_amount
-                    
-                    if invoice.sale_type == 'customer':
-                        inventory, created = BranchInventory.objects.get_or_create(
-                            branch=invoice.branch,
-                            product=original_item.product,
-                            defaults={'quantity': 0, 'min_quantity': 5}
+                        employee=user,
+                        notes=(
+                            f'مرتجع {"كامل" if return_type == "full" else "جزئي"} '
+                            f'للفاتورة {invoice.invoice_number}'
+                        ),
+                    )
+
+                    # النقاط المقابلة للمخزون الذي عاد إلى الفرع
+                    add_points_delta(branch.pk, points)
+
+                elif invoice.sale_type == 'branch' and invoice.target_branch:
+                    target_branch = (
+                        Branch.objects.select_for_update()
+                        .get(pk=invoice.target_branch)
+                    )
+
+                    # إعادة الكمية إلى الفرع المصدر
+                    source_inventory, created = (
+                        BranchInventory.objects.get_or_create(
+                            branch=branch,
+                            product=product,
+                            defaults={
+                                'quantity': 0,
+                                'min_quantity': 5,
+                            },
                         )
-                        
-                        old_quantity = inventory.quantity
-                        inventory.quantity += return_quantity
-                        inventory.save()
-                        
-                        InventoryMovement.objects.create(
-                            branch=invoice.branch,
-                            product=original_item.product,
-                            movement_type='return_sale',
-                            quantity=return_quantity,
-                            quantity_before=old_quantity,
-                            quantity_after=inventory.quantity,
-                            sale_invoice=invoice,
-                            employee=user,
-                            notes=f'مرتجع جزئي للفاتورة {invoice.invoice_number}'
+                    )
+
+                    source_inventory = (
+                        BranchInventory.objects.select_for_update()
+                        .get(pk=source_inventory.pk)
+                    )
+
+                    old_source_qty = source_inventory.quantity
+                    new_source_qty = old_source_qty + qty
+
+                    source_inventory.quantity = new_source_qty
+                    source_inventory.save(update_fields=['quantity'])
+
+                    InventoryMovement.objects.create(
+                        branch=branch,
+                        product=product,
+                        movement_type='return_supply_out',
+                        quantity=qty,
+                        quantity_before=old_source_qty,
+                        quantity_after=new_source_qty,
+                        sale_invoice=invoice,
+                        employee=user,
+                        notes=(
+                            f'إرجاع توريد من الفاتورة '
+                            f'{invoice.invoice_number}'
+                        ),
+                    )
+
+                    target_inventory = (
+                        BranchInventory.objects.select_for_update()
+                        .filter(
+                            branch=target_branch,
+                            product=product,
                         )
-                    
-                    elif invoice.sale_type == 'branch' and invoice.target_branch:
-                        source_inventory, created = BranchInventory.objects.get_or_create(
-                            branch=invoice.branch,
-                            product=original_item.product,
-                            defaults={'quantity': 0, 'min_quantity': 5}
+                        .first()
+                    )
+
+                    if not target_inventory:
+                        raise ValueError(
+                            f'المنتج {product.name} غير موجود في مخزون '
+                            f'الفرع المستهدف؛ تعذر عكس التوريد'
                         )
-                        
-                        old_source_qty = source_inventory.quantity
-                        source_inventory.quantity += return_quantity
-                        source_inventory.save()
-                        
-                        InventoryMovement.objects.create(
-                            branch=invoice.branch,
-                            product=original_item.product,
-                            movement_type='return_supply_out',
-                            quantity=return_quantity,
-                            quantity_before=old_source_qty,
-                            quantity_after=source_inventory.quantity,
-                            sale_invoice=invoice,
-                            employee=user,
-                            notes=f'إرجاع توريد جزئي من فاتورة {invoice.invoice_number}'
+
+                    old_target_qty = target_inventory.quantity
+
+                    if old_target_qty < qty:
+                        raise ValueError(
+                            f'لا يمكن إلغاء التوريد للمنتج {product.name}: '
+                            f'المتوفر في الفرع المستهدف {old_target_qty} '
+                            f'والمطلوب إرجاعه {qty}'
                         )
-                        
-                        target_inventory = BranchInventory.objects.filter(
-                            branch=invoice.target_branch,
-                            product=original_item.product
-                        ).first()
-                        
-                        if target_inventory:
-                            old_target_qty = target_inventory.quantity
-                            if target_inventory.quantity >= return_quantity:
-                                target_inventory.quantity -= return_quantity
-                            else:
-                                target_inventory.quantity = 0
-                            target_inventory.save()
-                            
-                            InventoryMovement.objects.create(
-                                branch=invoice.target_branch,
-                                product=original_item.product,
-                                movement_type='adjustment',
-                                quantity=-(return_quantity if target_inventory.quantity >= return_quantity else old_target_qty),
-                                quantity_before=old_target_qty,
-                                quantity_after=target_inventory.quantity,
-                                sale_invoice=invoice,
-                                employee=user,
-                                notes=f'إلغاء استلام توريد جزئي من فاتورة {invoice.invoice_number}'
-                            )
-                    
-                    original_item.quantity -= return_quantity
-                    original_item.total_price = original_item.unit_price * original_item.quantity
-                    original_item.save()
-                
-                invoice.subtotal -= total_return_amount
-                invoice.total -= total_return_amount
-                
-                if invoice.sale_type == 'customer' and not invoice.branch.is_main:
-                    from decimal import Decimal
-                    commission_rate = invoice.branch.commission_percentage / Decimal('100')
-                    invoice.branch_commission = invoice.total * commission_rate
-                elif invoice.sale_type == 'branch':
-                    invoice.branch_commission = 0
-                
-                if invoice.paid_amount > invoice.total:
-                    refund_amount = invoice.paid_amount - invoice.total
-                    invoice.paid_amount = invoice.total
-                    
-                    if invoice.sale_type == 'customer' and invoice.customer:
-                           
-                        invoice.customer.debt_balance -= refund_amount
-                        invoice.customer.save()
-                        
-                
-                invoice.debt_amount = invoice.total - invoice.paid_amount
+
+                    new_target_qty = old_target_qty - qty
+                    target_inventory.quantity = new_target_qty
+                    target_inventory.save(update_fields=['quantity'])
+
+                    InventoryMovement.objects.create(
+                        branch=target_branch,
+                        product=product,
+                        movement_type='return_supply_out',
+                        quantity=-qty,
+                        quantity_before=old_target_qty,
+                        quantity_after=new_target_qty,
+                        sale_invoice=invoice,
+                        employee=user,
+                        notes=(
+                            f'إلغاء استلام توريد من الفاتورة '
+                            f'{invoice.invoice_number}'
+                        ),
+                    )
+
+                    # تحديث نقاط المخزون في الفرعين
+                    add_points_delta(branch.pk, points)
+                    add_points_delta(target_branch.pk, -points)
+
+                # تعديل بند الفاتورة في المرتجع الجزئي فقط
+                if return_type == 'partial':
+                    item.quantity -= qty
+                    item.total_price = (
+                        Decimal(str(item.unit_price))
+                        * Decimal(item.quantity)
+                    )
+                    item.save(update_fields=['quantity', 'total_price'])
+
+            for branch_id, delta in points_deltas.items():
+                if delta == 0:
+                    continue
+
+                points_branch = (
+                    Branch.objects.select_for_update().get(pk=branch_id)
+                )
+                points_branch.loyalty_points_inventory += delta
+                points_branch.save(
+                    update_fields=[
+                        'loyalty_points_inventory',
+                        'updated_at',
+                    ]
+                )
+
+            if return_type == 'full':
+                if invoice.sale_type == 'branch' and invoice.target_branch:
+                    PurchaseInvoice.objects.filter(
+                        source_sale_invoice=invoice
+                    ).delete()
+
+                invoice.status = 'cancelled'
+
+                if invoice.sale_type == 'customer' and not branch.is_main:
+                    commission_rate = (
+                        branch.commission_percentage / Decimal('100')
+                    )
+                    invoice.branch_commission = (
+                        invoice.total * commission_rate
+                    )
+
                 invoice.save()
-                
-                if invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
-                    from django.db.models import Sum
+
+                if (
+                    invoice.sale_type == 'customer'
+                    and invoice.customer
+                    and not invoice.is_cash_customer
+                ):
                     total_debt = SaleInvoice.objects.filter(
                         customer=invoice.customer,
                         sale_type='customer',
-                        status='confirmed'
-                    ).aggregate(total=Sum('debt_amount'))['total'] or 0
+                        status='confirmed',
+                    ).aggregate(total=Sum('debt_amount'))['total'] or Decimal('0')
+
                     invoice.customer.debt_balance = total_debt
-                    invoice.customer.save()
-                
-                if invoice.total_loyalty_points > 0 and invoice.sale_type == 'customer' and invoice.customer and not invoice.is_cash_customer:
-                    returned_points = 0
-                    for item_id in selected_items:
-                        original_item = invoice.items.get(pk=item_id)
-                        return_quantity = int(request.POST.get(f'quantity_{item_id}', 0))
-                        returned_points += original_item.product.loyalty_points * return_quantity
-                    
-                    if returned_points > 0:
-                        invoice.branch.loyalty_points_inventory += returned_points
-                        invoice.branch.save()
-                        
-                        LoyaltyTransaction.objects.create(
-                            branch=invoice.branch,
-                            customer=invoice.customer,
-                            sale_invoice=invoice,
-                            points=returned_points,
-                            transaction_type='refund',
-                            notes=f'استرجاع نقاط من مرتجع جزئي للفاتورة {invoice.invoice_number}'
-                        )
-                        
-                        invoice.total_loyalty_points -= returned_points
-                        invoice.save()
-            
-            messages.success(request, f'تم عمل مرتجع بنجاح بقيمة {total_return_amount:,.2f}')
-            return redirect('sale_invoices_list')
-            
-        except Exception as e:
-            messages.error(request, f'حدث خطأ: {str(e)}')
-            return redirect('sale_invoice_return', pk=pk)
-    
-    context = {
-        'invoice': invoice,
-        'items': invoice.items.all(),
-    }
-    return render(request, 'invoices/sale_invoice_return.html', context)
+                    invoice.customer.save(update_fields=['debt_balance'])
+
+            else:
+                invoice.subtotal = max(
+                    Decimal('0'),
+                    Decimal(str(invoice.subtotal)) - total_return_amount,
+                )
+                invoice.total = max(
+                    Decimal('0'),
+                    Decimal(str(invoice.total)) - total_return_amount,
+                )
+
+                if invoice.sale_type == 'customer' and not branch.is_main:
+                    commission_rate = (
+                        branch.commission_percentage / Decimal('100')
+                    )
+                    invoice.branch_commission = (
+                        invoice.total * commission_rate
+                    )
+                elif invoice.sale_type == 'branch':
+                    invoice.branch_commission = Decimal('0')
+
+                if invoice.paid_amount > invoice.total:
+                    invoice.paid_amount = invoice.total
+
+                invoice.debt_amount = (
+                    invoice.total - invoice.paid_amount
+                )
+
+                if invoice.sale_type == 'customer':
+                    invoice.total_loyalty_points = max(
+                        Decimal('0'),
+                        Decimal(str(invoice.total_loyalty_points or 0))
+                        - returned_points,
+                    )
+
+                invoice.save()
+
+                if (
+                    invoice.sale_type == 'customer'
+                    and invoice.customer
+                    and not invoice.is_cash_customer
+                ):
+                    total_debt = SaleInvoice.objects.filter(
+                        customer=invoice.customer,
+                        sale_type='customer',
+                        status='confirmed',
+                    ).aggregate(total=Sum('debt_amount'))['total'] or Decimal('0')
+
+                    invoice.customer.debt_balance = total_debt
+                    invoice.customer.save(update_fields=['debt_balance'])
+
+
+        messages.success(
+            request,
+            f'تم عمل المرتجع بنجاح بقيمة {total_return_amount:,.2f} د.ل'
+        )
+        return redirect('sale_invoices_list')
+
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect('sale_invoice_return', pk=pk)
+
+    except Exception:
+        messages.error(
+            request,
+            'حدث خطأ أثناء تنفيذ المرتجع. لم يتم اعتماد التغييرات.'
+        )
+        return redirect('sale_invoice_return', pk=pk)
+
 
 @login_required
 def branch_adjust_points(request, pk):
@@ -4403,8 +4595,8 @@ def inventory_full_report_pdf(request):
         "قيمة المخزون بسعر البيع",
         "إجمالي المبيعات",
         "إجمالي التسليمات",
-        "عدد المكافآت / العمولات",
-        "قيمة المكافآت / العمولات",
+        "عدد   العمولات",
+        "قيمة   العمولات",
         "رصيد النقاط الحالي",
     ]
 
@@ -4471,27 +4663,23 @@ def inventory_full_report_pdf(request):
 
             rows.append([
                 item.product.name,
-                item.product.barcode or "—",
                 quantity(qty),
             ])
 
         if rows:
             rows.append([
                 "الإجمالي",
-                "—",
                 quantity(total_quantity),
             ])
         else:
             rows.append([
                 "لا توجد منتجات",
-                "—",
                 "0.00",
             ])
 
         return make_table(
             [
                 "المنتج",
-                "الباركود",
                 "الكمية الحالية",
             ],
             rows,
@@ -4623,11 +4811,11 @@ def inventory_full_report_pdf(request):
             money(grand_deliveries),
         ],
         [
-            "عدد المكافآت / العمولات",
+            "عدد  العمولات",
             str(grand_reward_count),
         ],
         [
-            "قيمة المكافآت / العمولات",
+            "قيمة  العمولات",
             money(grand_rewards),
         ],
     ]

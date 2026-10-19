@@ -3436,7 +3436,7 @@ def branch_adjust_points(request, pk):
         reason = request.POST.get('reason', '')
         
         try:
-            points = int(points)
+            points = Decimal(str(points))
             if points <= 0:
                 messages.error(request, 'عدد النقاط يجب أن يكون أكبر من صفر')
                 return redirect('branches_detail', pk=pk)

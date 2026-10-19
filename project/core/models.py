@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.db.models import Sum
+from django.db.models import Q
 
 
 
@@ -373,7 +374,6 @@ class Product(models.Model):
 
     def get_discount(self, branch):
        from decimal import Decimal, ROUND_UP
-       from django.db.models import Q
        from .models import DiscountOffer
 
        best_offer = DiscountOffer.objects.filter(

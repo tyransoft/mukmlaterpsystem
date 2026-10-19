@@ -796,14 +796,45 @@ class SaleInvoice(models.Model):
       if self.sale_type == 'customer' and not self.branch.is_main:
         return self.total - self.branch_commission
       return 0
-    def _generate_invoice_number(self):
-        prefix = 'C' if self.sale_type == 'customer' else 'B'
-        date_str = timezone.now().strftime('%Y%m%d')
-        count = SaleInvoice.objects.filter(
-            created_at__date=timezone.now().date()
-        ).count() + 1
-        return f"{prefix}{date_str}{count:04d}"
     
+    def _generate_invoice_number(self):
+         from django.utils import timezone
+
+         prefix = 'C' if self.sale_type == 'customer' else 'B'
+         date_str = timezone.localtime().strftime('%Y%m%d')
+         base = f'{prefix}{date_str}'
+
+         last_invoice = (
+                  SaleInvoice.objects
+                  .filter(invoice_number__startswith=base)
+                  .order_by('-invoice_number')
+                  .first()
+         )
+
+         if last_invoice:
+                  try:
+                           next_number = int(last_invoice.invoice_number[-4:]) + 1
+                  except (ValueError, TypeError):
+                           next_number = 1
+         else:
+                  next_number = 1
+
+         while True:
+                  invoice_number = f'{base}{next_number:04d}'
+
+                  exists = SaleInvoice.objects.filter(
+                           invoice_number=invoice_number
+                  ).exists()
+
+                  if self.pk:
+                           exists = exists and SaleInvoice.objects.filter(
+                                    invoice_number=invoice_number
+                           ).exclude(pk=self.pk).exists()
+
+                  if not exists:
+                           return invoice_number
+
+                  next_number += 1         
 
     def confirm(self):
       if self.status == 'draft':

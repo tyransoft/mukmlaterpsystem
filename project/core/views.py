@@ -4574,42 +4574,52 @@ def inventory_full_report_pdf(request):
     # 10. صف ملخص الفرع
     # ==================================================
 
+   
     def branch_summary_row(branch):
-        stock = stock_by_branch[branch.id]
-        sales_data = sales_by_branch[branch.id]
-        delivery_data = deliveries_by_branch[branch.id]
-        reward_data = rewards_by_branch[branch.id]
+       stock = stock_by_branch[branch.id]
+       sales_data = sales_by_branch[branch.id]
+       delivery_data = deliveries_by_branch[branch.id]
+       reward_data = rewards_by_branch[branch.id]
 
-        return [
-            branch.name,
-            money(stock["sale"]),
-            money(sales_data["total"]),
-            money(delivery_data["total"]),
-            str(reward_data["count"]),
-            money(reward_data["amount"]),
-            number(branch.loyalty_points_inventory),
-        ]
+       total_sales = Decimal(str(sales_data["total"] or 0))
+       total_deliveries = Decimal(str(delivery_data["total"] or 0))
+       total_rewards = Decimal(str(reward_data["amount"] or 0))
+
+       remaining = total_sales - total_deliveries - total_rewards
+
+       return [
+              branch.name,
+              money(stock["sale"]),
+              money(total_sales),
+              money(total_deliveries),
+              money(total_rewards),
+              money(remaining),
+              number(branch.loyalty_points_inventory),
+       ]
+
 
     summary_headers = [
-        "الفرع",
-        "قيمة المخزون بسعر البيع",
-        "إجمالي المبيعات",
-        "إجمالي التسليمات",
-        "عدد   العمولات",
-        "قيمة   العمولات",
-        "رصيد النقاط الحالي",
+      "الفرع",
+      "قيمة المخزون بسعر البيع",
+      "إجمالي المبيعات",
+      "إجمالي التسليمات",
+      "قيمة العمولات ",
+
+      "المبلغ المتبقي",
+      "رصيد النقاط الحالي",
+   ]
+
+
+    summary_widths = [
+      35 * mm,
+      38 * mm,
+      34 * mm,
+      34 * mm,
+      34 * mm,
+      38 * mm,
+      34 * mm,
     ]
 
-    # سبعة أعمدة بالضبط، مطابقة للعناوين
-    summary_widths = [
-        35 * mm,
-        38 * mm,
-        34 * mm,
-        34 * mm,
-        30 * mm,
-        38 * mm,
-        34 * mm,
-    ]
 
     # ==================================================
     # 11. ملخص الفروع العادية
@@ -4779,11 +4789,16 @@ def inventory_full_report_pdf(request):
         Decimal("0"),
     )
 
-    # إجمالي عدد وقيمة المكافآت لجميع الفروع
-    grand_reward_count = sum(
-        rewards_by_branch[branch.id]["count"]
+    grand_remaining = sum(
+      (
+        Decimal(str(sales_by_branch[branch.id]["total"] or 0))
+        - Decimal(str(deliveries_by_branch[branch.id]["total"] or 0))
+        - Decimal(str(rewards_by_branch[branch.id]["amount"] or 0))
         for branch in branches
+      ),
+      Decimal("0"),
     )
+
 
     grand_rewards = sum(
         (
@@ -4811,8 +4826,8 @@ def inventory_full_report_pdf(request):
             money(grand_deliveries),
         ],
         [
-            "عدد  العمولات",
-            str(grand_reward_count),
+           "إجمالي المبلغ المتبقي لجميع الفروع",
+           money(grand_remaining),
         ],
         [
             "قيمة  العمولات",

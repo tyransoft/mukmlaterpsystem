@@ -3990,46 +3990,36 @@ def discount_offer_delete(request, pk):
 
 
 
-import io
-import html
-from collections import defaultdict
-from datetime import date
-from decimal import Decimal
-from pathlib import Path
-
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.utils import timezone
-
-import arabic_reshaper
-from bidi.algorithm import get_display
-
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-    PageBreak,
-)
-
-# تأكد من استيراد النماذج التالية من تطبيقك:
-# Branch, BranchInventory, InventoryMovement, Product
-# SaleInvoice, SaleInvoiceItem, PurchaseInvoice
-# CustomerLoyaltyReward, LoyaltyTransaction, LoyaltyTransfer
-# BranchSalesDelivery
-
-
 @login_required
 def inventory_full_report_pdf(request):
+    import io
+    import html
+    from pathlib import Path
+    from datetime import date
+    from decimal import Decimal
+    from collections import defaultdict
+
+    from django.conf import settings
+    from django.http import HttpResponse
+    from django.utils import timezone
+
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle,
+    )
+
+    import arabic_reshaper
+    from bidi.algorithm import get_display
 
     # ==================================================
     # 1. الفترة الزمنية
@@ -4056,10 +4046,16 @@ def inventory_full_report_pdf(request):
         Branch.objects.all().order_by("-is_main", "name")
     )
 
-    branch_ids = [branch.id for branch in branches]
+    main_branch = Branch.get_main_branch()
+
+    # استثناء الفرع الرئيسي من الجدول العام
+    normal_branches = [
+        branch for branch in branches
+        if not branch.is_main
+    ]
 
     # ==================================================
-    # 2. إعداد الخط العربي
+    # 2. الخط العربي
     # ==================================================
 
     font_path = (
@@ -4089,14 +4085,14 @@ def inventory_full_report_pdf(request):
     def money(value):
         return f"{float(value or 0):,.2f} د.ل"
 
-    def quantity(value):
-        return f"{value or 0:,}"
-
     def number(value):
         return f"{float(value or 0):,.2f}"
 
+    def quantity(value):
+        return f"{float(value or 0):,.2f}"
+
     # ==================================================
-    # 3. تنسيقات PDF
+    # 3. تنسيقات التقرير
     # ==================================================
 
     styles = getSampleStyleSheet()
@@ -4109,17 +4105,18 @@ def inventory_full_report_pdf(request):
         leading=24,
         alignment=TA_CENTER,
         textColor=colors.HexColor("#1F3A5F"),
+        spaceAfter=5,
     )
 
     heading_style = ParagraphStyle(
         "ReportHeading",
         parent=styles["Heading2"],
         fontName="Amiri",
-        fontSize=11,
-        leading=16,
+        fontSize=12,
+        leading=17,
         alignment=TA_RIGHT,
         textColor=colors.HexColor("#1F3A5F"),
-        spaceBefore=6,
+        spaceBefore=5,
         spaceAfter=5,
     )
 
@@ -4135,8 +4132,8 @@ def inventory_full_report_pdf(request):
     cell_style = ParagraphStyle(
         "ReportCell",
         parent=normal_style,
-        fontSize=7.5,
-        leading=10,
+        fontSize=8,
+        leading=11,
     )
 
     header_style = ParagraphStyle(
@@ -4146,28 +4143,24 @@ def inventory_full_report_pdf(request):
         textColor=colors.white,
     )
 
-    def paragraph(value, style=cell_style):
+    def p(value, style=cell_style):
         return Paragraph(ar(value), style)
 
     def make_table(headers, rows, widths):
-        """
-        ترتيب الأعمدة معكوس لعرض العمود الأول في أقصى اليمين.
-        يجب أن يكون ترتيب كل صف مطابقاً لترتيب العناوين الأصلي.
-        """
-
+        # عكس ترتيب الأعمدة لعرض أول عمود في أقصى اليمين
         headers = list(reversed(headers))
-        widths = list(reversed(widths))
         rows = [list(reversed(row)) for row in rows]
+        widths = list(reversed(widths))
 
         data = [
-            [paragraph(item, header_style) for item in headers]
+            [p(value, header_style) for value in headers]
         ]
 
         for row in rows:
             data.append([
-                item if isinstance(item, Paragraph)
-                else paragraph(item)
-                for item in row
+                value if isinstance(value, Paragraph)
+                else p(value)
+                for value in row
             ])
 
         table = Table(
@@ -4188,15 +4181,15 @@ def inventory_full_report_pdf(request):
                 "GRID",
                 (0, 0),
                 (-1, -1),
-                0.35,
+                0.4,
                 colors.HexColor("#D1D5DB"),
             ),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
             (
                 "ROWBACKGROUNDS",
                 (0, 1),
@@ -4213,178 +4206,119 @@ def inventory_full_report_pdf(request):
     story = []
 
     # ==================================================
-    # 4. جلب المخزون الحالي
+    # 4. المخزون الحالي لكل الفروع
     # ==================================================
 
-    inventory = list(
+    inventory = (
         BranchInventory.objects
-        .filter(branch_id__in=branch_ids)
+        .filter(branch__in=branches)
         .select_related("branch", "product")
         .order_by("branch__name", "product__name")
     )
 
-    inventories_by_branch = defaultdict(list)
-
-    for item in inventory:
-        inventories_by_branch[item.branch_id].append(item)
-
-    # ==================================================
-    # 5. حركات المخزون
-    # ==================================================
-
-    movements = (
-        InventoryMovement.objects
-        .filter(
-            branch_id__in=branch_ids,
-            created_at__date__range=(date_from, date_to),
-        )
-        .select_related("branch", "product")
-        .order_by("created_at")
+    stock_by_branch = defaultdict(
+        lambda: {
+            "quantity": Decimal("0"),
+            "cost": Decimal("0"),
+            "sale": Decimal("0"),
+            "products": 0,
+        }
     )
 
-    movements_by_branch = defaultdict(list)
+    for item in inventory.iterator():
+        qty = Decimal(str(item.quantity or 0))
+        cost_price = Decimal(
+            str(item.product.cost_price or 0)
+        )
+        selling_price = Decimal(
+            str(item.product.selling_price or 0)
+        )
 
-    for movement in movements.iterator():
-        movements_by_branch[movement.branch_id].append(movement)
+        data = stock_by_branch[item.branch_id]
 
-    movement_labels = dict(InventoryMovement.MOVEMENT_TYPES)
+        data["quantity"] += qty
+        data["cost"] += qty * cost_price
+        data["sale"] += qty * selling_price
+
+        if qty > 0:
+            data["products"] += 1
 
     # ==================================================
-    # 6. فواتير المبيعات
+    # 5. مبيعات الفترة
     # ==================================================
 
-    sales = (
-        SaleInvoice.objects
-        .filter(
-            branch_id__in=branch_ids,
-            status="confirmed",
-            created_at__date__range=(date_from, date_to),
-        )
-        .select_related(
-            "branch",
-            "customer",
-            "target_branch",
-        )
-        .prefetch_related("items")
+    sales_by_branch = defaultdict(
+        lambda: {
+            "count": 0,
+            "total": Decimal("0"),
+        }
     )
 
-    sales_by_branch = defaultdict(list)
+    sales = SaleInvoice.objects.filter(
+        branch__in=branches,
+        status="confirmed",
+        created_at__date__range=(date_from, date_to),
+    ).only("branch_id", "total")
 
-    for invoice in sales:
-        sales_by_branch[invoice.branch_id].append(invoice)
+    for invoice in sales.iterator():
+        data = sales_by_branch[invoice.branch_id]
+        data["count"] += 1
+        data["total"] += Decimal(str(invoice.total or 0))
 
     # ==================================================
-    # 7. فواتير المشتريات
+    # 6. تسليمات المبيعات خلال الفترة
     # ==================================================
 
-    purchases = (
-        PurchaseInvoice.objects
-        .filter(
-            branch_id__in=branch_ids,
-            status="confirmed",
-            created_at__date__range=(date_from, date_to),
-        )
-        .select_related("branch", "supplier")
-        .order_by("created_at")
+    deliveries_by_branch = defaultdict(
+        lambda: {
+            "count": 0,
+            "total": Decimal("0"),
+        }
     )
 
-    purchases_by_branch = defaultdict(list)
+    deliveries = BranchSalesDelivery.objects.filter(
+        branch__in=branches,
+        delivery_date__date__range=(date_from, date_to),
+    ).only("branch_id", "amount")
 
-    for invoice in purchases:
-        purchases_by_branch[invoice.branch_id].append(invoice)
+    for delivery in deliveries.iterator():
+        data = deliveries_by_branch[delivery.branch_id]
+        data["count"] += 1
+        data["total"] += Decimal(str(delivery.amount or 0))
 
     # ==================================================
-    # 8. مكافآت العملاء
+    # 7. مكافآت العملاء خلال الفترة
     # ==================================================
 
-    rewards = (
-        CustomerLoyaltyReward.objects
-        .filter(
-            branch_id__in=branch_ids,
-            reward_date__date__range=(date_from, date_to),
-        )
-        .select_related("branch", "customer")
+    rewards_by_branch = defaultdict(
+        lambda: {
+            "count": 0,
+            "points": Decimal("0"),
+            "amount": Decimal("0"),
+        }
     )
 
-    rewards_by_branch = defaultdict(list)
+    rewards = CustomerLoyaltyReward.objects.filter(
+        branch__in=branches,
+        reward_date__date__range=(date_from, date_to),
+    ).only("branch_id", "points", "amount")
 
-    for reward in rewards:
-        rewards_by_branch[reward.branch_id].append(reward)
-
-    # ==================================================
-    # 9. معاملات النقاط
-    # ==================================================
-
-    transactions = (
-        LoyaltyTransaction.objects
-        .filter(
-            branch_id__in=branch_ids,
-            created_at__date__range=(date_from, date_to),
-        )
-        .select_related(
-            "branch",
-            "customer",
-            "sale_invoice",
-            "purchase_invoice",
-        )
-    )
-
-    transactions_by_branch = defaultdict(list)
-
-    for transaction in transactions.iterator():
-        transactions_by_branch[transaction.branch_id].append(
-            transaction
-        )
+    for reward in rewards.iterator():
+        data = rewards_by_branch[reward.branch_id]
+        data["count"] += 1
+        data["points"] += Decimal(str(reward.points or 0))
+        data["amount"] += Decimal(str(reward.amount or 0))
 
     # ==================================================
-    # 10. نقاط العملاء التي تم تحويلها
+    # 8. عنوان التقرير
     # ==================================================
 
-    loyalty_transfers = (
-        LoyaltyTransfer.objects
-        .filter(
-            branch_id__in=branch_ids,
-            created_at__date__range=(date_from, date_to),
-        )
-        .select_related("branch", "customer", "sale_invoice")
-    )
-
-    transfers_by_branch = defaultdict(list)
-
-    for transfer in loyalty_transfers:
-        transfers_by_branch[transfer.branch_id].append(transfer)
-
-    # ==================================================
-    # 11. تسليمات المبيعات
-    # ==================================================
-
-    deliveries = (
-        BranchSalesDelivery.objects
-        .filter(
-            branch_id__in=branch_ids,
-            delivery_date__date__range=(date_from, date_to),
-        )
-        .select_related("branch", "created_by")
-    )
-
-    deliveries_by_branch = defaultdict(list)
-
-    for delivery in deliveries:
-        deliveries_by_branch[delivery.branch_id].append(delivery)
-
-    # ==================================================
-    # 12. عنوان التقرير
-    # ==================================================
-
-    story.append(paragraph(
-        "التقرير الشامل للفروع والمبيعات والمخزون والنقاط",
+    story.append(p(
+        "التقرير المختصر للفروع والمخزون والمبيعات",
         title_style,
     ))
 
-    story.append(Spacer(1, 3 * mm))
-
-    story.append(paragraph(
-        f"تاريخ التقرير: {today.isoformat()} | "
+    story.append(p(
         f"الفترة: {date_from.isoformat()} إلى "
         f"{date_to.isoformat()}",
         normal_style,
@@ -4393,795 +4327,140 @@ def inventory_full_report_pdf(request):
     story.append(Spacer(1, 5 * mm))
 
     # ==================================================
-    # 13. إجماليات جميع الفروع
+    # 9. جدول قيمة مخزون كل فرع بسعر البيع
     # ==================================================
 
-    grand = {
-        "products": 0,
-        "stock_quantity": 0,
-        "stock_cost": Decimal("0"),
-        "stock_sale": Decimal("0"),
-
-        "sales_invoices": 0,
-        "sold_quantity": 0,
-        "customer_sales": Decimal("0"),
-        "branch_sales": Decimal("0"),
-        "sales_paid": Decimal("0"),
-        "sales_debt": Decimal("0"),
-
-        "purchase_count": 0,
-        "purchase_amount": Decimal("0"),
-        "purchase_paid": Decimal("0"),
-        "purchase_debt": Decimal("0"),
-
-        "reward_count": 0,
-        "reward_points": Decimal("0"),
-        "reward_amount": Decimal("0"),
-
-        "points_deducted": Decimal("0"),
-        "points_earned": Decimal("0"),
-        "pending_customer_points": Decimal("0"),
-        "transferred_customer_points": Decimal("0"),
-
-        "delivery_count": 0,
-        "delivery_cash": Decimal("0"),
-        "delivery_bank": Decimal("0"),
-        "delivery_total": Decimal("0"),
-
-        "movements": defaultdict(int),
-    }
-
-    # ==================================================
-    # 14. التقرير التفصيلي: فرعاً بعد فرع
-    # ==================================================
-
-    for branch_index, branch in enumerate(branches):
-
-        items = inventories_by_branch[branch.id]
-        branch_movements = movements_by_branch[branch.id]
-        branch_invoices = sales_by_branch[branch.id]
-        branch_purchases = purchases_by_branch[branch.id]
-        branch_rewards = rewards_by_branch[branch.id]
-        branch_transactions = transactions_by_branch[branch.id]
-        branch_transfers = transfers_by_branch[branch.id]
-        branch_deliveries = deliveries_by_branch[branch.id]
-
-        # --------------------------------------------------
-        # أ. المخزون الحالي
-        # --------------------------------------------------
-
-        stock_quantity = sum(
-            item.quantity or 0 for item in items
-        )
-
-        stock_cost = sum(
-            (item.quantity or 0)
-            * (item.product.cost_price or 0)
-            for item in items
-        )
-
-        stock_sale = sum(
-            (item.quantity or 0)
-            * (item.product.selling_price or 0)
-            for item in items
-        )
-
-        products_count = sum(
-            1 for item in items
-            if (item.quantity or 0) > 0
-        )
-
-        current_points = branch.loyalty_points_inventory or 0
-
-        grand["products"] += products_count
-        grand["stock_quantity"] += stock_quantity
-        grand["stock_cost"] += stock_cost
-        grand["stock_sale"] += stock_sale
-
-        # عنوان الفرع
-        story.append(paragraph(
-            f"الفرع: {branch.name}"
-            + (" (الفرع الرئيسي)" if branch.is_main else ""),
-            title_style,
-        ))
-
-        story.append(Spacer(1, 2 * mm))
-
-        # --------------------------------------------------
-        # ب. ملخص الفرع
-        # --------------------------------------------------
-
-        story.append(paragraph(
-            "1. ملخص المخزون ورصيد النقاط الحالي",
-            heading_style,
-        ))
-
-        story.append(make_table(
-            [
-                "الفرع",
-                "أصناف برصيد موجب",
-                "إجمالي كمية المخزون",
-                "قيمة المخزون بالتكلفة",
-                "قيمة المخزون بسعر البيع",
-                "رصيد النقاط الحالي",
-            ],
-            [[
-                branch.name,
-                quantity(products_count),
-                quantity(stock_quantity),
-                money(stock_cost),
-                money(stock_sale),
-                number(current_points),
-            ]],
-            [38 * mm, 27 * mm, 29 * mm, 37 * mm, 37 * mm, 30 * mm],
-        ))
-
-        # --------------------------------------------------
-        # ج. المبيعات
-        # --------------------------------------------------
-
-        customer_invoices = [
-            inv for inv in branch_invoices
-            if inv.sale_type == "customer"
-        ]
-
-        branch_sale_invoices = [
-            inv for inv in branch_invoices
-            if inv.sale_type == "branch"
-        ]
-
-        customer_sales_amount = sum(
-            inv.total or 0 for inv in customer_invoices
-        )
-
-        branch_sales_amount = sum(
-            inv.total or 0 for inv in branch_sale_invoices
-        )
-
-        sales_paid = sum(
-            inv.paid_amount or 0 for inv in branch_invoices
-        )
-
-        sales_debt = sum(
-            max(
-                (inv.total or 0) - (inv.paid_amount or 0),
-                0,
-            )
-            for inv in branch_invoices
-        )
-
-        invoice_count = len(branch_invoices)
-
-        sold_quantity = sum(
-            line.quantity or 0
-            for inv in branch_invoices
-            for line in inv.items.all()
-        )
-
-        grand["sales_invoices"] += invoice_count
-        grand["sold_quantity"] += sold_quantity
-        grand["customer_sales"] += customer_sales_amount
-        grand["branch_sales"] += branch_sales_amount
-        grand["sales_paid"] += sales_paid
-        grand["sales_debt"] += sales_debt
-
-        story.append(paragraph(
-            "2. المبيعات خلال الفترة",
-            heading_style,
-        ))
-
-        story.append(make_table(
-            [
-                "الفرع",
-                "عدد الفواتير",
-                "الكمية المباعة",
-                "مبيعات العملاء",
-                "توريد الفروع",
-                "إجمالي المبيعات",
-                "المدفوع",
-                "المتبقي",
-            ],
-            [[
-                branch.name,
-                str(invoice_count),
-                quantity(sold_quantity),
-                money(customer_sales_amount),
-                money(branch_sales_amount),
-                money(
-                    customer_sales_amount + branch_sales_amount
-                ),
-                money(sales_paid),
-                money(sales_debt),
-            ]],
-            [
-                29 * mm, 22 * mm, 25 * mm, 30 * mm,
-                30 * mm, 30 * mm, 25 * mm, 25 * mm,
-            ],
-        ))
-
-        # --------------------------------------------------
-        # د. المشتريات
-        # --------------------------------------------------
-
-        # نفصل المشتريات الفعلية عن الفواتير التلقائية
-        # التي تُنشأ نتيجة توريد المنتجات من فرع آخر.
-
-        supplier_purchases = [
-            inv for inv in branch_purchases
-            if not inv.is_auto_generated
-        ]
-
-        received_branch_purchases = [
-            inv for inv in branch_purchases
-            if inv.is_auto_generated
-        ]
-
-        purchase_amount = sum(
-            inv.total or 0 for inv in supplier_purchases
-        )
-
-        purchase_paid = sum(
-            inv.paid_amount or 0 for inv in supplier_purchases
-        )
-
-        purchase_debt = sum(
-            max(
-                (inv.total or 0) - (inv.paid_amount or 0),
-                0,
-            )
-            for inv in supplier_purchases
-        )
-
-        received_branch_amount = sum(
-            inv.total or 0 for inv in received_branch_purchases
-        )
-
-        purchase_points = sum(
-            inv.total_loyalty_points or 0
-            for inv in supplier_purchases
-        )
-
-        grand["purchase_count"] += len(supplier_purchases)
-        grand["purchase_amount"] += purchase_amount
-        grand["purchase_paid"] += purchase_paid
-        grand["purchase_debt"] += purchase_debt
-
-        story.append(paragraph(
-            "3. المشتريات والتوريدات الواردة",
-            heading_style,
-        ))
-
-        story.append(make_table(
-            [
-                "الفرع",
-                "عدد فواتير المشتريات",
-                "قيمة المشتريات",
-                "المدفوع للموردين",
-                "المتبقي للموردين",
-                "قيمة استلامات الفروع",
-                "نقاط فواتير المشتريات",
-            ],
-            [[
-                branch.name,
-                str(len(supplier_purchases)),
-                money(purchase_amount),
-                money(purchase_paid),
-                money(purchase_debt),
-                money(received_branch_amount),
-                number(purchase_points),
-            ]],
-            [
-                29 * mm, 30 * mm, 32 * mm, 32 * mm,
-                32 * mm, 35 * mm, 32 * mm,
-            ],
-        ))
-
-        # --------------------------------------------------
-        # هـ. النقاط والمكافآت
-        # --------------------------------------------------
-
-        points_deducted = sum(
-            abs(transaction.points or 0)
-            for transaction in branch_transactions
-            if transaction.transaction_type == "redeem"
-            and (transaction.points or 0) < 0
-        )
-
-        points_earned = sum(
-            transaction.points or 0
-            for transaction in branch_transactions
-            if transaction.transaction_type == "earn"
-        )
-
-        reward_points = sum(
-            reward.points or 0 for reward in branch_rewards
-        )
-
-        reward_amount = sum(
-            reward.amount or 0 for reward in branch_rewards
-        )
-
-        reward_count = len(branch_rewards)
-
-        pending_points = sum(
-            transfer.points or 0
-            for transfer in branch_transfers
-            if transfer.status == "pending"
-        )
-
-        transferred_customer_points = sum(
-            transfer.points or 0
-            for transfer in branch_transfers
-            if transfer.status == "transferred"
-        )
-
-        grand["points_deducted"] += points_deducted
-        grand["points_earned"] += points_earned
-        grand["reward_count"] += reward_count
-        grand["reward_points"] += reward_points
-        grand["reward_amount"] += reward_amount
-        grand["pending_customer_points"] += pending_points
-        grand["transferred_customer_points"] += (
-            transferred_customer_points
-        )
-
-        story.append(paragraph(
-            "4. النقاط والمكافآت",
-            heading_style,
-        ))
-
-        story.append(make_table(
-            [
-                "الفرع",
-                "رصيد النقاط الحالي",
-                "النقاط المكتسبة المسجلة",
-                "النقاط المخصومة عند البيع",
-                "عدد المكافآت",
-                "نقاط المكافآت",
-                "قيمة المكافآت",
-                "نقاط العملاء المعلقة",
-                "نقاط العملاء المحولة",
-            ],
-            [[
-                branch.name,
-                number(current_points),
-                number(points_earned),
-                number(points_deducted),
-                str(reward_count),
-                number(reward_points),
-                money(reward_amount),
-                number(pending_points),
-                number(transferred_customer_points),
-            ]],
-            [
-                24 * mm, 27 * mm, 28 * mm, 28 * mm,
-                21 * mm, 22 * mm, 26 * mm, 27 * mm, 27 * mm,
-            ],
-        ))
-
-        # --------------------------------------------------
-        # و. تسليمات المبيعات
-        # --------------------------------------------------
-
-        delivery_cash = sum(
-            delivery.amount or 0
-            for delivery in branch_deliveries
-            if delivery.payment_method == "cash"
-        )
-
-        delivery_bank = sum(
-            delivery.amount or 0
-            for delivery in branch_deliveries
-            if delivery.payment_method == "bank_transfer"
-        )
-
-        delivery_total = sum(
-            delivery.amount or 0
-            for delivery in branch_deliveries
-        )
-
-        delivery_count = len(branch_deliveries)
-
-        grand["delivery_count"] += delivery_count
-        grand["delivery_cash"] += delivery_cash
-        grand["delivery_bank"] += delivery_bank
-        grand["delivery_total"] += delivery_total
-
-        story.append(paragraph(
-            "5. تسليمات مبيعات الفرع",
-            heading_style,
-        ))
-
-        story.append(make_table(
-            [
-                "الفرع",
-                "عدد التسليمات",
-                "نقدي",
-                "تحويل بنكي",
-                "الإجمالي",
-            ],
-            [[
-                branch.name,
-                str(delivery_count),
-                money(delivery_cash),
-                money(delivery_bank),
-                money(delivery_total),
-            ]],
-            [43 * mm, 32 * mm, 32 * mm, 38 * mm, 35 * mm],
-        ))
-
-        # --------------------------------------------------
-        # ز. تفاصيل المنتجات
-        # --------------------------------------------------
-
-        story.append(paragraph(
-            "6. تفاصيل منتجات المخزون الحالي",
-            heading_style,
-        ))
-
-        product_rows = []
-
-        for item in items:
-            product = item.product
-
-            product_rows.append([
-                product.name,
-                product.barcode or "—",
-                quantity(item.quantity),
-                money(product.cost_price),
-                money(
-                    (item.quantity or 0)
-                    * (product.cost_price or 0)
-                ),
-                money(product.selling_price),
-                money(
-                    (item.quantity or 0)
-                    * (product.selling_price or 0)
-                ),
-            ])
-
-        story.append(make_table(
-            [
-                "المنتج",
-                "الباركود",
-                "الكمية",
-                "سعر التكلفة",
-                "إجمالي التكلفة",
-                "سعر البيع",
-                "إجمالي البيع",
-            ],
-            product_rows or [[
-                "لا توجد منتجات",
-                "—", "0", money(0), money(0), money(0), money(0),
-            ]],
-            [
-                43 * mm, 27 * mm, 19 * mm, 27 * mm,
-                32 * mm, 27 * mm, 32 * mm,
-            ],
-        ))
-
-        # --------------------------------------------------
-        # ح. حركات المخزون حسب النوع والمنتج
-        # --------------------------------------------------
-
-        movement_totals = defaultdict(int)
-        movement_product_totals = defaultdict(int)
-
-        for movement in branch_movements:
-            kind = movement.movement_type
-            amount = abs(movement.quantity or 0)
-
-            movement_totals[kind] += amount
-            movement_product_totals[
-                (kind, movement.product.name)
-            ] += amount
-
-            grand["movements"][kind] += amount
-
-        story.append(paragraph(
-            "7. حركات المخزون خلال الفترة",
-            heading_style,
-        ))
-
-        story.append(make_table(
-            ["نوع الحركة", "إجمالي الكمية"],
-            [
-                [
-                    movement_labels.get(kind, kind),
-                    quantity(amount),
-                ]
-                for kind, amount in sorted(movement_totals.items())
-            ] or [["لا توجد حركات", "0"]],
-            [90 * mm, 55 * mm],
-        ))
-
-        story.append(paragraph(
-            "تفاصيل حركات المخزون حسب المنتج",
-            heading_style,
-        ))
-
-        movement_detail_rows = [
-            [
-                product_name,
-                movement_labels.get(kind, kind),
-                quantity(amount),
-            ]
-            for (kind, product_name), amount
-            in sorted(movement_product_totals.items())
-        ]
-
-        story.append(make_table(
-            ["المنتج", "نوع الحركة", "الكمية"],
-            movement_detail_rows or [
-                ["لا توجد حركات", "—", "0"]
-            ],
-            [65 * mm, 55 * mm, 35 * mm],
-        ))
-
-        story.append(Spacer(1, 5 * mm))
-
-        if branch_index < len(branches) - 1:
-            story.append(PageBreak())
-
-    # ==================================================
-    # 15. الإجماليات العامة لجميع الفروع
-    # ==================================================
-
-    story.append(PageBreak())
-
-    story.append(paragraph(
-        "الإجماليات العامة لجميع الفروع",
-        title_style,
-    ))
-
-    story.append(Spacer(1, 4 * mm))
-
-    # المخزون
-    story.append(paragraph(
-        "1. إجمالي المخزون الحالي",
+    story.append(p(
+        "1. قيمة المخزون الحالي بسعر البيع لكل فرع",
         heading_style,
     ))
 
-    story.append(make_table(
-        [
-            "عدد الأصناف ذات الرصيد الموجب",
-            "إجمالي الكمية",
-            "القيمة بالتكلفة",
-            "قيمة البيع",
-        ],
-        [[
-            quantity(grand["products"]),
-            quantity(grand["stock_quantity"]),
-            money(grand["stock_cost"]),
-            money(grand["stock_sale"]),
-        ]],
-        [45 * mm, 40 * mm, 45 * mm, 45 * mm],
-    ))
+    stock_rows = []
+    total_stock_sale = Decimal("0")
 
-    # المبيعات
-    story.append(paragraph(
-        "2. إجمالي المبيعات",
-        heading_style,
-    ))
+    for branch in branches:
+        data = stock_by_branch[branch.id]
+        total_stock_sale += data["sale"]
 
-    story.append(make_table(
-        [
-            "عدد الفواتير",
-            "الكمية المباعة",
-            "مبيعات العملاء",
-            "توريد الفروع",
-            "إجمالي المبيعات",
-            "المدفوع",
-            "المتبقي",
-        ],
-        [[
-            str(grand["sales_invoices"]),
-            quantity(grand["sold_quantity"]),
-            money(grand["customer_sales"]),
-            money(grand["branch_sales"]),
-            money(
-                grand["customer_sales"] + grand["branch_sales"]
-            ),
-            money(grand["sales_paid"]),
-            money(grand["sales_debt"]),
-        ]],
-        [
-            25 * mm, 28 * mm, 33 * mm, 30 * mm,
-            33 * mm, 27 * mm, 27 * mm,
-        ],
-    ))
-
-    # المشتريات
-    story.append(paragraph(
-        "3. إجمالي المشتريات",
-        heading_style,
-    ))
-
-    story.append(make_table(
-        [
-            "عدد فواتير المشتريات",
-            "قيمة المشتريات",
-            "المدفوع للموردين",
-            "المتبقي للموردين",
-        ],
-        [[
-            str(grand["purchase_count"]),
-            money(grand["purchase_amount"]),
-            money(grand["purchase_paid"]),
-            money(grand["purchase_debt"]),
-        ]],
-        [45 * mm, 45 * mm, 45 * mm, 45 * mm],
-    ))
-
-    # المكافآت والنقاط
-    story.append(paragraph(
-        "4. إجمالي المكافآت والنقاط",
-        heading_style,
-    ))
-
-    story.append(make_table(
-        [
-            "عدد المكافآت",
-            "النقاط المستخدمة في المكافآت",
-            "قيمة المكافآت",
-            "النقاط المكتسبة المسجلة",
-            "النقاط المخصومة عند البيع",
-            "نقاط العملاء المعلقة",
-            "نقاط العملاء المحولة",
-        ],
-        [[
-            str(grand["reward_count"]),
-            number(grand["reward_points"]),
-            money(grand["reward_amount"]),
-            number(grand["points_earned"]),
-            number(grand["points_deducted"]),
-            number(grand["pending_customer_points"]),
-            number(grand["transferred_customer_points"]),
-        ]],
-        [
-            28 * mm, 36 * mm, 30 * mm, 34 * mm,
-            34 * mm, 32 * mm, 32 * mm,
-        ],
-    ))
-
-    # التسليمات
-    story.append(paragraph(
-        "5. إجمالي تسليمات المبيعات",
-        heading_style,
-    ))
-
-    story.append(make_table(
-        [
-            "عدد التسليمات",
-            "نقدي",
-            "تحويل بنكي",
-            "الإجمالي",
-        ],
-        [[
-            str(grand["delivery_count"]),
-            money(grand["delivery_cash"]),
-            money(grand["delivery_bank"]),
-            money(grand["delivery_total"]),
-        ]],
-        [40 * mm, 45 * mm, 45 * mm, 45 * mm],
-    ))
-
-    # حركات المخزون
-    story.append(paragraph(
-        "6. إجمالي حركات المخزون حسب النوع",
-        heading_style,
-    ))
-
-    story.append(make_table(
-        ["نوع الحركة", "إجمالي الكمية"],
-        [
-            [
-                movement_labels.get(kind, kind),
-                quantity(amount),
-            ]
-            for kind, amount in sorted(
-                grand["movements"].items()
-            )
-        ] or [["لا توجد حركات", "0"]],
-        [90 * mm, 55 * mm],
-    ))
-
-    # ==================================================
-    # 16. النقاط الموردة للشركة الأم
-    # ==================================================
-
-    story.append(PageBreak())
-
-    story.append(paragraph(
-        "النقاط الموردة للشركة الأم",
-        title_style,
-    ))
-
-    story.append(Spacer(1, 3 * mm))
-
-    main_branch = Branch.get_main_branch()
-
-    if main_branch:
-
-        # المعاملات التي أُنشئت عند إضافة نقاط المشتريات
-        # إلى رصيد الفرع الرئيسي.
-        main_point_transactions = (
-            LoyaltyTransaction.objects
-            .filter(
-                branch=main_branch,
-                purchase_invoice__isnull=False,
-                transaction_type="earn",
-                created_at__date__range=(date_from, date_to),
-                purchase_invoice__status="confirmed",
-            )
-            .select_related(
-                "purchase_invoice",
-                "purchase_invoice__branch",
-            )
-        )
-
-        points_by_source_branch = defaultdict(
-            lambda: Decimal("0")
-        )
-
-        for transaction in main_point_transactions:
-            source_branch_id = transaction.purchase_invoice.branch_id
-
-            points_by_source_branch[source_branch_id] += (
-                transaction.points or Decimal("0")
-            )
-
-        transfer_rows = []
-        total_company_points = Decimal("0")
-
-        for branch in branches:
-            points = points_by_source_branch.get(
-                branch.id,
-                Decimal("0"),
-            )
-
-            total_company_points += points
-
-            transfer_rows.append([
-                branch.name,
-                number(points),
-            ])
-
-        transfer_rows.append([
-            "الإجمالي العام",
-            number(total_company_points),
+        stock_rows.append([
+            branch.name,
+            quantity(data["quantity"]),
+            money(data["sale"]),
         ])
 
-        story.append(paragraph(
-            f"الفرع الرئيسي المستفيد: {main_branch.name}",
+    stock_rows.append([
+        "الإجمالي العام",
+        quantity(sum(
+            stock_by_branch[b.id]["quantity"]
+            for b in branches
+        )),
+        money(total_stock_sale),
+    ])
+
+    story.append(make_table(
+        [
+            "الفرع",
+            "إجمالي كمية المخزون",
+            "قيمة المخزون بسعر البيع",
+        ],
+        stock_rows,
+        [65 * mm, 55 * mm, 65 * mm],
+    ))
+
+    story.append(Spacer(1, 7 * mm))
+
+    # ==================================================
+    # 10. دالة بناء صف ملخص الفرع
+    # ==================================================
+
+    def branch_summary_row(branch):
+        stock = stock_by_branch[branch.id]
+        sales_data = sales_by_branch[branch.id]
+        delivery_data = deliveries_by_branch[branch.id]
+        reward_data = rewards_by_branch[branch.id]
+
+        return [
+            branch.name,
+            money(stock["cost"]),
+            money(stock["sale"]),
+            money(sales_data["total"]),
+            money(delivery_data["total"]),
+            str(reward_data["count"]),
+            money(reward_data["amount"]),
+            number(branch.loyalty_points_inventory),
+        ]
+
+    summary_headers = [
+        "الفرع",
+        "قيمة المخزون بالتكلفة",
+        "قيمة المخزون بسعر البيع",
+        "إجمالي المبيعات",
+        "إجمالي التسليمات",
+        "عدد المكافآت",
+        "قيمة المكافآت",
+        "رصيد النقاط الحالي",
+    ]
+
+    summary_widths = [
+        35 * mm,
+        34 * mm,
+        34 * mm,
+        32 * mm,
+        32 * mm,
+        23 * mm,
+        30 * mm,
+        30 * mm,
+    ]
+
+    # ==================================================
+    # 11. جدول ملخص جميع الفروع باستثناء الرئيسي
+    # ==================================================
+
+    story.append(p(
+        "2. ملخص الفروع",
+        heading_style,
+    ))
+
+    normal_rows = [
+        branch_summary_row(branch)
+        for branch in normal_branches
+    ]
+
+    story.append(make_table(
+        summary_headers,
+        normal_rows or [[
+            "لا توجد فروع",
+            money(0),
+            money(0),
+            money(0),
+            money(0),
+            "0",
+            money(0),
+            number(0),
+        ]],
+        summary_widths,
+    ))
+
+    # ==================================================
+    # 12. الفرع الرئيسي في جدول مستقل
+    # ==================================================
+
+    if main_branch:
+        story.append(Spacer(1, 8 * mm))
+
+        story.append(p(
+            f"3. ملخص الفرع الرئيسي: {main_branch.name}",
             heading_style,
         ))
 
-        story.append(paragraph(
-            "النقاط المضافة إلى الشركة الأم من معاملات "
-            "فواتير المشتريات خلال الفترة المحددة.",
-            normal_style,
-        ))
-
-        story.append(Spacer(1, 3 * mm))
-
         story.append(make_table(
-            [
-                "الفرع مصدر المشتريات",
-                "النقاط الموردة للشركة الأم",
-            ],
-            transfer_rows,
-            [85 * mm, 65 * mm],
-        ))
-
-    else:
-        story.append(paragraph(
-            "لا يوجد فرع رئيسي محدد في النظام.",
-            normal_style,
+            summary_headers,
+            [branch_summary_row(main_branch)],
+            summary_widths,
         ))
 
     # ==================================================
-    # 17. إنشاء ملف PDF
+    # 13. إنشاء PDF
     # ==================================================
 
     buffer = io.BytesIO()
@@ -5189,23 +4468,21 @@ def inventory_full_report_pdf(request):
     doc = SimpleDocTemplate(
         buffer,
         pagesize=landscape(A4),
-        rightMargin=12 * mm,
-        leftMargin=12 * mm,
-        topMargin=14 * mm,
+        rightMargin=10 * mm,
+        leftMargin=10 * mm,
+        topMargin=12 * mm,
         bottomMargin=14 * mm,
-        title="التقرير الشامل للفروع والمخزون والمبيعات والنقاط",
+        title="التقرير المختصر للفروع والمخزون والمبيعات",
     )
 
     def page_number(canvas, document):
         canvas.saveState()
         canvas.setFont("Amiri", 8)
-
         canvas.drawCentredString(
             landscape(A4)[0] / 2,
             7 * mm,
             ar(f"صفحة {document.page}"),
         )
-
         canvas.restoreState()
 
     doc.build(

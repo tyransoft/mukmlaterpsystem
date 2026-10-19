@@ -53,7 +53,7 @@
 
         <div class="points-box">
           <div class="points-label">نقاط متاحة</div>
-          <div class="points-value">{{ branch.loyalty_points_inventory|floatformat:0|intcomma }}</div>
+          <div class="points-value">{{ branch.loyalty_points_inventory }}</div>
           <div class="points-label" style="margin-top:5px;">نقطة</div>
           {% if user.can_see_all_data %}
           <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">

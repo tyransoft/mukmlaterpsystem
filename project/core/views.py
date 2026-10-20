@@ -4180,7 +4180,6 @@ def discount_offer_delete(request, pk):
 
 
 
-
 @login_required
 def inventory_full_report_pdf(request):
     import io
@@ -4207,14 +4206,11 @@ def inventory_full_report_pdf(request):
         Spacer,
         Table,
         TableStyle,
+        KeepTogether,
     )
 
     import arabic_reshaper
     from bidi.algorithm import get_display
-
-    # ==================================================
-    # 1. الفترة الزمنية
-    # ==================================================
 
     today = timezone.localdate()
     first_day = today.replace(day=1)
@@ -4226,28 +4222,18 @@ def inventory_full_report_pdf(request):
         date_to = date.fromisoformat(
             request.GET.get("date_to", today.isoformat())
         )
-
         if date_from > date_to:
             raise ValueError
-
     except (ValueError, TypeError):
         date_from, date_to = first_day, today
 
     branches = list(
         Branch.objects.all().order_by("-is_main", "name")
     )
-
     main_branch = Branch.get_main_branch()
-
-    # استثناء الفرع الرئيسي من جدول ملخص الفروع العادية
     normal_branches = [
-        branch for branch in branches
-        if not branch.is_main
+        branch for branch in branches if not branch.is_main
     ]
-
-    # ==================================================
-    # 2. الخط العربي
-    # ==================================================
 
     font_path = (
         Path(settings.BASE_DIR)
@@ -4258,8 +4244,7 @@ def inventory_full_report_pdf(request):
 
     if not font_path.exists():
         return HttpResponse(
-            "ملف الخط العربي غير موجود في "
-            "static/fonts/Amiri-Regular.ttf",
+            "ملف الخط العربي غير موجود في static/fonts/Amiri-Regular.ttf",
             status=500,
             content_type="text/plain; charset=utf-8",
         )
@@ -4268,9 +4253,7 @@ def inventory_full_report_pdf(request):
         pdfmetrics.registerFont(TTFont("Amiri", str(font_path)))
 
     def ar(value):
-        value = html.escape(
-            str(value if value is not None else "")
-        )
+        value = html.escape(str(value if value is not None else ""))
         return get_display(arabic_reshaper.reshape(value))
 
     def money(value):
@@ -4282,9 +4265,8 @@ def inventory_full_report_pdf(request):
     def quantity(value):
         return f"{float(value or 0):,.2f}"
 
-    # ==================================================
-    # 3. تنسيقات PDF
-    # ==================================================
+    def decimal(value):
+        return Decimal(str(value or 0))
 
     styles = getSampleStyleSheet()
 
@@ -4338,11 +4320,6 @@ def inventory_full_report_pdf(request):
         return Paragraph(ar(value), style)
 
     def make_table(headers, rows, widths):
-        """
-        يعكس ترتيب الأعمدة ليظهر العمود الأول أقصى اليمين.
-        يجب أن يتطابق عدد العناوين وعروض الأعمدة مع كل صف.
-        """
-
         headers = list(reversed(headers))
         rows = [list(reversed(row)) for row in rows]
         widths = list(reversed(widths))
@@ -4353,8 +4330,7 @@ def inventory_full_report_pdf(request):
 
         for row in rows:
             data.append([
-                value if isinstance(value, Paragraph)
-                else p(value)
+                value if isinstance(value, Paragraph) else p(value)
                 for value in row
             ])
 
@@ -4400,10 +4376,6 @@ def inventory_full_report_pdf(request):
 
     story = []
 
-    # ==================================================
-    # 4. حساب المخزون الحالي لكل فرع
-    # ==================================================
-
     stock_by_branch = defaultdict(
         lambda: {
             "quantity": Decimal("0"),
@@ -4415,58 +4387,84 @@ def inventory_full_report_pdf(request):
     inventory = (
         BranchInventory.objects
         .filter(branch__in=branches)
-        .select_related("branch", "product")
-        .order_by("branch__name", "product__name")
+        .select_related("branch", "product", "product__category")
+        .order_by(
+            "branch__name",
+            "product__category__name",
+            "product__name",
+        )
     )
 
     for item in inventory.iterator():
-        qty = Decimal(str(item.quantity or 0))
-        cost_price = Decimal(
-            str(item.product.cost_price or 0)
-        )
-        selling_price = Decimal(
-            str(item.product.selling_price or 0)
-        )
+        qty = decimal(item.quantity)
+        cost_price = decimal(item.product.cost_price)
+        selling_price = decimal(item.product.selling_price)
 
         data = stock_by_branch[item.branch_id]
-
         data["quantity"] += qty
         data["cost"] += qty * cost_price
         data["sale"] += qty * selling_price
 
-    # ==================================================
-    # 5. إجمالي المبيعات خلال الفترة
-    # ==================================================
-
     sales_by_branch = defaultdict(
+        lambda: {
+            "count": 0,
+            "total": Decimal("0"),
+            "delivery_total": Decimal("0"),
+        }
+    )
+
+    sales_by_payment = defaultdict(
         lambda: {
             "count": 0,
             "total": Decimal("0"),
         }
     )
 
-    sales = SaleInvoice.objects.filter(
-        branch__in=branches,
-        status="confirmed",
-        created_at__date__range=(date_from, date_to),
-    ).only(
-        "branch_id",
-        "total",
+    sales = (
+        SaleInvoice.objects
+        .filter(
+            branch__in=branches,
+            status="confirmed",
+            created_at__date__range=(date_from, date_to),
+        )
+        .select_related("branch", "payment_method")
+        .only(
+            "branch_id",
+            "total",
+            "payment_method_id",
+            "payment_method__name",
+            "is_delivery",
+        )
     )
 
     for invoice in sales.iterator():
-        data = sales_by_branch[invoice.branch_id]
-        data["count"] += 1
-        data["total"] += Decimal(str(invoice.total or 0))
+        amount = decimal(invoice.total)
+        branch_data = sales_by_branch[invoice.branch_id]
 
-    # ==================================================
-    # 6. تسليمات المبيعات خلال الفترة
-    # ==================================================
+        branch_data["count"] += 1
+        branch_data["total"] += amount
+
+        if invoice.is_delivery:
+            branch_data["delivery_total"] += amount
+
+        payment = invoice.payment_method
+        payment_name = (
+            getattr(payment, "name", None)
+            or (str(payment) if payment else "غير محددة")
+        )
+
+        payment_data = sales_by_payment[
+            (invoice.branch_id, payment_name)
+        ]
+        payment_data["count"] += 1
+        payment_data["total"] += amount
 
     deliveries_by_branch = defaultdict(
         lambda: {
             "count": 0,
             "total": Decimal("0"),
+            "cash": Decimal("0"),
+            "bank_transfer": Decimal("0"),
         }
     )
 
@@ -4476,16 +4474,20 @@ def inventory_full_report_pdf(request):
     ).only(
         "branch_id",
         "amount",
+        "payment_method",
     )
 
     for delivery in deliveries.iterator():
+        amount = decimal(delivery.amount)
         data = deliveries_by_branch[delivery.branch_id]
-        data["count"] += 1
-        data["total"] += Decimal(str(delivery.amount or 0))
 
-    # ==================================================
-    # 7. مكافآت / عمولات العملاء خلال الفترة
-    # ==================================================
+        data["count"] += 1
+        data["total"] += amount
+
+        if delivery.payment_method == "cash":
+            data["cash"] += amount
+        elif delivery.payment_method == "bank_transfer":
+            data["bank_transfer"] += amount
 
     rewards_by_branch = defaultdict(
         lambda: {
@@ -4507,128 +4509,77 @@ def inventory_full_report_pdf(request):
     for reward in rewards.iterator():
         data = rewards_by_branch[reward.branch_id]
         data["count"] += 1
-        data["points"] += Decimal(str(reward.points or 0))
-        data["amount"] += Decimal(str(reward.amount or 0))
+        data["points"] += decimal(reward.points)
+        data["amount"] += decimal(reward.amount)
 
-    # ==================================================
-    # 8. عنوان التقرير
-    # ==================================================
-
+    story.append(p("تقرير الفروع والمخزون والمبيعات", title_style))
     story.append(p(
-        "تقرير الفروع والمخزون والمبيعات",
-        title_style,
-    ))
-
-    story.append(p(
-        f"الفترة: {date_from.isoformat()} إلى "
-        f"{date_to.isoformat()}",
+        f"الفترة: {date_from.isoformat()} إلى {date_to.isoformat()}",
         normal_style,
     ))
-
     story.append(Spacer(1, 5 * mm))
 
-    # ==================================================
-    # 9. جدول قيمة المخزون بسعر البيع لكل فرع
-    # ==================================================
-
-    story.append(p(
-        "1. قيمة المخزون الحالي لكل فرع",
-        heading_style,
-    ))
+    story.append(p("1. قيمة المخزون الحالي لكل فرع", heading_style))
 
     stock_rows = []
     total_stock_sale = Decimal("0")
-    total_stock_quantity = Decimal("0")
 
     for branch in branches:
-        data = stock_by_branch[branch.id]
+        value = stock_by_branch[branch.id]["sale"]
+        total_stock_sale += value
+        stock_rows.append([branch.name, money(value)])
 
-        total_stock_sale += data["sale"]
-        total_stock_quantity += data["quantity"]
-
-        stock_rows.append([
-            branch.name,
-            money(data["sale"]),
-        ])
-
-    stock_rows.append([
-        "الإجمالي العام",
-        money(total_stock_sale),
-    ])
+    stock_rows.append(["الإجمالي العام", money(total_stock_sale)])
 
     story.append(make_table(
-        [
-            "الفرع",
-            "قيمة المخزون بسعر البيع",
-        ],
+        ["الفرع", "قيمة المخزون بسعر البيع"],
         stock_rows,
-        [
-            75 * mm,
-            75 * mm,
-        ],
+        [75 * mm, 75 * mm],
     ))
-
     story.append(Spacer(1, 7 * mm))
 
-    # ==================================================
-    # 10. صف ملخص الفرع
-    # ==================================================
-
-   
     def branch_summary_row(branch):
-       stock = stock_by_branch[branch.id]
-       sales_data = sales_by_branch[branch.id]
-       delivery_data = deliveries_by_branch[branch.id]
-       reward_data = rewards_by_branch[branch.id]
+        stock = stock_by_branch[branch.id]
+        sales_data = sales_by_branch[branch.id]
+        delivery_data = deliveries_by_branch[branch.id]
+        reward_data = rewards_by_branch[branch.id]
 
-       total_sales = Decimal(str(sales_data["total"] or 0))
-       total_deliveries = Decimal(str(delivery_data["total"] or 0))
-       total_rewards = Decimal(str(reward_data["amount"] or 0))
+        total_sales = sales_data["total"]
+        total_deliveries = delivery_data["total"]
+        total_rewards = reward_data["amount"]
+        remaining = total_sales - total_deliveries - total_rewards
 
-       remaining = total_sales - total_deliveries - total_rewards
-
-       return [
-              branch.name,
-              money(stock["sale"]),
-              money(total_sales),
-              money(total_deliveries),
-              money(total_rewards),
-              money(remaining),
-              number(branch.loyalty_points_inventory),
-       ]
-
+        return [
+            branch.name,
+            money(stock["sale"]),
+            money(total_sales),
+            money(total_deliveries),
+            money(total_rewards),
+            money(remaining),
+            number(branch.loyalty_points_inventory),
+        ]
 
     summary_headers = [
-      "الفرع",
-      "قيمة المخزون بسعر البيع",
-      "إجمالي المبيعات",
-      "إجمالي التسليمات",
-      "قيمة العمولات ",
-
-      "المبلغ المتبقي",
-      "رصيد النقاط الحالي",
-   ]
-
-
-    summary_widths = [
-      35 * mm,
-      38 * mm,
-      34 * mm,
-      34 * mm,
-      34 * mm,
-      38 * mm,
-      34 * mm,
+        "الفرع",
+        "قيمة المخزون بسعر البيع",
+        "إجمالي المبيعات",
+        "إجمالي التسليمات",
+        "قيمة المكافآت",
+        "المبلغ المتبقي",
+        "رصيد النقاط الحالي",
     ]
 
+    summary_widths = [
+        35 * mm,
+        38 * mm,
+        34 * mm,
+        34 * mm,
+        34 * mm,
+        38 * mm,
+        34 * mm,
+    ]
 
-    # ==================================================
-    # 11. ملخص الفروع العادية
-    # ==================================================
-
-    story.append(p(
-        "2. ملخص الفروع",
-        heading_style,
-    ))
+    story.append(p("2. ملخص الفروع", heading_style))
 
     normal_rows = [
         branch_summary_row(branch)
@@ -4641,7 +4592,7 @@ def inventory_full_report_pdf(request):
             money(0),
             money(0),
             money(0),
-            "0",
+            money(0),
             money(0),
             number(0),
         ]]
@@ -4652,126 +4603,236 @@ def inventory_full_report_pdf(request):
         summary_widths,
     ))
 
-    # ==================================================
-    # 12. جدول المنتجات لكل فرع
-    # ==================================================
+    story.append(Spacer(1, 7 * mm))
+    story.append(p("3. توزيع مبيعات الفروع حسب طريقة الدفع", heading_style))
 
-    def branch_products_table(branch):
+    payment_rows = []
+    payment_total = Decimal("0")
+    payment_count = 0
+
+    for branch in branches:
+        branch_has_payments = False
+
+        for (branch_id, payment_name), data in sorted(
+            sales_by_payment.items(),
+            key=lambda item: (
+                item[0][0],
+                item[0][1].casefold(),
+            ),
+        ):
+            if branch_id != branch.id:
+                continue
+
+            branch_has_payments = True
+            payment_count += data["count"]
+            payment_total += data["total"]
+
+            payment_rows.append([
+                branch.name,
+                payment_name,
+                str(data["count"]),
+                money(data["total"]),
+            ])
+
+        if not branch_has_payments:
+            payment_rows.append([
+                branch.name,
+                "لا توجد مبيعات",
+                "0",
+                money(0),
+            ])
+
+    payment_rows.append([
+        "الإجمالي العام",
+        "جميع طرق الدفع",
+        str(payment_count),
+        money(payment_total),
+    ])
+
+    story.append(make_table(
+        ["الفرع", "طريقة الدفع", "عدد الفواتير", "إجمالي المبيعات"],
+        payment_rows,
+        [55 * mm, 50 * mm, 30 * mm, 45 * mm],
+    ))
+
+    story.append(Spacer(1, 7 * mm))
+    story.append(p("4. تسليمات الفروع حسب طريقة التسليم", heading_style))
+
+    delivery_rows = []
+    grand_delivery_count = 0
+    grand_delivery_cash = Decimal("0")
+    grand_delivery_transfer = Decimal("0")
+    grand_delivery_total = Decimal("0")
+
+    for branch in branches:
+        data = deliveries_by_branch[branch.id]
+
+        grand_delivery_count += data["count"]
+        grand_delivery_cash += data["cash"]
+        grand_delivery_transfer += data["bank_transfer"]
+        grand_delivery_total += data["total"]
+
+        delivery_rows.append([
+            branch.name,
+            str(data["count"]),
+            money(data["cash"]),
+            money(data["bank_transfer"]),
+            money(data["total"]),
+        ])
+
+    delivery_rows.append([
+        "الإجمالي العام",
+        str(grand_delivery_count),
+        money(grand_delivery_cash),
+        money(grand_delivery_transfer),
+        money(grand_delivery_total),
+    ])
+
+    story.append(make_table(
+        [
+            "الفرع",
+            "عدد التسليمات",
+            "كاش",
+            "تحويل بنكي",
+            "إجمالي التسليمات",
+        ],
+        delivery_rows,
+        [45 * mm, 30 * mm, 38 * mm, 38 * mm, 45 * mm],
+    ))
+
+    for branch in normal_branches:
+        story.append(Spacer(1, 7 * mm))
+        story.append(p(f"منتجات الفرع: {branch.name}", heading_style))
+
         branch_inventory = (
             BranchInventory.objects
             .filter(branch=branch)
-            .select_related("product")
-            .order_by("product__name")
+            .select_related("product", "product__category")
+            .order_by(
+                "product__category__name",
+                "product__name",
+            )
         )
 
-        rows = []
+        product_rows = []
         total_quantity = Decimal("0")
 
         for item in branch_inventory:
-            qty = Decimal(str(item.quantity or 0))
+            category_name = (
+                item.product.category.name
+                if item.product.category_id
+                else "بدون فئة"
+            )
+            qty = decimal(item.quantity)
             total_quantity += qty
 
-            rows.append([
+            product_rows.append([
+                category_name,
                 item.product.name,
                 quantity(qty),
             ])
 
-        if rows:
-            rows.append([
+        if product_rows:
+            product_rows.append([
                 "الإجمالي",
+                "",
                 quantity(total_quantity),
             ])
         else:
-            rows.append([
+            product_rows.append([
+                "—",
                 "لا توجد منتجات",
                 "0.00",
             ])
 
-        return make_table(
-            [
-                "المنتج",
-                "الكمية الحالية",
-            ],
-            rows,
-            [
-                75 * mm,
-                50 * mm,
-                35 * mm,
-            ],
-        )
-
-    # منتجات كل فرع عادي
-    for branch in normal_branches:
-        story.append(Spacer(1, 4 * mm))
-
-        story.append(p(
-            f"منتجات الفرع: {branch.name}",
-            heading_style,
+        story.append(make_table(
+            ["الفئة", "المنتج", "الكمية الحالية"],
+            product_rows,
+            [50 * mm, 85 * mm, 35 * mm],
         ))
-
-        story.append(branch_products_table(branch))
-
-    # ==================================================
-    # 13. الفرع الرئيسي في جدول مستقل
-    # ==================================================
 
     if main_branch:
         story.append(Spacer(1, 8 * mm))
-
         story.append(p(
-            f"3. ملخص الفرع الرئيسي: {main_branch.name}",
+            f"5. ملخص الفرع الرئيسي: {main_branch.name}",
             heading_style,
         ))
-
         story.append(make_table(
             summary_headers,
             [branch_summary_row(main_branch)],
             summary_widths,
         ))
 
-        story.append(Spacer(1, 4 * mm))
-
+        story.append(Spacer(1, 7 * mm))
         story.append(p(
             f"منتجات الفرع الرئيسي: {main_branch.name}",
             heading_style,
         ))
 
-        story.append(branch_products_table(main_branch))
+        main_inventory = (
+            BranchInventory.objects
+            .filter(branch=main_branch)
+            .select_related("product", "product__category")
+            .order_by(
+                "product__category__name",
+                "product__name",
+            )
+        )
 
-    # ==================================================
-    # 14. الإجماليات العامة
-    # ==================================================
+        main_product_rows = []
+        main_total_quantity = Decimal("0")
+
+        for item in main_inventory:
+            category_name = (
+                item.product.category.name
+                if item.product.category_id
+                else "بدون فئة"
+            )
+            qty = decimal(item.quantity)
+            main_total_quantity += qty
+
+            main_product_rows.append([
+                category_name,
+                item.product.name,
+                quantity(qty),
+            ])
+
+        if main_product_rows:
+            main_product_rows.append([
+                "الإجمالي",
+                "",
+                quantity(main_total_quantity),
+            ])
+        else:
+            main_product_rows.append([
+                "—",
+                "لا توجد منتجات",
+                "0.00",
+            ])
+
+        story.append(make_table(
+            ["الفئة", "المنتج", "الكمية الحالية"],
+            main_product_rows,
+            [50 * mm, 85 * mm, 35 * mm],
+        ))
 
     story.append(Spacer(1, 10 * mm))
-
-    story.append(p(
-        "الإجماليات العامة",
-        title_style,
-    ))
-
+    story.append(p("الإجماليات العامة", title_style))
     story.append(Spacer(1, 4 * mm))
 
-    # إجمالي قيمة المخزون بسعر البيع لجميع الفروع
     grand_stock_value = sum(
-        (
-            stock_by_branch[branch.id]["sale"]
-            for branch in branches
-        ),
+        (stock_by_branch[branch.id]["sale"] for branch in branches),
         Decimal("0"),
     )
 
-    # إجمالي رصيد النقاط الحالي لجميع الفروع
     grand_points = sum(
         (
-            Decimal(str(
-                branch.loyalty_points_inventory or 0
-            ))
+            decimal(branch.loyalty_points_inventory)
             for branch in branches
         ),
         Decimal("0"),
     )
 
-    # إجمالي المبيعات باستثناء الفرع الرئيسي
     grand_sales = sum(
         (
             sales_by_branch[branch.id]["total"]
@@ -4780,29 +4841,35 @@ def inventory_full_report_pdf(request):
         Decimal("0"),
     )
 
-    # إجمالي تسليمات جميع الفروع
-    grand_deliveries = sum(
+    grand_all_sales = sum(
         (
-            deliveries_by_branch[branch.id]["total"]
+            sales_by_branch[branch.id]["total"]
+            for branch in branches
+        ),
+        Decimal("0"),
+    )
+
+    grand_rewards = sum(
+        (
+            rewards_by_branch[branch.id]["amount"]
+            for branch in branches
+        ),
+        Decimal("0"),
+    )
+
+    grand_delivery_sales = sum(
+        (
+            sales_by_branch[branch.id]["delivery_total"]
             for branch in branches
         ),
         Decimal("0"),
     )
 
     grand_remaining = sum(
-      (
-        Decimal(str(sales_by_branch[branch.id]["total"] or 0))
-        - Decimal(str(deliveries_by_branch[branch.id]["total"] or 0))
-        - Decimal(str(rewards_by_branch[branch.id]["amount"] or 0))
-        for branch in branches
-      ),
-      Decimal("0"),
-    )
-
-
-    grand_rewards = sum(
         (
-            rewards_by_branch[branch.id]["amount"]
+            sales_by_branch[branch.id]["total"]
+            - deliveries_by_branch[branch.id]["total"]
+            - rewards_by_branch[branch.id]["amount"]
             for branch in branches
         ),
         Decimal("0"),
@@ -4822,15 +4889,23 @@ def inventory_full_report_pdf(request):
             money(grand_sales),
         ],
         [
+            "إجمالي مبيعات جميع الفروع",
+            money(grand_all_sales),
+        ],
+        [
+            "إجمالي مبيعات التوصيل لجميع الفروع",
+            money(grand_delivery_sales),
+        ],
+        [
             "إجمالي تسليمات جميع الفروع",
-            money(grand_deliveries),
+            money(grand_delivery_total),
         ],
         [
-           "إجمالي المبلغ المتبقي لجميع الفروع",
-           money(grand_remaining),
+            "إجمالي المبلغ المتبقي لجميع الفروع",
+            money(grand_remaining),
         ],
         [
-            "قيمة  العمولات",
+            "إجمالي قيمة المكافآت لجميع الفروع",
             money(grand_rewards),
         ],
     ]
@@ -4838,15 +4913,8 @@ def inventory_full_report_pdf(request):
     story.append(make_table(
         ["البيان", "الإجمالي"],
         grand_total_rows,
-        [
-            100 * mm,
-            65 * mm,
-        ],
+        [100 * mm, 65 * mm],
     ))
-
-    # ==================================================
-    # 15. إنشاء ملف PDF
-    # ==================================================
 
     buffer = io.BytesIO()
 
@@ -4863,13 +4931,11 @@ def inventory_full_report_pdf(request):
     def page_number(canvas, document):
         canvas.saveState()
         canvas.setFont("Amiri", 8)
-
         canvas.drawCentredString(
             landscape(A4)[0] / 2,
             7 * mm,
             ar(f"صفحة {document.page}"),
         )
-
         canvas.restoreState()
 
     doc.build(
@@ -4882,11 +4948,9 @@ def inventory_full_report_pdf(request):
         buffer.getvalue(),
         content_type="application/pdf",
     )
-
     response["Content-Disposition"] = (
         'attachment; filename="inventory_full_report.pdf"'
     )
 
     buffer.close()
-
     return response

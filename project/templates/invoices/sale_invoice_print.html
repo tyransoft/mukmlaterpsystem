@@ -412,8 +412,16 @@
       {% endif %}
     </div>
     {% endif %}
+    {% if invoice.target_branch %}
     <div class="info-card">
-      <div class="info-label">الفرع</div>
+      <div class="info-label">الفرع </div>
+      <div class="info-value">{{ invoice.target_branch.name }}</div>
+      
+      
+    </div>
+    {% endif %}
+    <div class="info-card">
+      <div class="info-label">المورد</div>
       <div class="info-value">{{ invoice.branch.name }}</div>
       <div class="info-value">{{ invoice.branch.phone }}</div>
 

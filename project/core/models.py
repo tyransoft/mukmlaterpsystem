@@ -6,8 +6,9 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.db.models import Sum
 from django.db.models import Q
+from django.core.exceptions import ValidationError as ValidationErr
 
-
+from django.db import transaction
 
 class Branch(models.Model):
     name = models.CharField(max_length=200, verbose_name='اسم الفرع')
@@ -31,10 +32,7 @@ class Branch(models.Model):
     def __str__(self):
         return f"{self.name} {'(رئيسي)' if self.is_main else ''}"
 
-    def save(self, *args, **kwargs):
-        if self.is_main:
-            Branch.objects.exclude(pk=self.pk).update(is_main=False)
-        super().save(*args, **kwargs)
+   
 
     @classmethod
     def get_main_branch(cls):
@@ -618,7 +616,8 @@ class PurchaseInvoice(models.Model):
         return True
     
     def _add_loyalty_points_to_main_branch(self):
-        main_branch = Branch.get_main_branch()
+        main_branch = self.branch
+
         if main_branch and self.total_loyalty_points > 0:
             main_branch.loyalty_points_inventory += self.total_loyalty_points
             main_branch.save()
@@ -776,7 +775,6 @@ class SaleInvoice(models.Model):
             self.invoice_number = self._generate_invoice_number()
         
         self.debt_amount = self.total - self.paid_amount
-        self.additional_fees=self.calculate_additional_fees()
         if self.sale_type == 'customer' and not self.branch.is_main:
             commission_rate = self.branch.commission_percentage / Decimal('100')
             self.branch_commission = self.total * commission_rate
@@ -976,26 +974,33 @@ class SaleInvoice(models.Model):
             
             self._create_purchase_record_for_target_branch()
     def _create_purchase_record_for_target_branch(self):
-      if self.target_branch:
-        from .models import PurchaseInvoice, PurchaseInvoiceItem
-        
-        existing = PurchaseInvoice.objects.filter(source_sale_invoice=self).first()
-        if existing:
-            return existing
-        
+      if not self.target_branch:
+        return None
+
+      from .models import PurchaseInvoice, PurchaseInvoiceItem
+
+      existing = PurchaseInvoice.objects.filter(
+        source_sale_invoice=self
+      ).first()
+
+      if existing:
+        return existing
+
+      with transaction.atomic():
         purchase = PurchaseInvoice.objects.create(
-            invoice_number=f"{self.invoice_number}",
+            invoice_number=self.invoice_number,
             branch=self.target_branch,
             source_sale_invoice=self,
             subtotal=self.subtotal,
             discount=self.discount,
             total=self.total,
+            paid_amount=self.total,
             is_auto_generated=True,
             notes=f"توريد تلقائي من فاتورة مبيعات {self.invoice_number}",
             employee=self.employee,
-            status='confirmed' 
+            status='confirmed'
         )
-        
+
         for item in self.items.all():
             PurchaseInvoiceItem.objects.create(
                 invoice=purchase,
@@ -1004,8 +1009,10 @@ class SaleInvoice(models.Model):
                 unit_price=item.unit_price,
                 total_price=item.total_price
             )
-        
-        return purchase
+
+        purchase.update_loyalty_points()
+
+      return purchase
     
     
     def _update_customer_debt(self):

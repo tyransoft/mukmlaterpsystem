@@ -991,27 +991,47 @@ def branch_delete(request, pk):
 def sale_invoice_create(request):
     
     if not request.user.branch:
-        main_branch = Branch.get_main_branch()
-        if main_branch:
-            request.user.branch = main_branch
-            request.user.save()
-        else:
-            messages.error(request, 'لا يوجد فرع مرتبط بحسابك ولا يوجد فرع رئيسي')
-            return redirect('dashboard_home')
-    
+      messages.error(request, 'حسابك غير مرتبط بفرع. يرجى ربطه بفرع أولاً.')
+      return redirect('dashboard_home')
+
     user_branch = request.user.branch
-    if user_branch.is_main:
-        allowed_sale_types = ['customer', 'branch']
-    else:
-        allowed_sale_types = ['customer']
+
+    if not user_branch.is_active:
+      messages.error(request, 'الفرع المرتبط بحسابك غير نشط.')
+      return redirect('dashboard_home')
+
+    allowed_sale_types = (
+      ['customer', 'branch']
+      if user_branch.is_main
+       else ['customer']
+     )
     
     if request.method == 'POST':
         try:
             with transaction.atomic():
                 sale_type = request.POST.get('sale_type')
-                if sale_type == 'branch' and not user_branch.is_main:
-                    raise ValidationErr('الفرع الفرعي لا يمكنه عمل توريد لفرع آخر')
-                
+
+                if sale_type not in allowed_sale_types:
+                  raise ValidationErr('نوع عملية البيع غير مسموح لهذا الفرع.')
+
+                target_branch = None
+
+                if sale_type == 'branch':
+                        target_branch_id = request.POST.get('target_branch')
+
+                if not target_branch_id:
+                    raise ValidationErr('يرجى تحديد الفرع المستهدف.')
+ 
+                target_branch = Branch.objects.filter(
+                        pk=target_branch_id,
+                        is_active=True,
+                       ).first()
+
+                if not target_branch:
+                   raise ValidationErr('الفرع المستهدف غير موجود أو غير نشط.')
+
+                if target_branch.pk == user_branch.pk:
+                           raise ValidationErr('لا يمكن توريد البضاعة إلى نفس الفرع.')
                 payment_method_id = request.POST.get('payment_method')
                 payment_method = None
                 if payment_method_id:
@@ -1033,7 +1053,7 @@ def sale_invoice_create(request):
                 invoice = SaleInvoice(
                     sale_type=sale_type,
                     branch=user_branch,
-                    target_branch_id=request.POST.get('target_branch') or None,
+                    target_branch=target_branch,
                     customer_id=customer_id,
                     discount=Decimal('0'),
                     paid_amount=Decimal(request.POST.get('paid_amount', 0) or 0),
@@ -1136,10 +1156,11 @@ def sale_invoice_create(request):
             messages.error(request, f'حدث خطأ غير متوقع: {str(e)}')
             return redirect('sale_invoice_create')
     
-    branches = Branch.objects.filter(is_active=True)
-    if not user_branch.is_main:
-        branches = branches.exclude(pk=user_branch.pk)
-    
+    branches = Branch.objects.filter(
+          is_active=True
+          ).exclude(
+             pk=user_branch.pk
+             ) if user_branch.is_main else Branch.objects.none() 
     payment_methods = PaymentMethod.objects.filter(is_active=True)
     
     products_with_stock = []
@@ -1174,11 +1195,15 @@ def sale_invoice_create(request):
 @login_required
 def purchase_invoice_create(request):
     if not request.user.branch:
-        main_branch = Branch.get_main_branch()
-        if main_branch:
-            request.user.branch = main_branch
-            request.user.save()
-    
+     messages.error(
+        request,
+        'حسابك غير مرتبط بفرع. يرجى ربطه بفرع أولاً.'
+      )
+     return redirect('dashboard_home')
+
+    if not request.user.branch.is_active:
+       messages.error(request, 'الفرع المرتبط بحسابك غير نشط.')
+       return redirect('dashboard_home')
     if request.method == 'POST':
         try:
             with transaction.atomic():

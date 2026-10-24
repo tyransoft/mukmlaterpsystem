@@ -3105,7 +3105,7 @@ def sale_invoice_return(request, pk):
 
             branch = (
                 Branch.objects.select_for_update()
-                .get(pk=invoice.branch)
+                .get(pk=invoice.branch.pk)
             )
 
             items = list(

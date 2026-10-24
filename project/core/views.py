@@ -1017,20 +1017,20 @@ def sale_invoice_create(request):
                 target_branch = None
 
                 if sale_type == 'branch':
-                        target_branch_id = request.POST.get('target_branch')
+                    target_branch_id = request.POST.get('target_branch')
 
-                if not target_branch_id:
-                    raise ValidationErr('يرجى تحديد الفرع المستهدف.')
+                    if not target_branch_id:
+                        raise ValidationErr('يرجى تحديد الفرع المستهدف.')
  
-                target_branch = Branch.objects.filter(
-                        pk=target_branch_id,
-                        is_active=True,
-                       ).first()
+                        target_branch = Branch.objects.filter(
+                         pk=target_branch_id,
+                         is_active=True,
+                        ).first()
 
-                if not target_branch:
-                   raise ValidationErr('الفرع المستهدف غير موجود أو غير نشط.')
+                    if not target_branch:
+                       raise ValidationErr('الفرع المستهدف غير موجود أو غير نشط.')
 
-                if target_branch.pk == user_branch.pk:
+                    if target_branch.pk == user_branch.pk:
                            raise ValidationErr('لا يمكن توريد البضاعة إلى نفس الفرع.')
                 payment_method_id = request.POST.get('payment_method')
                 payment_method = None
@@ -3105,7 +3105,7 @@ def sale_invoice_return(request, pk):
 
             branch = (
                 Branch.objects.select_for_update()
-                .get(pk=invoice.branch.pk)
+                .get(pk=invoice.branch_id)
             )
 
             items = list(
@@ -3234,7 +3234,7 @@ def sale_invoice_return(request, pk):
                 elif invoice.sale_type == 'branch' and invoice.target_branch:
                     target_branch = (
                         Branch.objects.select_for_update()
-                        .get(pk=invoice.target_branch)
+                        .get(pk=invoice.target_branch_id)
                     )
 
                     # إعادة الكمية إلى الفرع المصدر

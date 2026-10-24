@@ -1022,7 +1022,7 @@ def sale_invoice_create(request):
                     if not target_branch_id:
                         raise ValidationErr('يرجى تحديد الفرع المستهدف.')
  
-                        target_branch = Branch.objects.filter(
+                    target_branch = Branch.objects.filter(
                          pk=target_branch_id,
                          is_active=True,
                         ).first()

@@ -3185,7 +3185,6 @@ def sale_invoice_return(request, pk):
                     points_deltas.get(branch_id, Decimal('0')) + delta
                 )
 
-            # تعديل المخزون وتسجيل الحركات
             for line in return_lines:
                 item = line['item']
                 qty = line['quantity']
@@ -3228,7 +3227,6 @@ def sale_invoice_return(request, pk):
                         ),
                     )
 
-                    # النقاط المقابلة للمخزون الذي عاد إلى الفرع
                     add_points_delta(branch.pk, points)
 
                 elif invoice.sale_type == 'branch' and invoice.target_branch:
@@ -3237,7 +3235,6 @@ def sale_invoice_return(request, pk):
                         .get(pk=invoice.target_branch_id)
                     )
 
-                    # إعادة الكمية إلى الفرع المصدر
                     source_inventory, created = (
                         BranchInventory.objects.get_or_create(
                             branch=branch,
@@ -3318,11 +3315,9 @@ def sale_invoice_return(request, pk):
                         ),
                     )
 
-                    # تحديث نقاط المخزون في الفرعين
                     add_points_delta(branch.pk, points)
                     add_points_delta(target_branch.pk, -points)
 
-                # تعديل بند الفاتورة في المرتجع الجزئي فقط
                 if return_type == 'partial':
                     item.quantity -= qty
                     item.total_price = (
@@ -3345,6 +3340,44 @@ def sale_invoice_return(request, pk):
                         'updated_at',
                     ]
                 )
+
+            if (
+                invoice.sale_type == 'customer'
+                and invoice.customer
+                and not invoice.is_cash_customer
+                and returned_points > 0
+            ):
+                loyalty_transfer = (
+                    LoyaltyTransfer.objects.select_for_update()
+                    .filter(sale_invoice=invoice)
+                    .first()
+                )
+
+                if loyalty_transfer:
+                    if loyalty_transfer.status == 'pending':
+                        loyalty_transfer.points = max(
+                            Decimal('0'),
+                            Decimal(str(loyalty_transfer.points))
+                            - returned_points,
+                        )
+                        loyalty_transfer.save(update_fields=['points'])
+
+                    elif loyalty_transfer.status == 'transferred':
+                        customer = (
+                            Customer.objects.select_for_update()
+                            .get(pk=invoice.customer_id)
+                        )
+
+                        
+
+                        LoyaltyTransfer.objects.create(
+                            branch=branch,
+                            customer=customer,
+                            sale_invoice=invoice,
+                            points=-returned_points,
+                            status='pending',
+                            
+                        )
 
             if return_type == 'full':
                 if invoice.sale_type == 'branch' and invoice.target_branch:

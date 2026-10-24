@@ -541,7 +541,7 @@ class PurchaseInvoice(models.Model):
     
 
     def save(self, *args, **kwargs):
-      if not self.invoice_number and not self.is_auto_generated:
+      if not self.invoice_number :
         self.invoice_number = self._generate_invoice_number()
     
       self.debt_amount = self.total - self.paid_amount
@@ -554,13 +554,42 @@ class PurchaseInvoice(models.Model):
       if self.supplier and self.status == 'confirmed':
         self.supplier.update_debt_balance()
     def _generate_invoice_number(self):
-        date_str = timezone.now().strftime('%Y%m%d')
-        count = PurchaseInvoice.objects.filter(
-            created_at__date=timezone.now().date(),
-            is_auto_generated=False
-        ).count() + 1
-        return f"P{date_str}{count:04d}"
-    
+
+         prefix = 'P' 
+         date_str = timezone.localtime().strftime('%Y%m%d')
+         base = f'{prefix}{date_str}'
+
+         last_invoice = (
+                  PurchaseInvoice.objects
+                  .filter(invoice_number__startswith=base)
+                  .order_by('-invoice_number')
+                  .first()
+         )
+
+         if last_invoice:
+                  try:
+                           next_number = int(last_invoice.invoice_number[-4:]) + 1
+                  except (ValueError, TypeError):
+                           next_number = 1
+         else:
+                  next_number = 1
+
+         while True:
+                  invoice_number = f'{base}{next_number:04d}'
+
+                  exists = PurchaseInvoice.objects.filter(
+                           invoice_number=invoice_number
+                  ).exists()
+
+                  if self.pk:
+                           exists = exists and PurchaseInvoice.objects.filter(
+                                    invoice_number=invoice_number
+                           ).exclude(pk=self.pk).exists()
+
+                  if not exists:
+                           return invoice_number
+
+                  next_number += 1  
     def update_loyalty_points(self):
         from django.db.models import Sum
         result = self.items.aggregate(total=Sum('loyalty_points'))['total'] or 0
@@ -988,7 +1017,6 @@ class SaleInvoice(models.Model):
 
       with transaction.atomic():
         purchase = PurchaseInvoice.objects.create(
-            invoice_number=self.invoice_number,
             branch=self.target_branch,
             source_sale_invoice=self,
             subtotal=self.subtotal,

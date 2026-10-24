@@ -3105,7 +3105,7 @@ def sale_invoice_return(request, pk):
 
             branch = (
                 Branch.objects.select_for_update()
-                .get(pk=invoice.branch_id)
+                .get(pk=invoice.branch)
             )
 
             items = list(
@@ -3438,15 +3438,18 @@ def sale_invoice_return(request, pk):
     except ValueError as e:
         messages.error(request, str(e))
         return redirect('sale_invoice_return', pk=pk)
-
-    except Exception:
-        messages.error(
-            request,
-            'حدث خطأ أثناء تنفيذ المرتجع. لم يتم اعتماد التغييرات.'
-        )
-        return redirect('sale_invoice_return', pk=pk)
-
-
+    
+    except Exception as e:
+      import logging
+      logging.exception(
+        "Sale invoice return failed. Invoice ID: %s", pk
+      )
+      messages.error(
+        request,
+        f'خطأ أثناء المرتجع: {type(e).__name__}: {e}'
+      )
+      return redirect('sale_invoice_return', pk=pk)
+ 
 @login_required
 def branch_adjust_points(request, pk):
     branch = get_object_or_404(Branch, pk=pk)

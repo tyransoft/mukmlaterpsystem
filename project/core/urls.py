@@ -86,6 +86,7 @@ urlpatterns = [
     path('sales/', sale_invoices_list, name='sale_invoices_list'),
     path('sales/create/', sale_invoice_create, name='sale_invoice_create'),
     path('sales/<int:pk>/', sale_invoice_detail, name='sale_invoice_detail'),
+    path('sale-invoices/<int:pk>/cancel-draft/',cancel_draft_invoice,name='cancel_draft_invoice'),
     path('sales/<int:pk>/confirm/', sale_invoice_confirm, name='sale_invoice_confirm'),
     path('sales/<int:pk>/print/', sale_invoice_print, name='sale_invoice_print'),
     path('invoices/return/<int:pk>/', sale_invoice_return, name='sale_invoice_return'),

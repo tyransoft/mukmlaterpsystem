@@ -239,10 +239,16 @@
                     <a href="{% url 'sale_invoice_detail' inv.pk %}"> عرض التفاصيل</a>
                     <a href="{% url 'sale_invoice_print' inv.pk %}" target="_blank"> طباعة</a>
                     <div class="divider"></div>
+                    {% if inv.status == 'confirmed' %}
+
                     <a href="{% url 'sale_invoice_return' inv.pk %}" style="color:#dc2626;">↩ مرتجع</a>
+                    {% endif %}
                     {% if inv.status == 'draft' %}
                     <div class="divider"></div>
+
+                    <a href="{% url 'cancel_draft_invoice' inv.pk %}" onclick="return confirm('هل تريد الغاء هذه الفاتورة؟')" style="color:#dc2626;"> الغاء</a>
                     <a href="{% url 'sale_invoice_confirm' inv.pk %}" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')" style="color:#16a34a;"> تأكيد</a>
+
                     {% endif %}
           
                   </div>

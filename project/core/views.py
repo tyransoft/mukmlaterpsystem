@@ -3063,8 +3063,23 @@ def payment_method_toggle_status(request, pk):
     messages.success(request, f'تم {status} طريقة الدفع "{payment_method.name}"')
     return redirect('payment_methods_list')
 
+from django.views.decorators.http import require_POST
 
 
+@login_required
+@require_POST
+def cancel_draft_invoice(request, pk):
+    invoice = get_object_or_404(SaleInvoice, pk=pk)
+
+    if invoice.status != 'draft':
+        messages.error(request, 'يمكن إلغاء الفواتير المسودة فقط')
+        return redirect('sale_invoices_list')
+
+    invoice.status = 'cancelled'
+    invoice.save(update_fields=['status'])
+
+    messages.success(request, 'تم إلغاء الفاتورة المسودة بنجاح')
+    return redirect('sale_invoices_list')
 
 
 @login_required

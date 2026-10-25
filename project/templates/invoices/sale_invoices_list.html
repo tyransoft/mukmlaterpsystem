@@ -204,6 +204,8 @@
               <th class="money">الإجمالي</th>
               <th class="money">المدفوع</th>
               <th class="money">المتبقي</th>
+              <th class="money">النقاط</th>
+
               <th>الحالة</th>
               <th></th>
             </tr>
@@ -225,6 +227,8 @@
               <td class="money">{{ inv.total|floatformat:2|intcomma }}</td>
               <td class="money">{{ inv.paid_amount|floatformat:2|intcomma }}</td>
               <td class="money {% if inv.remaining_amount > 0 %}text-danger{% endif %}">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
+              <td class="money">{{ inv.total_loyalty_points }}</td>
+
               <td>
                 <span class="badge {% if inv.status == 'confirmed' %}badge-success{% elif inv.status == 'draft' %}badge-warning{% else %}badge-secondary{% endif %}">
                   {{ inv.get_status_display }}
@@ -239,9 +243,9 @@
                     <a href="{% url 'sale_invoice_detail' inv.pk %}"> عرض التفاصيل</a>
                     <a href="{% url 'sale_invoice_print' inv.pk %}" target="_blank"> طباعة</a>
                     <div class="divider"></div>
-                    {% if inv.status == 'confirmed' %}
+                    {% if inv.status == 'confirmed' and request.user.can_see_all_data %}
 
-                    <a href="{% url 'sale_invoice_return' inv.pk %}" style="color:#dc2626;">↩ مرتجع</a>
+                    <a href="{% url 'sale_invoice_return' inv.pk %}" style="color:#dc2626;"> مرتجع</a>
                     {% endif %}
                     {% if inv.status == 'draft' %}
                     <div class="divider"></div>
@@ -312,11 +316,23 @@
           <span class="mobile-invoice-label">المتبقي</span>
           <span class="mobile-invoice-value {% if inv.remaining_amount > 0 %}text-danger{% endif %}">{{ inv.remaining_amount|floatformat:2|intcomma }}</span>
         </div>
+        <div class="mobile-invoice-row">
+          <span class="mobile-invoice-label">النقاط</span>
+          <span class="mobile-invoice-value fw-bold">{{ inv.total_loyalty_points }} د.ل</span>
+        </div>
+
         <div class="mobile-invoice-actions">
           <a href="{% url 'sale_invoice_detail' inv.pk %}" class="btn btn-outline btn-sm"> عرض</a>
           <a href="{% url 'sale_invoice_print' inv.pk %}" class="btn btn-outline btn-sm" target="_blank"> طباعة</a>
-          <a href="{% url 'sale_invoice_return' inv.pk %}" class="btn btn-outline btn-sm" style="border-color:#dc2626;color:#dc2626;">مرتجع</a>
+          {% if inv.status == 'confirmed' and request.user.can_see_all_data %}
+
+                    <a href="{% url 'sale_invoice_return' inv.pk %}" style="color:#dc2626;"> مرتجع</a>
+          {% endif %}
+
+
           {% if inv.status == 'draft' %}
+          <a href="{% url 'cancel_draft_invoice' inv.pk %}" onclick="return confirm('هل تريد الغاء هذه الفاتورة؟')" style="color:#dc2626;"> الغاء</a>
+
           <a href="{% url 'sale_invoice_confirm' inv.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')"> تأكيد</a>
           {% endif %}
 

@@ -771,7 +771,7 @@
             <tr>
               <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="fw-600" style="color:#2563eb;text-decoration:none;">{{ inv.invoice_number }}</a></td>
               <td>{{ inv.branch.name }}</td>
-              <td>{{ inv.customer.full_name|default:"-" }}</td>
+              <td>{{ inv.customer.full_name|default:"-" }}-{{ inv.customer.customer_id }}</td>
               <td class="text-danger fw-bold">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
               <td><span class="badge badge-danger">{{ inv.due_date }}</span></td>
             </tr>

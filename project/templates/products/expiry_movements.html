@@ -59,7 +59,9 @@
 <div class="card">
   <div class="card-header">
     <span class="card-title">سجل حركات: {{ expiry.product.name }}</span>
-    <a href="{% url 'product_expiry_list' %}" class="btn btn-outline btn-sm">رجوع</a>
+<button type="button" class="btn btn-outline btn-sm" onclick="history.back()">
+     رجوع
+</button>
   </div>
   <div class="card-body" style="padding:0;">
     

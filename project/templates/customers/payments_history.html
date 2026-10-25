@@ -91,7 +91,9 @@
 </style>
 
 <div class="action-bar">
-  <a href="{% url 'customers_detail' customer.pk %}" class="btn btn-outline btn-sm">رجوع للعميل</a>
+  <button type="button" class="btn btn-outline btn-sm" onclick="history.back()">
+     رجوع
+</button>
   {% if customer.debt_balance > 0 %}
   <a href="{% url 'customer_payment_create' customer.pk %}" class="btn btn-success btn-sm">تسديد جديد</a>
   {% endif %}

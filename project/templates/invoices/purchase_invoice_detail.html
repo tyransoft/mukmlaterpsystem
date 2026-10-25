@@ -6,10 +6,9 @@
 
 {% block content %}
 <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
-  <a href="{% url 'purchase_invoices_list' %}" class="btn btn-outline btn-sm">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    رجوع
-  </a>
+<button type="button" class="btn btn-outline btn-sm" onclick="history.back()">
+     رجوع
+</button>
   <a href="{% url 'purchase_invoice_print' invoice.pk %}" class="btn btn-outline btn-sm" target="_blank">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
     طباعة

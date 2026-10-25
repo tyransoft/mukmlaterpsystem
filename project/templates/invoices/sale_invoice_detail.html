@@ -6,7 +6,9 @@
 
 {% block content %}
 <div style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;">
-  <a href="{% url 'sale_invoices_list' %}" class="btn btn-outline btn-sm">رجوع</a>
+<button type="button" class="btn btn-outline btn-sm" onclick="history.back()">
+     رجوع
+</button>
   <a href="{% url 'sale_invoice_print' invoice.pk %}" class="btn btn-outline btn-sm" target="_blank">طباعة</a>
   {% if invoice.status == 'draft' %}
     <a href="{% url 'sale_invoice_confirm' invoice.pk %}" class="btn btn-success btn-sm" onclick="return confirm('هل تريد تأكيد هذه الفاتورة؟')">

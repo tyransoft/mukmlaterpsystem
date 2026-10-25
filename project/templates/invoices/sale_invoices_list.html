@@ -221,7 +221,7 @@
                   <span class="badge badge-warning">توريد لفرع</span>
                 {% endif %}
               </td>
-              <td>{% if inv.customer %}{{ inv.customer.full_name }}{% elif inv.sale_type == 'branch' %}{{ inv.target_branch.name}}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+              <td>{% if inv.customer %}{{ inv.customer.full_name }}<br>{{ inv.customer.customer_id }}{% elif inv.sale_type == 'branch' %}{{ inv.target_branch.name}}{% else %}<span class="text-muted">-</span>{% endif %}</td>
               <td class="money">{{ inv.total|floatformat:2|intcomma }}</td>
               <td class="money">{{ inv.paid_amount|floatformat:2|intcomma }}</td>
               <td class="money {% if inv.remaining_amount > 0 %}text-danger{% endif %}">{{ inv.remaining_amount|floatformat:2|intcomma }}</td>
@@ -298,7 +298,7 @@
         </div>
         <div class="mobile-invoice-row">
           <span class="mobile-invoice-label">العميل</span>
-          <span class="mobile-invoice-value">{% if inv.customer %}{{ inv.customer.full_name }}{% else %}-{% endif %}</span>
+          <span class="mobile-invoice-value">{% if inv.customer %}{{ inv.customer.full_name }}<br>{{ inv.customer.customer_id }}{% else %}-{% endif %}</span>
         </div>
         <div class="mobile-invoice-row">
           <span class="mobile-invoice-label">الإجمالي</span>

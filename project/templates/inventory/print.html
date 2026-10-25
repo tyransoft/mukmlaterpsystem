@@ -182,6 +182,8 @@
 
 <div class="no-print" style="text-align:center; margin-top:20px;">
     <button onclick="window.print();" class="btn btn-primary">طباعة</button>
-    <a href="{% url 'inventory_list' %}" class="btn btn-outline">رجوع</a>
+<button type="button" class="btn btn-outline" onclick="history.back()">
+     رجوع
+</button>
 </div>
 {% endblock %}

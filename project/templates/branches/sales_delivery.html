@@ -195,7 +195,7 @@
             <tr>
               <td>{{ invoice.invoice_number }}</td>
               <td>{{ invoice.created_at|date:"Y-m-d" }}</td>
-              <td>{{ invoice.customer.full_name|default:"-" }}</td>
+              <td>{{ invoice.customer.full_name|default:"-" }}-{{ invoice.customer.customer_id }}</td>
               <td class="money">{{ invoice.total|floatformat:2|intcomma }}</td>
               <td class="money">{{ invoice.branch_commission|floatformat:2|intcomma }}</td>
               <td class="money">{{ invoice.amount_due_to_main|floatformat:2|intcomma }}</td>
@@ -219,7 +219,7 @@
         </div>
         <div class="mobile-delivery-row">
           <span class="mobile-delivery-label">العميل</span>
-          <span class="mobile-delivery-value">{{ invoice.customer.full_name|default:"-" }}</span>
+          <span class="mobile-delivery-value">{{ invoice.customer.full_name|default:"-" }}-{{ invoice.customer.customer_id }}</span>
         </div>
         <div class="mobile-delivery-row">
           <span class="mobile-delivery-label">الإجمالي</span>

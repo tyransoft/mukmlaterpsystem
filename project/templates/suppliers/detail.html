@@ -102,7 +102,9 @@
 </style>
 
 <div class="action-bar">
-  <a href="{% url 'supplier_list' %}" class="btn btn-outline btn-sm">رجوع</a>
+<button type="button" class="btn btn-outline btn-sm" onclick="history.back()">
+     رجوع
+</button>
   <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm">تعديل</a>
   <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة</a>
   <a href="{% url 'supplier_payment_list' supplier.pk %}" class="btn btn-outline btn-sm">سجل الدفعات</a>

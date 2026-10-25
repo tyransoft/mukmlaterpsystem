@@ -89,7 +89,9 @@
 </style>
 
 <div class="action-bar">
-  <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline btn-sm">رجوع للمورد</a>
+<button type="button" class="btn btn-outline btn-sm" onclick="history.back()">
+     رجوع
+</button>
   <a href="{% url 'supplier_payment_create' supplier.pk %}" class="btn btn-success btn-sm">تسديد دفعة جديدة</a>
 </div>
 

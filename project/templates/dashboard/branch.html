@@ -151,7 +151,7 @@
             {% for inv in recent_invoices %}
             <tr>
               <td><a href="{% url 'sale_invoice_detail' inv.pk %}" class="invoice-link">{{ inv.invoice_number }}</a></td>
-              <td>{{ inv.customer.full_name|default:"-" }}</td>
+              <td>{{ inv.customer.full_name|default:"-" }}-{{ inv.customer.customer_id }}</td>
               <td class="fw-bold">{{ inv.total|floatformat:2|intcomma }}</td>
               <td>
                 <span class="badge {% if inv.status == 'paid' %}badge-success{% elif inv.status == 'confirmed' %}badge-info{% elif inv.status == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}">

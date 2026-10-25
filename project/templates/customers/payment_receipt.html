@@ -104,8 +104,8 @@
   <button onclick="window.print();" class="btn btn-primary">
      طباعة الإيصال
   </button>
-  <a href="{% url 'customers_detail' payment.customer.pk %}" class="btn btn-outline">
-    ↩ رجوع 
-  </a>
+  <button type="button" class="btn btn-outline" onclick="history.back()">
+     رجوع
+</button>
 </div>
 {% endblock %}

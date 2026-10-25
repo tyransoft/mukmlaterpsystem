@@ -133,7 +133,7 @@
             {% for reward in page_obj %}
             <tr>
               <td>{{ forloop.counter }}</td>
-              <td>{{ reward.customer.full_name }}</td>
+              <td>{{ reward.customer.full_name }}-{{ reward.customer.customer_id }}</td>
               <td>{{ reward.points }}</td>
               <td>{{ reward.amount }}</td>
               <td>{{ reward.branch|default:"-" }}</td>

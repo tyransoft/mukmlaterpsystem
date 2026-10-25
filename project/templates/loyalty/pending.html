@@ -199,7 +199,7 @@
         <tbody id="transfers-tbody">
           {% for t in transfers %}
           <tr id="loyalty-row-{{ t.pk }}">
-            <td><a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a><div class="text-muted" style="font-size:12px;">{{ t.customer.phone }}</div></td>
+            <td><a href="{% url 'customers_detail' t.customer.pk %}" class="fw-600 text-primary">{{ t.customer.full_name }}</a><div class="text-muted" style="font-size:12px;">{{ t.customer.customer_id }}</div></td>
             <td>{{ t.branch.name }}</td>
             <td><span class="badge badge-primary" style="font-size:13px;">{{ t.points|intcomma }}</span></td>
             <td>{% if t.invoice %}<a href="{% url 'invoices_detail' t.invoice.pk %}" class="text-primary" style="font-size:12px;">{{ t.invoice.invoice_number }}</a>{% else %}-{% endif %}</td>
@@ -216,7 +216,7 @@
     <div class="mobile-loyalty">
       {% for t in transfers %}
       <div class="mobile-loyalty-card" id="loyalty-row-{{ t.pk }}">
-        <div class="mobile-loyalty-name">{{ t.customer.full_name }}</div>
+        <div class="mobile-loyalty-name">{{ t.customer.full_name }}<br>{{ t.customer.customer_id}}</div>
         <div class="mobile-loyalty-row">
           <span class="mobile-loyalty-label">الفرع</span>
           <span class="mobile-loyalty-value">{{ t.branch.name }}</span>

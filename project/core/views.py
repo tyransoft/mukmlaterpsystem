@@ -3063,11 +3063,9 @@ def payment_method_toggle_status(request, pk):
     messages.success(request, f'تم {status} طريقة الدفع "{payment_method.name}"')
     return redirect('payment_methods_list')
 
-from django.views.decorators.http import require_POST
 
 
 @login_required
-@require_POST
 def cancel_draft_invoice(request, pk):
     invoice = get_object_or_404(SaleInvoice, pk=pk)
 

@@ -29,7 +29,7 @@
       {% if today_loyalty_amount > 0 %}
         <div style="font-size:10px;color:#dc2626;">- عمولة العملاء: {{ today_loyalty_amount|floatformat:0|intcomma }}</div>
       {% endif %}
-      <div style="font-size:10px;color:#dc2626;">   توصيل  : {{ today_delivery_sales|floatformat:0|intcomma }} (<small>({{ today_delivery_count }} فاتورة)</small>)</div>
+      <div style="font-size:10px;color:#dc2626;">   توصيل  : {{ today_delivery_sales|floatformat:0|intcomma }} (<small>{{ today_delivery_count }} فاتورة</small>)</div>
 
     </div>
   </div>

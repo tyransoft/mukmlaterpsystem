@@ -70,6 +70,16 @@
           <div class="{% if invoice.is_overdue %}text-danger{% endif %}">{{ invoice.due_date }}</div>
         </div>
         {% endif %}
+        <div>
+          <div class="text-muted" style="font-size:12px;">طريقة الاستلام</div>
+          <span class="badge {% if invoice.is_delivery %}badge-success{% elif not invoice.is_delivery %}badge-secondary{% endif %}">
+            {% if invoice.is_delivery %}
+               توصيل
+            {% else %}  
+              استلام شخصي
+            {% endif %}
+          </span>
+        </div>
       </div>
       
       <div class="table-responsive">

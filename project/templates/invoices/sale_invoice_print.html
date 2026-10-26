@@ -512,8 +512,18 @@
         {{ invoice.employee.get_role_display|default:"موظف" }}
       </div>
     </div>
+     
+    <div class="info-card"  style="text-align: right; min-width: 200px; max-width: 300px;">
+      <div class="info-label">طريقة الاستلام</div>
 
-   
+    <div class="info-value">
+      {% if invoice.is_delivery %}
+               توصيل
+            {% else %}  
+              استلام شخصي
+            {% endif %}
+     </div>
+    </div>
   </div>
 
   {% if invoice.notes %}

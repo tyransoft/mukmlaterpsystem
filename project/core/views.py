@@ -172,7 +172,7 @@ def branch_dashboard(request):
     today = timezone.now().date()
     month_start = today.replace(day=1)
     if user.can_see_all_data() :
-        branch = Branch.objects.get(id=request.GET.get('branch_id', branch.id)) 
+        branch = Branch.objects.get(id=request.GET.get('branch_id')) 
     else:
         branch = user.branch
     today_sales = SaleInvoice.objects.filter(

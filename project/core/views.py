@@ -171,7 +171,7 @@ def branch_dashboard(request):
     
     today = timezone.now().date()
     month_start = today.replace(day=1)
-    if user.can_see_all_data() and user.branch.is_main:
+    if user.can_see_all_data() :
         branch = Branch.objects.get(id=request.GET.get('branch_id', branch.id)) 
     else:
         branch = user.branch

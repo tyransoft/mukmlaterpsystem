@@ -2499,12 +2499,16 @@ def sale_invoices_list(request):
         invoices = invoices.filter(branch=user.branch)
 
     target_branch_id = request.GET.get('target_branch', '')
+    sale_type = request.GET.get('sale_type', '')
 
-    if target_branch_id:
+    if target_branch_id and sale_type == 'customer' or target_branch_id and  not sale_type:
         invoices = invoices.filter(
             branch=Branch.objects.get(id=target_branch_id)
         )
-
+    if target_branch_id and sale_type == 'branch':
+        invoices = invoices.filter(
+            target_branch=Branch.objects.get(id=target_branch_id)
+        )
     status = request.GET.get('status', '')
     if status:
         invoices = invoices.filter(status=status)
@@ -2512,7 +2516,7 @@ def sale_invoices_list(request):
     sale_type = request.GET.get('sale_type', '')
     if sale_type:
         invoices = invoices.filter(sale_type=sale_type)
-
+        
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 

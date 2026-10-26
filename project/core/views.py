@@ -65,7 +65,30 @@ def main_dashboard(request):
         sale_type='customer',
         status='confirmed'
     ).aggregate(total=Sum('total'))['total'] or 0
-    
+
+    today_delivery_sales = SaleInvoice.objects.filter(
+      sale_type='customer',
+      status='confirmed',
+      is_delivery=True,
+      created_at__date=today
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    month_delivery_sales = SaleInvoice.objects.filter(
+        sale_type='customer',
+        status='confirmed',
+        is_delivery=True,
+        created_at__date__gte=month_start
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    today_delivery_count = SaleInvoice.objects.filter(
+       sale_type='customer',
+       status='confirmed',
+       is_delivery=True,
+       created_at__date=today
+    ).count()
+
+   
+
     total_purchases = PurchaseInvoice.objects.filter(
         status='confirmed',
         is_auto_generated=False   
@@ -86,12 +109,18 @@ def main_dashboard(request):
     today_loyalty_amount = CustomerLoyaltyReward.objects.filter(
         reward_date__date=today
     ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_delivery_sales = SaleInvoice.objects.filter(
+       sale_type='customer',
+       status='confirmed',
+       is_delivery=True
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    net_sales = total_sales - total_loyalty_amount - total_delivery_sales
     
-    net_sales = total_sales - total_loyalty_amount
+    net_month_sales = month_sales - month_loyalty_amount - month_delivery_sales
     
-    net_month_sales = month_sales - month_loyalty_amount
-    
-    net_today_sales = today_sales - today_loyalty_amount
+    net_today_sales = today_sales - today_loyalty_amount - today_delivery_sales
     
     net_profit = net_sales - total_purchases
     
@@ -159,6 +188,10 @@ def main_dashboard(request):
         'branch_sales': branch_sales,
         'pending_loyalty': pending_loyalty,
         'pending_debts': pending_debts,
+        
+        'today_delivery_sales': today_delivery_sales,
+        'month_delivery_sales': month_delivery_sales,
+        'today_delivery_count': today_delivery_count,
     })
 
 
@@ -216,10 +249,28 @@ def branch_dashboard(request):
     total_loyalty_points = CustomerLoyaltyReward.objects.filter(
         branch=branch
     ).aggregate(total=Sum('points'))['total'] or 0
+
+
+    today_delivery_sales = SaleInvoice.objects.filter(
+       branch=branch,
+       sale_type='customer',
+       status='confirmed',
+       is_delivery=True,
+       created_at__date=today
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+    month_delivery_sales = SaleInvoice.objects.filter(
+       branch=branch,
+       sale_type='customer',
+       status='confirmed',
+       is_delivery=True,
+       created_at__date__gte=month_start
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+
+    net_today_sales = today_sales - today_loyalty_amount - today_delivery_sales
     
-    net_today_sales = today_sales - today_loyalty_amount
-    
-    net_month_sales = month_sales - month_loyalty_amount
+    net_month_sales = month_sales - month_loyalty_amount - month_delivery_sales
     
     commission = float(net_month_sales) * float(branch.commission_percentage) / 100
     
@@ -231,7 +282,26 @@ def branch_dashboard(request):
     recent_invoices = SaleInvoice.objects.filter(
         branch=branch
     ).select_related('customer', 'employee').order_by('-created_at')[:10]
-    
+   
+   
+
+
+    today_delivery_count = SaleInvoice.objects.filter(
+      branch=branch,
+      sale_type='customer',
+      status='confirmed',
+      is_delivery=True,
+      created_at__date=today
+    ).count()
+
+    total_delivery_sales = SaleInvoice.objects.filter(
+      branch=branch,
+      sale_type='customer',
+      status='confirmed',
+      is_delivery=True
+    ).aggregate(total=Sum('total'))['total'] or 0
+
+
     invoice_count_today = SaleInvoice.objects.filter(
         branch=branch,
         created_at__date=today
@@ -256,6 +326,10 @@ def branch_dashboard(request):
         'month_loyalty_points': month_loyalty_points,
         'total_loyalty_amount': total_loyalty_amount,
         'total_loyalty_points': total_loyalty_points,
+        'today_delivery_sales': today_delivery_sales,
+        'month_delivery_sales': month_delivery_sales,
+        'today_delivery_count': today_delivery_count,
+        'total_delivery_sales': total_delivery_sales,
         
         'net_today_sales': net_today_sales,
         'net_month_sales': net_month_sales,

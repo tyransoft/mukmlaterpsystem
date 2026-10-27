@@ -3256,11 +3256,14 @@ def sale_invoice_return(request, pk):
                         f'أكبر من الكمية المتبقية ({item.quantity})'
                     )
 
-                product_points = Decimal(
-                    str(item.product.loyalty_points or 0)
-                )
-                line_points = product_points * Decimal(return_quantity)
-
+                if item.quantity > 0:
+                    line_points = (
+                          Decimal(str(item.loyalty_points or 0))
+                         * Decimal(return_quantity)
+                        / Decimal(item.quantity)
+                        )
+                else:
+                      line_points = Decimal('0')
                 return_amount = (
                     Decimal(str(item.unit_price))
                     * Decimal(return_quantity)
@@ -3429,6 +3432,80 @@ def sale_invoice_return(request, pk):
                       'loyalty_points',
                             ]
                         )
+            if (
+               return_type == 'partial'
+               and invoice.sale_type == 'branch'
+               and invoice.target_branch
+            ):
+                purchase = (
+                    PurchaseInvoice.objects
+                    .select_for_update()
+                    .filter(source_sale_invoice=invoice)
+                    .first()
+                      )
+
+                if purchase:
+                    for line in return_lines:
+                              sale_item = line['item']
+                              qty = line['quantity']
+
+                              purchase_item = (
+                                        PurchaseInvoiceItem.objects
+                                        .select_for_update()
+                                        .filter(
+                                                  invoice=purchase,
+                                                  product_id=sale_item.product_id,
+                                        )
+                                        .first()
+                              )
+
+                              if not purchase_item:
+                                        raise ValueError(
+                                                  f'لم يتم العثور على عنصر المنتج '
+                                                  f'{sale_item.product.name} في فاتورة المشتريات '
+                                                  f'{purchase.invoice_number}'
+                                        )
+
+                              if qty > purchase_item.quantity:
+                                        raise ValueError(
+                                                  f'كمية المرتجع أكبر من كمية المنتج '
+                                                  f'{sale_item.product.name} في فاتورة المشتريات'
+                                        )
+
+                              purchase_item.quantity -= qty
+
+                              if purchase_item.quantity == 0:
+                                        purchase_item.delete()
+                              else:
+                                        purchase_item.save(
+                                                  update_fields=['quantity' , 'total_price','loyalty_points',]
+                                        )
+
+                    purchase_items = purchase.items.all()
+
+                    purchase.subtotal = sum(
+                              (
+                                        Decimal(str(item.unit_price)) * item.quantity
+                                        for item in purchase_items
+                              ),
+                              Decimal('0'),
+                    )
+
+                    purchase.total = max(
+                              Decimal('0'),
+                              purchase.subtotal - Decimal(str(purchase.discount or 0)),
+                    )
+
+                    purchase.total_loyalty_points = (
+                              purchase.items.aggregate(
+                                        total=Sum('loyalty_points')
+                              )['total'] or Decimal('0')
+                    )
+
+                    purchase.paid_amount = purchase.total
+                    purchase.debt_amount = Decimal('0')
+
+                    purchase.save()
 
                     
             for branch_id, delta in points_deltas.items():
@@ -3491,7 +3568,7 @@ def sale_invoice_return(request, pk):
                     ).delete()
                 invoice.items.update(loyalty_points=Decimal('0'))
                 invoice.total_loyalty_points = Decimal('0')
-                
+
                 invoice.status = 'cancelled'
 
                 if invoice.sale_type == 'customer' and not branch.is_main:

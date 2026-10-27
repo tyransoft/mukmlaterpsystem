@@ -3421,12 +3421,16 @@ def sale_invoice_return(request, pk):
 
                 if return_type == 'partial':
                     item.quantity -= qty
-                    item.total_price = (
-                        Decimal(str(item.unit_price))
-                        * Decimal(item.quantity)
-                    )
-                    item.save(update_fields=['quantity', 'total_price'])
 
+                    item.save(
+                      update_fields=[
+                      'quantity',
+                     'total_price',
+                      'loyalty_points',
+                            ]
+                        )
+
+                    
             for branch_id, delta in points_deltas.items():
                 if delta == 0:
                     continue
@@ -3485,7 +3489,9 @@ def sale_invoice_return(request, pk):
                     PurchaseInvoice.objects.filter(
                         source_sale_invoice=invoice
                     ).delete()
-
+                invoice.items.update(loyalty_points=Decimal('0'))
+                invoice.total_loyalty_points = Decimal('0')
+                
                 invoice.status = 'cancelled'
 
                 if invoice.sale_type == 'customer' and not branch.is_main:
@@ -3539,12 +3545,11 @@ def sale_invoice_return(request, pk):
                     invoice.total - invoice.paid_amount
                 )
 
-                if invoice.sale_type == 'customer':
-                    invoice.total_loyalty_points = max(
-                        Decimal('0'),
-                        Decimal(str(invoice.total_loyalty_points or 0))
-                        - returned_points,
-                    )
+                invoice.total_loyalty_points = (
+                  invoice.items.aggregate(
+                    total=Sum('loyalty_points')
+                    )['total'] or Decimal('0')
+                   )
 
                 invoice.save()
 

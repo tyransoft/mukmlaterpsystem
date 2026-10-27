@@ -1061,6 +1061,16 @@ def branch_delete(request, pk):
     branch.save()
     return JsonResponse({'success': True, 'message': f'تم تعطيل الفرع {name}'})
 
+
+def delete_branch_sales_delivery(request, pk):
+    if request.method == 'POST':
+        delivery = get_object_or_404(BranchSalesDelivery, pk=pk)
+        delivery.delete()
+        messages.success(request, 'تم حذف تسليم المبيعات بنجاح.')
+        return redirect('branch_sales_deliveries')
+
+    return redirect('branch_sales_deliveries')
+
 @login_required
 def sale_invoice_create(request):
     

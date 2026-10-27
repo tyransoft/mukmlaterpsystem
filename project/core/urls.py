@@ -19,6 +19,7 @@ urlpatterns = [
     path('branches/<int:pk>/', branch_detail, name='branches_detail'),
     path('branches/<int:pk>/edit/', branch_edit, name='branches_edit'),
     path('branches/<int:pk>/delete/', branch_delete, name='branches_delete'),
+    path( 'branch-sales-delivery/<int:pk>/delete/', delete_branch_sales_delivery, name='delete_branch_sales_delivery'),
     path('branches/<int:pk>/sales-delivery/', branch_sales_delivery, name='branch_sales_delivery'),
     path('branches/delivery-receipt/<int:pk>/', branch_delivery_receipt, name='branch_delivery_receipt'),
     path('branches/<int:pk>/deliveries-history/', branch_deliveries_history, name='branch_deliveries_history'),

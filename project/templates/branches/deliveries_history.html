@@ -81,6 +81,15 @@
                   <rect x="6" y="14" width="12" height="8"></rect>
                 </svg>
               </a>
+              <form method="post"
+      action="{% url 'delete_branch_sales_delivery' delivery.pk %}"
+      style="display:inline;"
+      onsubmit="return confirm('هل أنت متأكد من حذف هذا التسليم؟');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">
+         حذف
+    </button>
+</form>
             </td>
           </tr>
           {% empty %}

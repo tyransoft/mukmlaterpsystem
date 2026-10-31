@@ -3014,7 +3014,7 @@ def customer_payment_create(request, pk):
                 remaining -= invoice.debt_amount
                 invoice.debt_amount = 0
                 invoice.paid_amount = invoice.total
-                invoice.status = 'paid'
+                invoice.status = 'confirmed'
             else:
                 invoice.debt_amount -= remaining
                 invoice.paid_amount += remaining

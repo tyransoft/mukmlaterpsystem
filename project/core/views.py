@@ -284,7 +284,31 @@ def branch_dashboard(request):
     ).select_related('customer', 'employee').order_by('-created_at')[:10]
    
    
+    today_payment_breakdown = SaleInvoice.objects.filter(
+        branch=branch,
+        sale_type='customer',
+        status='confirmed',
+        created_at__date=today
+    ).values(
+        'payment_method__name'
+    ).annotate(
+        total=Sum('total'),
+        paid=Sum('paid_amount'),
+        count=Count('id'),
+    ).order_by('-total')
 
+    month_payment_breakdown = SaleInvoice.objects.filter(
+        branch=branch,
+        sale_type='customer',
+        status='confirmed',
+        created_at__date__gte=month_start
+    ).values(
+        'payment_method__name'
+    ).annotate(
+        total=Sum('total'),
+        paid=Sum('paid_amount'),
+        count=Count('id'),
+    ).order_by('-total')
 
     today_delivery_count = SaleInvoice.objects.filter(
       branch=branch,
@@ -330,7 +354,8 @@ def branch_dashboard(request):
         'month_delivery_sales': month_delivery_sales,
         'today_delivery_count': today_delivery_count,
         'total_delivery_sales': total_delivery_sales,
-        
+        'today_payment_breakdown': today_payment_breakdown,
+        'month_payment_breakdown': month_payment_breakdown,
         'net_today_sales': net_today_sales,
         'net_month_sales': net_month_sales,
         

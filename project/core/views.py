@@ -2815,8 +2815,14 @@ def branch_sales_delivery(request, pk):
     
     total_sales = sales_query.aggregate(total=Sum('total'))['total'] or 0
     total_commission = sales_query.aggregate(total=Sum('branch_commission'))['total'] or 0
-    branch_loyalty = sales_query.aggregate(total=Sum('total_loyalty_points'))['total'] or 0
+    branch_loyalty = CustomerLoyaltyReward.objects.filter(
+      branch=branch
+       ).aggregate(
+      total=Sum('amount')
+      )['total'] or Decimal('0')
+
     net_sales = total_sales - branch_loyalty
+
     amount_due_to_main = net_sales - total_commission
     
     total_delivered = BranchSalesDelivery.objects.filter(branch=branch).aggregate(total=Sum('amount'))['total'] or 0

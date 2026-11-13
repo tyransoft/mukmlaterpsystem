@@ -10,7 +10,7 @@ def generate_loyalty_transfer_excel(transfers, transfer_type='single'):
     ws = wb.active
     ws.title = "النقاط"
     
-    headers = ['رقم العضوية', 'اسم العميل', 'النقاط المحولة','الفرع','تاريخ التحويل']
+    headers = ['رقم العضوية', 'اسم العميل', 'النقاط المحولة','الفرع','تاريخ التحويل','ملاحظات']
     header_fill = PatternFill(start_color="2563eb", end_color="2563eb", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True, size=12)
     
@@ -33,14 +33,28 @@ def generate_loyalty_transfer_excel(transfers, transfer_type='single'):
         ws.cell(row=row, column=3, value=transfer.points)
         ws.cell(row=row, column=4, value=transfer.branch.name if transfer.branch else '-')
         ws.cell(row=row, column=5, value=transfer.transfer_date.strftime('%Y-%m-%d %H:%M') if transfer.transfer_date else datetime.now().strftime('%Y-%m-%d %H:%M'))
+        ws.cell(row=row, column=6, value=transfer.sale_invoice.notes if transfer.sale_invoice else '-')
         
-        for col in range(1, 6):
+        for col in range(1, 7):
             ws.cell(row=row, column=col).border = border
             ws.cell(row=row, column=col).alignment = Alignment(horizontal='center')
-    
-    for col in range(1, 6):
-        ws.column_dimensions[get_column_letter(col)].width = 20
-    
+        ws.cell(row=row, column=6).alignment = Alignment(
+                 horizontal='center',
+                 vertical='center',
+                 wrap_text=True
+            )
+    widths = {
+          1: 18,
+          2: 25,
+          3: 18,
+          4: 20,
+          5: 22,
+          6: 40,
+        }
+
+    for col, width in widths.items():
+          ws.column_dimensions[get_column_letter(col)].width = width    
+
     return wb
 
 
